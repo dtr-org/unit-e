@@ -483,6 +483,24 @@ std::string JSONPrettyPrint(const UniValue& univalue)
 }
 } // namespace
 
+
+CScript CreateSlashScript(CKey key1, CKey key2, esperanza::Vote vote1, esperanza::Vote vote2) {
+
+  std::vector<unsigned char> vote_sig_1;
+  key1.Sign(vote1.GetHash(), vote_sig_1);
+
+  std::vector<unsigned char> vote_sig_2;
+  key2.Sign(vote2.GetHash(), vote_sig_2);
+
+  CScript encoded_vote1 = CScript::EncodeVote(vote1, vote_sig_1);
+  std::vector<unsigned char> vote1_vector(encoded_vote1.begin(), encoded_vote1.end());
+
+  CScript encoded_vote2 = CScript::EncodeVote(vote2, vote_sig_2);
+  std::vector<unsigned char> vote2_vector(encoded_vote2.begin(), encoded_vote2.end());
+
+  return CScript() << vote1_vector << vote2_vector;
+}
+
 BOOST_AUTO_TEST_CASE(script_build)
 {
     const KeyData keys;
@@ -1945,4 +1963,206 @@ BOOST_AUTO_TEST_CASE(create_commit_script)
   CScript script = CScript::CreateFinalizerCommitScript(key.GetPubKey());
   BOOST_CHECK(script.IsFinalizerCommitScript());
 }
+
+BOOST_AUTO_TEST_CASE(verify_slash_script)
+{
+  CKey key;
+  key.MakeNewKey(true);
+  ScriptError *s_error;
+
+  CMutableTransaction txn;
+  txn.SetType(TxType::SLASH);
+
+  const CScript& slash_script = CScript::CreateFinalizerCommitScript(key.GetPubKey());
+  CTxOut txout(0, CScript());
+
+  txn.vout.push_back(txout);
+
+  // Test invalid scriptsig
+  {
+      CScript scriptSig = CScript() << ToByteVector(GetRandHash());
+
+      txn.vin.clear();
+      txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+      CTransaction txToConst(txn);
+      CScriptWitness witness;
+      const TransactionSignatureChecker checker(&txToConst, 0, CAmount());
+
+      BOOST_CHECK(!VerifyScript(scriptSig, slash_script, &witness, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, s_error));
+  }
+
+  // Test duplicate votes
+  {
+      esperanza::Vote vote = {key.GetPubKey().GetID(), GetRandHash(), 10, 20};
+      CScript scriptSig = CreateSlashScript(key, key, vote, vote);
+
+      txn.vin.clear();
+      txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+      CTransaction txToConst(txn);
+      CScriptWitness witness;
+      const TransactionSignatureChecker checker(&txToConst, 0, CAmount());
+
+      BOOST_CHECK(!VerifyScript(scriptSig, slash_script, &witness, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, s_error));
+  }
+
+  // Test double votes with the same target_hash
+  {
+      uint256 target_hash = GetRandHash();
+      esperanza::Vote vote1 = {key.GetPubKey().GetID(), target_hash, 10, 20};
+      esperanza::Vote vote2 = {key.GetPubKey().GetID(), target_hash, 5, 20};
+      CScript scriptSig = CreateSlashScript(key, key, vote1, vote2);
+
+      txn.vin.clear();
+      txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+      CTransaction txToConst(txn);
+      CScriptWitness witness;
+      const TransactionSignatureChecker checker(&txToConst, 0, CAmount());
+
+      BOOST_CHECK(!VerifyScript(scriptSig, slash_script, &witness, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, s_error));
+  }
+
+  // Test that double votes with different signatures
+  {
+      CKey other_key;
+      other_key.MakeNewKey(true);
+
+      uint256 target_hash_1 = GetRandHash();
+      uint256 target_hash_2 = GetRandHash();
+      BOOST_REQUIRE(target_hash_1 != target_hash_2);
+
+      esperanza::Vote vote1 = {key.GetPubKey().GetID(), target_hash_1, 10, 20};
+      esperanza::Vote vote2 = {other_key.GetPubKey().GetID(), target_hash_2, 10, 20};
+      CScript scriptSig = CreateSlashScript(key, other_key, vote1, vote2);
+
+      txn.vin.clear();
+      txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+      CTransaction txToConst(txn);
+      CScriptWitness witness;
+      const TransactionSignatureChecker checker(&txToConst, 0, CAmount());
+
+      BOOST_CHECK(!VerifyScript(scriptSig, slash_script, &witness, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, s_error));
+  }
+
+  // Test valid sequential votes
+  {
+    uint256 target_hash_1 = GetRandHash();
+    uint256 target_hash_2 = GetRandHash();
+    BOOST_REQUIRE(target_hash_1 != target_hash_2);
+
+    esperanza::Vote vote1 = {key.GetPubKey().GetID(), target_hash_1, 10, 11};
+    esperanza::Vote vote2 = {key.GetPubKey().GetID(), target_hash_2, 11, 13};
+    CScript scriptSig = CreateSlashScript(key, key, vote1, vote2);
+
+    txn.vin.clear();
+    txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+    CTransaction txToConst(txn);
+    CScriptWitness witness;
+    const TransactionSignatureChecker checker(&txToConst, 0, CAmount());
+
+    BOOST_CHECK(!VerifyScript(scriptSig, slash_script, &witness, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, s_error));
+  }
+
+  // Test valid overlapping votes
+  {
+      uint256 target_hash_1 = GetRandHash();
+      uint256 target_hash_2 = GetRandHash();
+      BOOST_REQUIRE(target_hash_1 != target_hash_2);
+
+      esperanza::Vote vote1 = {key.GetPubKey().GetID(), target_hash_1, 10, 11};
+      esperanza::Vote vote2 = {key.GetPubKey().GetID(), target_hash_2, 11, 13};
+      CScript scriptSig = CreateSlashScript(key, key, vote1, vote2);
+
+      txn.vin.clear();
+      txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+      CTransaction txToConst(txn);
+      CScriptWitness witness;
+      const TransactionSignatureChecker checker(&txToConst, 0, CAmount());
+
+      BOOST_CHECK(!VerifyScript(scriptSig, slash_script, &witness, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, s_error));
+  }
+
+  // Test that double votes with different addresses
+  {
+    CKey other_key;
+    other_key.MakeNewKey(true);
+
+    uint256 target_hash_1 = GetRandHash();
+    uint256 target_hash_2 = GetRandHash();
+    BOOST_REQUIRE(target_hash_1 != target_hash_2);
+
+    esperanza::Vote vote1 = {other_key.GetPubKey().GetID(), target_hash_1, 10, 20};
+    esperanza::Vote vote2 = {other_key.GetPubKey().GetID(), target_hash_2, 10, 20};
+    CScript scriptSig = CreateSlashScript(key, key, vote1, vote2);
+
+    txn.vin.clear();
+    txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+    CTransaction txToConst(txn);
+    CScriptWitness witness;
+    const TransactionSignatureChecker checker(&txToConst, 0, CAmount());
+
+    BOOST_CHECK(VerifyScript(scriptSig, slash_script, &witness, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, s_error));
+  }
+
+  // Test invalid vote signatures
+  {
+
+      CKey other_key;
+      other_key.MakeNewKey(true);
+
+      uint256 target_hash_1 = GetRandHash();
+      uint256 target_hash_2 = GetRandHash();
+      BOOST_REQUIRE(target_hash_1 != target_hash_2);
+
+      esperanza::Vote vote1 = {key.GetPubKey().GetID(), target_hash_1, 10, 20};
+      esperanza::Vote vote2 = {key.GetPubKey().GetID(), target_hash_2, 10, 20};
+      CScript scriptSig = CreateSlashScript(other_key, other_key, vote1, vote2);
+
+      txn.vin.clear();
+      txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+      CTransaction txToConst(txn);
+      CScriptWitness witness;
+      const TransactionSignatureChecker checker(&txToConst, 0, CAmount());
+
+      BOOST_CHECK(!VerifyScript(scriptSig, slash_script, &witness, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, s_error));
+  }
+
+  // Test double votes
+  {
+      uint256 target_hash_1 = GetRandHash();
+      uint256 target_hash_2 = GetRandHash();
+      BOOST_REQUIRE(target_hash_1 != target_hash_2);
+
+      esperanza::Vote vote1 = {key.GetPubKey().GetID(), target_hash_1, 10, 20};
+      esperanza::Vote vote2 = {key.GetPubKey().GetID(), target_hash_2, 5, 20};
+      CScript scriptSig = CreateSlashScript(key, key, vote1, vote2);
+
+      txn.vin.clear();
+      txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+      CTransaction txToConst(txn);
+      CScriptWitness witness;
+      const TransactionSignatureChecker checker(&txToConst, 0, CAmount());
+
+      BOOST_CHECK(VerifyScript(scriptSig, slash_script, &witness, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, s_error));
+  }
+
+  // Test surrounding votes
+  {
+      uint256 target_hash_1 = GetRandHash();
+      uint256 target_hash_2 = GetRandHash();
+      BOOST_REQUIRE(target_hash_1 != target_hash_2);
+
+      esperanza::Vote vote1 = {key.GetPubKey().GetID(), target_hash_1, 10, 11};
+      esperanza::Vote vote2 = {key.GetPubKey().GetID(), target_hash_2, 5, 20};
+      CScript scriptSig = CreateSlashScript(key, key, vote1, vote2);
+
+      txn.vin.clear();
+      txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+      CTransaction txToConst(txn);
+      CScriptWitness witness;
+      const TransactionSignatureChecker checker(&txToConst, 0, CAmount());
+
+      BOOST_CHECK(VerifyScript(scriptSig, slash_script, &witness, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, s_error));
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()

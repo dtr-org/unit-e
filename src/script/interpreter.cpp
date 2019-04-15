@@ -525,10 +525,6 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                             esperanza::Vote vote1;
                             esperanza::Vote vote2;
 
-                            if (vote1.GetHash() == vote2.GetHash()) {
-                                return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SCRIPT);
-                            }
-
                             CScript voteScript = CScript(vchVote1.begin(), vchVote1.end());
                             if (!CScript::DecodeVote(voteScript, vote1, voteSig1)) {
                                 return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SCRIPT);
@@ -537,6 +533,10 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                             voteScript = CScript(vchVote2.begin(), vchVote2.end());
                             if (!CScript::DecodeVote(voteScript, vote2, voteSig2)) {
                                 return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SCRIPT);
+                            }
+
+                            if (vote1.GetHash() == vote2.GetHash()) {
+                              return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SCRIPT);
                             }
 
                             // Check vote1 signature
@@ -560,7 +560,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                             uint32_t sourceEpoch2 = vote2.m_source_epoch;
                             uint32_t targetEpoch2 = vote2.m_target_epoch;
 
-                            bool isDoubleVote = targetEpoch1 == targetEpoch2;
+                            bool isDoubleVote = targetEpoch1 == targetEpoch2 && vote1.m_target_hash != vote2.m_target_hash;
                             bool isSurroundVote =
                                 (targetEpoch1 > targetEpoch2 && sourceEpoch1 < sourceEpoch2) ||
                                     (targetEpoch2 > targetEpoch1 && sourceEpoch2 < sourceEpoch1);
