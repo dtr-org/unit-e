@@ -6,6 +6,7 @@
 #include <esperanza/adminparams.h>
 #include <esperanza/checks.h>
 #include <esperanza/finalizationstate.h>
+#include <finalization/vote_recorder.h>
 #include <script/interpreter.h>
 #include <script/sign.h>
 #include <script/standard.h>
@@ -350,6 +351,11 @@ bool ContextualCheckVoteTx(const CTransaction &tx, CValidationState &err_state,
   }
 
   const Result res = fin_state.ValidateVote(vote);
+  if (res != +esperanza::Result::ADMIN_BLACKLISTED &&
+      res != +esperanza::Result::VOTE_NOT_BY_VALIDATOR) {
+    finalization::VoteRecorder::GetVoteRecorder()->RecordVote(vote, vote_sig, fin_state);
+  }
+
   switch (+res) {
     case Result::SUCCESS:
       break;
