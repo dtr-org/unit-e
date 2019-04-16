@@ -106,13 +106,13 @@ perspectives, which goes side by side with the consensus protocol that is going
 to be further developed.
 
 We plan to explore models with dynamic emission rate, where the network pays
-for the security it needs, in PoS, taking into account the amount of tokens
-being deposited/staked seems like a good direction.
+for the security it needs. In PoS consensus, taking into account the amount of
+tokens being deposited/staked seems like a good direction.
 
 As was also [researched](https://arxiv.org/pdf/1809.07468.pdf), time based
 emission, starting very high and decreasing over the years (in Bitcoin halving
-every 4 years) isn't securing the protocol efficiently nor fair in terms of
-the currency distribution between the miners or active participants.
+every 4 years), isn't securing the protocol efficiently nor fair in terms of
+the currency distribution between the active participants.
 
 ## Running from source
 
