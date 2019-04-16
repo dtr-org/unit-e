@@ -28,9 +28,13 @@ const ufp64::ufp64_t BASE_DEPOSIT_SCALE_FACTOR = ufp64::to_ufp64(1);
 }  // namespace
 
 template <typename... Args>
-inline Result fail(Result error, const char *fmt, const Args &... args) {
-  std::string reason = tfm::format(fmt, args...);
-  LogPrint(BCLog::FINALIZATION, "ERROR: %s.\n", reason);
+inline Result fail(const Result error,
+                   const bool log_errors,
+                   const char *fmt, const Args &... args) {
+  if (log_errors) {
+    std::string reason = tfm::format(fmt, args...);
+    LogPrint(BCLog::FINALIZATION, "ERROR: %s.\n", reason);
+  }
   return error;
 }
 
@@ -81,6 +85,7 @@ Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
 
   if (new_epoch != m_current_epoch + 1) {
     return fail(Result::INIT_WRONG_EPOCH,
+                /*log_errors=*/true,
                 "%s: new_epoch must be %d but %d was passed\n",
                 __func__, m_current_epoch + 1, new_epoch);
   }
@@ -110,7 +115,9 @@ Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
                                                                   GetEpochsSinceFinalization()));
 
     if (m_reward_factor <= 0) {
-      return fail(Result::INIT_INVALID_REWARD, "Invalid reward factor %d",
+      return fail(Result::INIT_INVALID_REWARD,
+                  /*log_errors=*/true,
+                  "Invalid reward factor %d",
                   m_reward_factor);
     }
 
@@ -304,14 +311,16 @@ CAmount FinalizationState::ProcessReward(const uint160 &validatorAddress, uint64
 
 Result FinalizationState::IsVotable(const Validator &validator,
                                     const uint256 &targetHash,
-                                    uint32_t targetEpoch,
-                                    uint32_t sourceEpoch) const {
+                                    const uint32_t targetEpoch,
+                                    const uint32_t sourceEpoch,
+                                    const bool log_errors) const {
 
   auto validatorAddress = validator.m_validator_address;
 
   auto it = m_checkpoints.find(targetEpoch);
   if (it == m_checkpoints.end()) {
     return fail(Result::VOTE_MALFORMED,
+                log_errors,
                 "%s: target_epoch=%d is in the future.\n", __func__,
                 targetEpoch);
   }
@@ -322,12 +331,14 @@ Result FinalizationState::IsVotable(const Validator &validator,
 
   if (alreadyVoted) {
     return fail(Result::VOTE_ALREADY_VOTED,
+                log_errors,
                 "%s: validator=%s has already voted for target_epoch=%d.\n",
                 __func__, validatorAddress.GetHex(), targetEpoch);
   }
 
   if (targetHash != m_recommended_target_hash) {
     return fail(Result::VOTE_WRONG_TARGET_HASH,
+                log_errors,
                 "%s: validator=%s is voting for target=%s instead of the "
                 "recommended_target=%s.\n",
                 __func__, validatorAddress.GetHex(), targetHash.GetHex(),
@@ -337,6 +348,7 @@ Result FinalizationState::IsVotable(const Validator &validator,
   if (targetEpoch != m_current_epoch - 1) {
     return fail(
         Result::VOTE_WRONG_TARGET_EPOCH,
+        log_errors,
         "%s: vote for wrong target_epoch=%d. validator=%s current_epoch=%d\n",
         __func__, targetEpoch, validatorAddress.GetHex(), m_current_epoch);
   }
@@ -344,6 +356,7 @@ Result FinalizationState::IsVotable(const Validator &validator,
   it = m_checkpoints.find(sourceEpoch);
   if (it == m_checkpoints.end()) {
     return fail(Result::VOTE_MALFORMED,
+                log_errors,
                 "%s: source_epoch=%d is in the future. current_epoch=%d\n", __func__,
                 sourceEpoch, m_current_epoch);
   }
@@ -352,6 +365,7 @@ Result FinalizationState::IsVotable(const Validator &validator,
   if (!sourceCheckpoint.m_is_justified) {
     return fail(
         Result::VOTE_SRC_EPOCH_NOT_JUSTIFIED,
+        log_errors,
         "%s: validator=%s is voting for a non justified source epoch=%d.\n",
         __func__, validatorAddress.GetHex(), targetEpoch);
   }
@@ -361,6 +375,7 @@ Result FinalizationState::IsVotable(const Validator &validator,
   }
 
   return fail(Result::VOTE_NOT_VOTABLE,
+              log_errors,
               "%s: validator=%s is not in dynasty=%d nor the previous.\n",
               __func__, validatorAddress.GetHex(), m_current_dynasty);
 }
@@ -371,18 +386,21 @@ Result FinalizationState::ValidateDeposit(const uint160 &validatorAddress,
 
   if (!m_admin_state.IsValidatorAuthorized(validatorAddress)) {
     return fail(esperanza::Result::ADMIN_BLACKLISTED,
+                /*log_errors=*/true,
                 "%s: validator=%s is blacklisted.\n", __func__,
                 validatorAddress.GetHex());
   }
 
   if (m_validators.find(validatorAddress) != m_validators.end()) {
     return fail(Result::DEPOSIT_DUPLICATE,
+                /*log_errors=*/true,
                 "%s: validator=%s with the deposit already exists.\n",
                 __func__, validatorAddress.GetHex());
   }
 
   if (depositValue < m_settings.min_deposit_size) {
     return fail(Result::DEPOSIT_INSUFFICIENT,
+                /*log_errors=*/true,
                 "%s: The deposit value must be %d > %d.\n", __func__,
                 depositValue, m_settings.min_deposit_size);
   }
@@ -413,11 +431,12 @@ uint64_t FinalizationState::CalculateVoteReward(const Validator &validator) cons
   return ufp64::mul_to_uint(m_reward_factor, validator.m_deposit);
 }
 
-Result FinalizationState::ValidateVote(const Vote &vote) const {
+Result FinalizationState::ValidateVote(const Vote &vote, const bool log_errors) const {
   LOCK(cs_esperanza);
 
   if (!m_admin_state.IsValidatorAuthorized(vote.m_validator_address)) {
     return fail(esperanza::Result::ADMIN_BLACKLISTED,
+                log_errors,
                 "%s: validator=%s is blacklisted\n", __func__,
                 vote.m_validator_address.GetHex());
   }
@@ -425,15 +444,19 @@ Result FinalizationState::ValidateVote(const Vote &vote) const {
   auto it = m_validators.find(vote.m_validator_address);
   if (it == m_validators.end()) {
     return fail(Result::VOTE_NOT_BY_VALIDATOR,
+                log_errors,
                 "%s: No validator with index %s found.\n", __func__,
                 vote.m_validator_address.GetHex());
   }
 
   Result isVotable = IsVotable(it->second, vote.m_target_hash,
-                               vote.m_target_epoch, vote.m_source_epoch);
+                               vote.m_target_epoch, vote.m_source_epoch,
+                               log_errors);
 
   if (isVotable != +Result::SUCCESS) {
-    return fail(isVotable, "%s: not votable. validator=%s target=%s source_epoch=%d target_epoch=%d\n",
+    return fail(isVotable,
+                log_errors,
+                "%s: not votable. validator=%s target=%s source_epoch=%d target_epoch=%d\n",
                 __func__,
                 vote.m_validator_address.GetHex(),
                 vote.m_target_hash.GetHex(),
@@ -529,6 +552,7 @@ Result FinalizationState::ValidateLogout(const uint160 &validatorAddress) const 
   auto it = m_validators.find(validatorAddress);
   if (it == m_validators.end()) {
     return fail(Result::LOGOUT_NOT_A_VALIDATOR,
+                /*log_errors=*/true,
                 "%s: No validator with index %s found.\n", __func__,
                 validatorAddress.GetHex());
   }
@@ -538,6 +562,7 @@ Result FinalizationState::ValidateLogout(const uint160 &validatorAddress) const 
 
   if (validator.m_start_dynasty > m_current_dynasty) {
     return fail(Result::LOGOUT_NOT_YET_A_VALIDATOR,
+                /*log_errors=*/true,
                 "%s: the validator with address %s is logging out before the "
                 "start dynasty.\n",
                 __func__, validator.m_validator_address.GetHex());
@@ -545,6 +570,7 @@ Result FinalizationState::ValidateLogout(const uint160 &validatorAddress) const 
 
   if (validator.m_end_dynasty <= endDynasty) {
     return fail(Result::LOGOUT_ALREADY_DONE,
+                /*log_errors=*/true,
                 "%s: validator=%s already logged out.\n",
                 __func__, validator.m_validator_address.GetHex());
   }
@@ -581,6 +607,7 @@ Result FinalizationState::ValidateWithdraw(const uint160 &validatorAddress,
 
   if (withdrawableAmount < requestedWithdraw) {
     fail(Result::WITHDRAW_WRONG_AMOUNT,
+         /*log_errors=*/true,
          "%s: Trying to withdraw %d, but max is %d.\n", __func__,
          requestedWithdraw, withdrawableAmount);
   }
@@ -597,6 +624,7 @@ Result FinalizationState::CalculateWithdrawAmount(const uint160 &validatorAddres
   auto it = m_validators.find(validatorAddress);
   if (it == m_validators.end()) {
     return fail(Result::WITHDRAW_NOT_A_VALIDATOR,
+                /*log_errors=*/true,
                 "%s: No validator with index %s found.\n", __func__,
                 validatorAddress.GetHex());
   }
@@ -607,6 +635,7 @@ Result FinalizationState::CalculateWithdrawAmount(const uint160 &validatorAddres
 
   if (m_current_dynasty <= endDynasty) {
     return fail(Result::WITHDRAW_BEFORE_END_DYNASTY,
+                /*log_errors=*/true,
                 "%s: Too early to withdraw, minimum expected dynasty for "
                 "withdraw is %d.\n",
                 __func__, endDynasty);
@@ -617,6 +646,7 @@ Result FinalizationState::CalculateWithdrawAmount(const uint160 &validatorAddres
 
   if (m_current_epoch < withdrawalEpoch) {
     return fail(Result::WITHDRAW_TOO_EARLY,
+                /*log_errors=*/true,
                 "%s: Too early to withdraw, minimum expected epoch for "
                 "withdraw is %d.\n",
                 __func__, withdrawalEpoch);
@@ -673,6 +703,7 @@ Result FinalizationState::ValidateAdminKeys(const AdminKeySet &adminKeys) const 
   }
 
   return fail(esperanza::Result::ADMIN_NOT_AUTHORIZED,
+              /*log_errors=*/true,
               "Provided pubkeys do not belong to admin");
 }
 
@@ -710,12 +741,14 @@ void FinalizationState::ProcessAdminCommands(
 }
 
 Result FinalizationState::IsSlashable(const Vote &vote1,
-                                      const Vote &vote2) const {
+                                      const Vote &vote2,
+                                      bool log_errors) const {
   LOCK(cs_esperanza);
 
   auto it = m_validators.find(vote1.m_validator_address);
   if (it == m_validators.end()) {
     return fail(Result::SLASH_NOT_A_VALIDATOR,
+                log_errors,
                 "%s: No validator with index %s found.\n", __func__,
                 vote1.m_validator_address.GetHex());
   }
@@ -724,6 +757,7 @@ Result FinalizationState::IsSlashable(const Vote &vote1,
   it = m_validators.find(vote2.m_validator_address);
   if (it == m_validators.end()) {
     return fail(Result::SLASH_NOT_A_VALIDATOR,
+                log_errors,
                 "%s: No validator with index %s found.\n", __func__,
                 vote2.m_validator_address.GetHex());
   }
@@ -740,12 +774,14 @@ Result FinalizationState::IsSlashable(const Vote &vote1,
 
   if (validatorAddress1 != validatorAddress2) {
     return fail(Result::SLASH_NOT_SAME_VALIDATOR,
+                log_errors,
                 "%s: votes have not be casted by the same validator.\n",
                 __func__);
   }
 
   if (validator1.m_start_dynasty > m_current_dynasty) {
     return fail(Result::SLASH_TOO_EARLY,
+                log_errors,
                 "%s: validator with deposit hash %s is not yet voting.\n",
                 __func__, vote1.m_validator_address.GetHex());
   }
@@ -753,12 +789,14 @@ Result FinalizationState::IsSlashable(const Vote &vote1,
   if (validator1.m_is_slashed) {
     return fail(
         Result::SLASH_ALREADY_SLASHED,
+        log_errors,
         "%s: validator with deposit hash %s has been already slashed.\n",
         __func__, vote1.m_validator_address.GetHex());
   }
 
   if (vote1.m_target_hash == vote2.m_target_hash) {
     return fail(Result::SLASH_SAME_VOTE,
+                log_errors,
                 "%s: Not slashable cause the two votes are the same.\n",
                 __func__);
   }
@@ -772,7 +810,9 @@ Result FinalizationState::IsSlashable(const Vote &vote1,
     return success();
   }
 
-  return fail(Result::SLASH_NOT_VALID, "%s: Slashing failed", __func__);
+  return fail(Result::SLASH_NOT_VALID,
+              log_errors,
+              "%s: Slashing failed", __func__);
 }
 
 void FinalizationState::ProcessSlash(const Vote &vote1, const Vote &vote2) {
