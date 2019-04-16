@@ -88,7 +88,7 @@ class FinalizationState : public FinalizationStateData {
   //! \brief Validates the vote of the deposit against the current state.
   //!
   //! This does assume that the normal transaction validation process already took place.
-  Result ValidateVote(const Vote &vote) const;
+  Result ValidateVote(const Vote &vote, bool log_errors = true) const;
 
   //! Performs a vote using the given vote input.
   void ProcessVote(const Vote &vote);
@@ -116,7 +116,7 @@ class FinalizationState : public FinalizationStateData {
 
   //! \brief Checks whether two distinct votes from the same voter are proven being a
   //! slashable misbehaviour.
-  Result IsSlashable(const Vote &vote1, const Vote &vote2) const;
+  Result IsSlashable(const Vote &vote1, const Vote &vote2, bool log_errors = true) const;
 
   //! Given two votes, performs a slash against the validator who casted them.
   void ProcessSlash(const Vote &vote1, const Vote &vote2);
@@ -206,7 +206,8 @@ class FinalizationState : public FinalizationStateData {
 
   //! Checks if the validator can create a valid vote with the given parameters.
   Result IsVotable(const Validator &validator, const uint256 &targetHash,
-                   uint32_t targetEpoch, uint32_t sourceEpoch) const;
+                   uint32_t targetEpoch, uint32_t sourceEpoch,
+                   bool log_errors) const;
 
   bool IsInDynasty(const Validator &validator, uint32_t dynasty) const;
   CAmount ProcessReward(const uint160 &validatorAddress, uint64_t reward);
