@@ -112,7 +112,7 @@ tokens being deposited/staked seems like a good direction.
 As was also [researched](https://arxiv.org/pdf/1809.07468.pdf), time based
 emission, starting very high and decreasing over the years (in Bitcoin halving
 every 4 years), isn't securing the protocol efficiently nor is it fair in terms
-of the future currency distribution between the active participants.
+of compounding and the future currency distribution.
 
 ## Running from source
 
