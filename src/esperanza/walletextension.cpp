@@ -128,8 +128,8 @@ CAmount WalletExtension::GetRemoteStakingBalance() const {
 
     for (size_t i = 0; i < tx->tx->vout.size(); ++i) {
       const CTxOut &txout = tx->tx->vout[i];
-      if (m_enclosing_wallet.IsSpent(hashTx, i))  {
-          continue;
+      if (m_enclosing_wallet.IsSpent(hashTx, i)) {
+        continue;
       }
       if (::IsStakedRemotely(m_enclosing_wallet, txout.scriptPubKey)) {
         balance += txout.nValue;
