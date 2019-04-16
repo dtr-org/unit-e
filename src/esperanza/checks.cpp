@@ -226,7 +226,7 @@ bool ContextualCheckLogoutTx(const CTransaction &tx, CValidationState &err_state
 
   if (prev_out_script != tx.vout[0].scriptPubKey) {
     return err_state.DoS(100, false, REJECT_INVALID,
-                         "bad-logout-not-same-payvoteslash-script");
+                         "bad-logout-not-same-finalizercommit-script");
   }
 
   return true;
@@ -378,7 +378,7 @@ bool ContextualCheckVoteTx(const CTransaction &tx, CValidationState &err_state,
 
   if (prev_out_script != tx.vout[0].scriptPubKey) {
     return err_state.DoS(100, false, REJECT_INVALID,
-                         "bad-vote-not-same-payvoteslash-script");
+                         "bad-vote-not-same-finalizercommit-script");
   }
 
   return true;
