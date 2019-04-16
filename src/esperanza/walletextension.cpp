@@ -287,7 +287,11 @@ bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
 
   CReserveKey reservekey(&m_enclosing_wallet);
   CPubKey pubKey;
-  m_enclosing_wallet.GetPubKey(keyID, pubKey);
+  if (!m_enclosing_wallet.GetPubKey(keyID, pubKey)) {
+    LogPrint(BCLog::FINALIZATION, "%s: Cannot deposit to an unknown address.\n",
+             __func__);
+    return false;
+  }
 
   CRecipient r{CScript::CreateFinalizerCommitScript(pubKey), amount, /*fSubtractFeeFromAmount=*/false};
   vecSend.push_back(r);
