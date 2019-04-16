@@ -9,7 +9,9 @@
 namespace blockchain {
 
 Behavior::Behavior(const Parameters &parameters) noexcept
-    : m_parameters(parameters) {}
+    : m_parameters(parameters) {
+  CheckConsistency();
+}
 
 Difficulty Behavior::CalculateDifficulty(Height height, ChainAccess &chain) const {
   return m_parameters.difficulty_function(m_parameters, height, chain);
@@ -123,6 +125,12 @@ void Behavior::SetGlobal(std::unique_ptr<Behavior> &&behavior) {
 Behavior &Behavior::GetGlobal() {
   assert(g_blockchain_behavior && "global blockchain::Behavior is not initialized");
   return *g_blockchain_behavior;
+}
+
+void Behavior::CheckConsistency() const {
+  assert(this->m_parameters.stake_maturity_activation_height >= this->m_parameters.stake_maturity &&
+         "Invalid blockchain parameters: 'stake_maturity_activation_height' "
+         "must be greater or equal 'stake_maturity'");
 }
 
 }  // namespace blockchain
