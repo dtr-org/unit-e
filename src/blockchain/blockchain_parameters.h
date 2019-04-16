@@ -168,17 +168,11 @@ struct Parameters {
   //! \brief The initial amount of premined coins.
   CAmount initial_supply;
 
-  //! \brief The maximum amount of money that can be in the system.
-  CAmount maximum_supply;
-
-  //! \brief The base block reward for each period.
-  std::vector<CAmount> reward_schedule;
+  //! \brief The base block reward
+  CAmount reward;
 
   //! \brief The reward immediately given upon block proposal.
   ufp64::ufp64_t immediate_reward_fraction;
-
-  //! \brief The period size in blocks.
-  std::uint32_t period_blocks;
 
   //! \brief The function calculating the reward for a newly proposed block.
   //!
