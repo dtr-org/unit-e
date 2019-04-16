@@ -6,6 +6,7 @@
 #include <esperanza/adminparams.h>
 #include <esperanza/checks.h>
 #include <esperanza/finalizationstate.h>
+#include <finalization/vote_recorder.h>
 #include <script/interpreter.h>
 #include <script/sign.h>
 #include <script/standard.h>
@@ -350,6 +351,7 @@ bool ContextualCheckVoteTx(const CTransaction &tx, CValidationState &err_state,
   }
 
   const Result res = fin_state.ValidateVote(vote);
+  fin_state.RecordVoteIfNeeded(res, vote, vote_sig);
   switch (+res) {
     case Result::SUCCESS:
       break;

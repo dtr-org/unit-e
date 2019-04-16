@@ -72,6 +72,7 @@ UNITE_TESTS = \
   test/esperanza/finalizationparams_tests.cpp \
   test/esperanza/finalizationstate_tests.cpp \
   test/esperanza/finalizationstate_deposit_tests.cpp \
+  test/esperanza/finalizationstate_vote_recorder_tests.cpp \
   test/esperanza/finalizationstate_vote_tests.cpp \
   test/esperanza/finalizationstate_logout_tests.cpp \
   test/esperanza/finalizationstate_withdraw_tests.cpp \

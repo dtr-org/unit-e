@@ -7,11 +7,13 @@
 #include <chainparams.h>
 #include <esperanza/checks.h>
 #include <esperanza/vote.h>
+#include <finalization/vote_recorder.h>
 #include <script/ismine.h>
 #include <tinyformat.h>
 #include <ufp64.h>
 #include <util.h>
 #include <validation.h>
+#include <validationinterface.h>
 
 #include <stdint.h>
 #include <algorithm>
@@ -1121,6 +1123,99 @@ bool FinalizationState::IsFinalizerVoting(const uint160 &finalizer_address) cons
 
 bool FinalizationState::IsFinalizerVoting(const Validator &finalizer) const {
   return IsInDynasty(finalizer, m_current_dynasty) || IsInDynasty(finalizer, m_current_dynasty - 1);
+}
+
+bool FinalizationState::RecordVote(const CTransaction &tx,
+                                   CValidationState &err_state,
+                                   const bool log_errors) const {
+  assert(tx.IsVote());
+
+  esperanza::Vote vote;
+  std::vector<unsigned char> vote_sig;
+  if (!CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, vote, vote_sig)) {
+    return err_state.DoS(10, false, REJECT_INVALID, "bad-vote-data-format");
+  }
+
+  if (m_validators.find(vote.m_validator_address) == m_validators.end()) {
+    return err_state.Invalid(false, REJECT_INVALID, "bad-unknown-finalizer");
+  }
+
+  const esperanza::Result res = ValidateVote(vote, log_errors);
+  RecordVoteIfNeeded(res, vote, vote_sig, log_errors);
+
+  return true;
+}
+
+void FinalizationState::RecordVoteIfNeeded(const Result vote_validation_result,
+                                           const esperanza::Vote &vote,
+                                           const std::vector<unsigned char> &vote_sig,
+                                           bool log_errors) const {
+  switch (vote_validation_result) {
+    // record
+    case Result::SUCCESS:
+    case Result::VOTE_ALREADY_VOTED:
+    case Result::VOTE_WRONG_TARGET_HASH:
+    case Result::VOTE_WRONG_TARGET_EPOCH:
+    case Result::VOTE_SRC_EPOCH_NOT_JUSTIFIED:
+      break;
+
+      // don't record
+    case Result::VOTE_NOT_VOTABLE:
+    case Result::INIT_WRONG_EPOCH:
+    case Result::VOTE_NOT_BY_VALIDATOR:
+      return;
+
+      // must not happen but keep the full list
+      // that compiler can report about new checks
+    case Result::ADMIN_BLACKLISTED:
+    case Result::INIT_INVALID_REWARD:
+    case Result::DEPOSIT_INSUFFICIENT:
+    case Result::DEPOSIT_DUPLICATE:
+    case Result::VOTE_MALFORMED:
+    case Result::LOGOUT_ALREADY_DONE:
+    case Result::LOGOUT_NOT_A_VALIDATOR:
+    case Result::LOGOUT_NOT_YET_A_VALIDATOR:
+    case Result::WITHDRAW_BEFORE_END_DYNASTY:
+    case Result::WITHDRAW_TOO_EARLY:
+    case Result::WITHDRAW_NOT_A_VALIDATOR:
+    case Result::WITHDRAW_WRONG_AMOUNT:
+    case Result::SLASH_SAME_VOTE:
+    case Result::SLASH_NOT_SAME_VALIDATOR:
+    case Result::SLASH_TOO_EARLY:
+    case Result::SLASH_ALREADY_SLASHED:
+    case Result::SLASH_NOT_VALID:
+    case Result::SLASH_NOT_A_VALIDATOR:
+    case Result::ADMIN_NOT_AUTHORIZED:
+      return;
+  }
+
+  std::shared_ptr<finalization::VoteRecorder> vote_recorder =
+      finalization::VoteRecorder::GetVoteRecorder();
+
+  boost::optional<finalization::VoteRecord> offending_vote =
+      vote_recorder->FindOffendingVote(vote);
+
+  vote_recorder->RecordVote(vote, vote_sig);
+
+  if (!offending_vote) {
+    return;
+  }
+
+  esperanza::Result res = IsSlashable(vote, offending_vote.get().vote, log_errors);
+  if (res == +esperanza::Result::SUCCESS) {
+    GetMainSignals().SlashingConditionDetected(finalization::VoteRecord{vote, vote_sig},
+                                               offending_vote.get());
+    LogPrint(BCLog::FINALIZATION,
+             "%s: Slashable event found. Sending signal to the wallet.\n",
+             __func__);
+  } else {
+    // If this happens then it needs urgent attention and fixing
+    LogPrint(BCLog::FINALIZATION,
+             "ERROR: The offending vote found is not valid: %s, cannot "
+             "reliably identify slashable votes. Please fix.\n",
+             res._to_string());
+    assert(false);
+  }
 }
 
 }  // namespace esperanza

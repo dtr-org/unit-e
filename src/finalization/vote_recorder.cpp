@@ -4,14 +4,9 @@
 
 #include <finalization/vote_recorder.h>
 
-#include <consensus/validation.h>
-#include <esperanza/finalizationstate.h>
 #include <util.h>
-#include <validationinterface.h>
 
 namespace finalization {
-
-using FinalizationState = esperanza::FinalizationState;
 
 //! The key for vote record in database.
 //! * uin160 is validator address
@@ -61,16 +56,9 @@ void VoteRecorder::SaveVoteToDB(const VoteRecord &record) {
 }
 
 void VoteRecorder::RecordVote(const esperanza::Vote &vote,
-                              const std::vector<unsigned char> &voteSig,
-                              const FinalizationState &fin_state,
-                              const bool log_errors) {
+                              const std::vector<unsigned char> &voteSig) {
 
   LOCK(cs_recorder);
-
-  // Check if the vote comes from a validator
-  if (!fin_state.GetValidator(vote.m_validator_address)) {
-    return;
-  }
 
   boost::optional<VoteRecord> offendingVote = FindOffendingVote(vote);
 
@@ -90,27 +78,9 @@ void VoteRecorder::RecordVote(const esperanza::Vote &vote,
   if (saved_in_memory) {
     SaveVoteToDB(voteRecord);
   }
-
-  if (offendingVote) {
-    esperanza::Result res = fin_state.IsSlashable(vote, offendingVote.get().vote, log_errors);
-    if (res == +esperanza::Result::SUCCESS) {
-      GetMainSignals().SlashingConditionDetected(VoteRecord{vote, voteSig},
-                                                 offendingVote.get());
-      LogPrint(BCLog::FINALIZATION,
-               "%s: Slashable event found. Sending signal to the wallet.\n",
-               __func__);
-    } else {
-      // If this happens then it needs urgent attention and fixing
-      LogPrint(BCLog::FINALIZATION,
-               "ERROR: The offending vote found is not valid: %s, cannot "
-               "reliably identify slashable votes. Please fix.\n",
-               res._to_string());
-      assert(false);
-    }
-  }
 }
 
-boost::optional<VoteRecord> VoteRecorder::FindOffendingVote(const esperanza::Vote &vote) {
+boost::optional<VoteRecord> VoteRecorder::FindOffendingVote(const esperanza::Vote &vote) const {
 
   const auto cacheIt = voteCache.find(vote.m_validator_address);
   if (cacheIt != voteCache.end()) {
@@ -150,6 +120,17 @@ boost::optional<VoteRecord> VoteRecorder::FindOffendingVote(const esperanza::Vot
   return boost::none;
 }
 
+uint32_t VoteRecorder::Count() {
+  LOCK(cs_recorder);
+
+  uint32_t count = 0;
+  for (const auto &it : voteRecords) {
+    count += it.second.size();
+  }
+
+  return count;
+}
+
 boost::optional<VoteRecord> VoteRecorder::GetVote(const uint160 &validatorAddress, uint32_t epoch) const {
 
   LOCK(cs_recorder);
@@ -181,27 +162,5 @@ std::shared_ptr<VoteRecorder> VoteRecorder::GetVoteRecorder() {
 }
 
 CScript VoteRecord::GetScript() const { return CScript::EncodeVote(vote, sig); }
-
-bool RecordVote(const CTransaction &tx,
-                CValidationState &err_state,
-                const FinalizationState &fin_state,
-                const bool log_errors) {
-  assert(tx.IsVote());
-
-  esperanza::Vote vote;
-  std::vector<unsigned char> voteSig;
-
-  if (!CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, vote, voteSig)) {
-    return err_state.DoS(10, false, REJECT_INVALID, "bad-vote-data-format");
-  }
-  const esperanza::Result res = fin_state.ValidateVote(vote, log_errors);
-
-  if (res != +esperanza::Result::ADMIN_BLACKLISTED &&
-      res != +esperanza::Result::VOTE_NOT_BY_VALIDATOR) {
-    finalization::VoteRecorder::GetVoteRecorder()->RecordVote(vote, voteSig, fin_state);
-  }
-
-  return true;
-}
 
 }  // namespace finalization

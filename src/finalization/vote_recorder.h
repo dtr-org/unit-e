@@ -70,33 +70,24 @@ class VoteRecorder : private boost::noncopyable {
   static CCriticalSection cs_recorder;
   static std::shared_ptr<VoteRecorder> g_voteRecorder;
 
-  boost::optional<VoteRecord> FindOffendingVote(const esperanza::Vote &vote);
   void LoadFromDB();
   void SaveVoteToDB(const VoteRecord &record);
 
  public:
   void RecordVote(const esperanza::Vote &vote,
-                  const std::vector<unsigned char> &voteSig,
-                  const FinalizationState &fin_state,
-                  bool log_errors = true);
+                  const std::vector<unsigned char> &voteSig);
 
+  boost::optional<VoteRecord> FindOffendingVote(const esperanza::Vote &vote) const;
   boost::optional<VoteRecord> GetVote(const uint160 &validatorAddress,
                                       uint32_t epoch) const;
+
+  //! \brief calculate total number of votes in DB
+  uint32_t Count();
 
   static void Init(const DBParams &params);
   static void Reset(const DBParams &params);
   static std::shared_ptr<VoteRecorder> GetVoteRecorder();
 };
-
-//! \brief Records the vote.
-//!
-//! tx must be a vote transaction
-//! fin_state is a FinalizationState VoteRecorder must rely on when it checks transaction validity
-//!           and slashable condition. It must be best known finalization state on a moment.
-bool RecordVote(const CTransaction &tx,
-                CValidationState &err_state,
-                const FinalizationState &fin_state,
-                bool log_errors = true);
 
 }  // namespace finalization
 

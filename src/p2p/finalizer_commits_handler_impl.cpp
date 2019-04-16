@@ -358,7 +358,7 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
 
       for (const auto &c : d.commits) {
         if (c->IsVote()) {
-          if (!finalization::RecordVote(*c, err_state, *fin_state, /*log_errors=*/false)) {
+          if (!fin_state->RecordVote(*c, err_state, /*log_errors=*/false)) {
             return false;
           }
         }

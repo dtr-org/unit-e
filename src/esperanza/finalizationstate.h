@@ -6,6 +6,7 @@
 #define UNITE_ESPERANZA_FINALIZATIONSTATE_H
 
 #include <better-enums/enum.h>
+#include <consensus/validation.h>
 #include <esperanza/admincommand.h>
 #include <esperanza/finalizationparams.h>
 #include <esperanza/finalizationstate_data.h>
@@ -188,6 +189,31 @@ class FinalizationState : public FinalizationStateData {
 
   //! \brief Returns true if finalizer can vote in current dynasty
   bool IsFinalizerVoting(const Validator &finalizer) const;
+
+  //! \brief Records the vote
+  //!
+  //! Extract the vote from tx, validate it and record it.
+  //! In case of the offensive vote provided, emit a slash event.
+  //!
+  //! \param tx must be a vote transaction
+  //! \param err_state
+  //! \param log_errors
+  bool RecordVote(const CTransaction &tx,
+                  CValidationState &err_state,
+                  bool log_errors = true) const;
+
+  //! \brief Record the vote based on its validated status
+  //!
+  //! In case of the offensive vote provided, emit a slash event.
+  //!
+  //! \param vote_validation_result
+  //! \param vote
+  //! \param vote_sig
+  //! \param log_errors
+  void RecordVoteIfNeeded(Result vote_validation_result,
+                          const esperanza::Vote &vote,
+                          const std::vector<unsigned char> &vote_sig,
+                          bool log_errors = true) const;
 
  private:
   //!In case there is nobody available to justify we justify automatically.

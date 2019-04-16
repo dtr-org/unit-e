@@ -6,6 +6,7 @@
 #define UNIT_E_TESTS_FINALIZATIONSTATE_UTILS_H
 
 #include <esperanza/finalizationstate.h>
+#include <finalization/vote_recorder.h>
 #include <random.h>
 #include <test/test_unite.h>
 #include <boost/test/unit_test.hpp>
@@ -21,7 +22,11 @@ class FinalizationStateSpy : public FinalizationState {
   FinalizationStateSpy(const FinalizationParams &_params,
                        const AdminParams &adminParams) : FinalizationState(_params, adminParams),
                                                          params(_params) {}
-  FinalizationStateSpy() : FinalizationState(params, AdminParams()) {}
+  FinalizationStateSpy() : FinalizationState(params, AdminParams()) {
+    finalization::VoteRecorder::DBParams p;
+    p.inmemory = true;
+    finalization::VoteRecorder::Reset(p);
+  }
   FinalizationStateSpy(const FinalizationParams &_params) : FinalizationState(_params, AdminParams()),
                                                             params(_params) {}
   FinalizationStateSpy(const FinalizationStateSpy &parent) : FinalizationState(parent) {}
