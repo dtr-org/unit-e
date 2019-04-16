@@ -20,10 +20,8 @@ class ProposerStakeableBalanceTest(UnitETestFramework):
         nodes = self.nodes
 
         def has_synced_blockchain(i):
-            def predicate():
-                status = nodes[i].proposerstatus()
-                return status['wallets'][0]['status'] != 'NOT_PROPOSING_SYNCING_BLOCKCHAIN'
-            return predicate
+            status = nodes[i].proposerstatus()
+            return status['wallets'][0]['status'] != 'NOT_PROPOSING_SYNCING_BLOCKCHAIN'
 
         self.log.info("Waiting for nodes to have started up...")
         wait_until(lambda: all(has_synced_blockchain(i) for i in range(0, self.num_nodes)), timeout=5)
@@ -79,7 +77,7 @@ class ProposerStakeableBalanceTest(UnitETestFramework):
             wallet = status['wallets'][0]
             assert_equal(wallet['balance'], Decimal('10000.00000000'))
             assert_equal(wallet['stakeable_balance'], Decimal('10000.00000000'))
-        # and others shoulds till not have enough funds for proposing blocks
+        # and others should still not have enough funds for proposing blocks
         for i in range(num_keys, self.num_nodes):
             status = nodes[i].proposerstatus()
             wallet = status['wallets'][0]

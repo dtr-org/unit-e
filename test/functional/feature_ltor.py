@@ -21,6 +21,7 @@ from test_framework.blocktools import (
     sign_coinbase,
     create_coinbase,
     create_tx_with_script,
+    get_tip_snapshot_meta,
 )
 from test_framework.messages import (
     CTxOut,
@@ -222,7 +223,7 @@ class LTORTest(UnitETestFramework):
         node0 = self.nodes[0]
 
         hashprev = uint256_from_str(unhexlify(node0.getbestblockhash())[::-1])
-        snapshot_hash = SnapshotMeta(node0.gettipsnapshot()).hash
+        snapshot_hash = get_tip_snapshot_meta(node0).hash
 
         if len(self.spendable_outputs) > 0:
             block_time = self.spendable_outputs[-1].nTime + 1

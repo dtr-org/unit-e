@@ -157,6 +157,14 @@ struct Parameters {
   //! \brief Stake can only be used after the stake maturity period.
   Height stake_maturity;
 
+  //! \brief Stake maturity must be ignored on the network start for activation height.
+  //!
+  //! If there are less than the required depth number of spendable/mature coins
+  //! in the system than the system will be stuck.
+  //! To make the situation when there are no mature coins for staking less likely
+  //! we activate stake maturity validation only when the blockchain's heigth is bigger than activation height.
+  Height stake_maturity_activation_height;
+
   //! \brief The initial amount of premined coins.
   CAmount initial_supply;
 
@@ -183,6 +191,17 @@ struct Parameters {
   //! See description of "DifficultyFunction". The difficulty function can
   //! (and should) be given as a pure lambda function.
   DifficultyFunction difficulty_function;
+
+  //! \brief Size of the difficulty adjustment rolling window
+  std::uint32_t difficulty_adjustment_window;
+
+  //! \brief Maximum allowed difficulty value
+  //!
+  //! If computed difficulty value exceeds max_difficulty_value - it will be
+  //! trimmed to max_difficulty_value.
+  //! It is also used as fail-safe value in case difficulty
+  //! update can not be performed correctly (for example integer overflow)
+  uint256 max_difficulty_value;
 
   //! \brief Whether to allow the "generatetoaddress" and "generate" RPC calls.
   bool mine_blocks_on_demand;

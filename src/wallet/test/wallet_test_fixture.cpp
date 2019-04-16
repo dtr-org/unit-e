@@ -10,7 +10,9 @@
 #include <validation.h>
 #include <wallet/db.h>
 #include <wallet/rpcvalidator.h>
+#include <wallet/rpcwalletext.h>
 #include <consensus/merkle.h>
+#include <test/test_unite_mocks.h>
 
 WalletTestingSetup::WalletTestingSetup(const std::string& chainName)
     : WalletTestingSetup([](Settings& s){}, chainName) {}
@@ -21,7 +23,7 @@ WalletTestingSetup::WalletTestingSetup(std::function<void(Settings&)> f, const s
     bool fFirstRun;
 
     f(settings);
-    esperanza::WalletExtensionDeps deps(&settings);
+    esperanza::WalletExtensionDeps deps(&settings, &stake_validator_mock);
 
     m_wallet.reset(new CWallet("mock", WalletDatabase::CreateMock(), deps));
     m_wallet->LoadWallet(fFirstRun);
@@ -30,6 +32,7 @@ WalletTestingSetup::WalletTestingSetup(std::function<void(Settings&)> f, const s
 
     RegisterWalletRPCCommands(tableRPC);
     RegisterValidatorRPCCommands(tableRPC);
+    RegisterWalletextRPCCommands(tableRPC);
 }
 
 WalletTestingSetup::~WalletTestingSetup()

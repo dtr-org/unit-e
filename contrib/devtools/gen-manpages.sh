@@ -25,7 +25,7 @@ $UNIT_E --version | sed -n '1!p' >> footer.h2m
 for cmd in $UNIT_E $UNIT_E_CLI $UNIT_E_TX; do
   cmdname="${cmd##*/}"
   help2man -N --version-string=${BTCVER[0]} --include=footer.h2m -o ${MANDIR}/${cmdname}.1 ${cmd}
-  sed -i "s/\\\-${BTCVER[1]}//g" ${MANDIR}/${cmdname}.1
+  sed -i'.orig' -e "s/\\\-${BTCVER[1]}//g" ${MANDIR}/${cmdname}.1
 done
 
 rm -f footer.h2m

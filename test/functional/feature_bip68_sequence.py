@@ -337,7 +337,7 @@ class BIP68Test(UnitETestFramework):
             block.solve()
             tip = block.sha256
 
-            tip_snapshot_meta = update_snapshot_with_tx(self.nodes[0], tip_snapshot_meta.data, 0, height, coinbase)
+            tip_snapshot_meta = update_snapshot_with_tx(self.nodes[0], tip_snapshot_meta, height, coinbase)
 
             height += 1
             self.nodes[0].p2p.send_and_ping(msg_witness_block(block))

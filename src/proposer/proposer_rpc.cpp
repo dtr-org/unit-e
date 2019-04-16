@@ -30,9 +30,10 @@ class ProposerRPCImpl : public ProposerRPC {
   const Dependency<Proposer> m_proposer;
 
   UniValue GetWalletInfo(const std::vector<std::shared_ptr<CWallet>> &wallets) const {
-    LOCK(m_chain->GetLock());
     UniValue result(UniValue::VARR);
     for (const auto &wallet : wallets) {
+      wallet->BlockUntilSyncedToCurrentChain();
+      LOCK(m_chain->GetLock());
       const auto &wallet_extension = wallet->GetWalletExtension();
       const auto &proposerState = wallet_extension.GetProposerState();
       UniValue info(UniValue::VOBJ);
@@ -45,6 +46,8 @@ class ProposerRPCImpl : public ProposerRPC {
       info.pushKV("status", UniValue(proposerState.m_status._to_string()));
       info.pushKV("searches", UniValue(proposerState.m_number_of_searches));
       info.pushKV("searches_attempted", UniValue(proposerState.m_number_of_search_attempts));
+      info.pushKV("blocks_proposed", UniValue(proposerState.m_number_of_proposed_blocks));
+      info.pushKV("transactions_included", UniValue(proposerState.m_number_of_transactions_included));
       result.push_back(info);
     }
     return result;
@@ -132,7 +135,7 @@ class ProposerRPCImpl : public ProposerRPC {
     return proposerstatus(request);
   }
 
-  UniValue getstakeablecoins(const JSONRPCRequest &request) const override {
+  UniValue liststakeablecoins(const JSONRPCRequest &request) const override {
     const std::shared_ptr<CWallet> wallet = GetWalletForJSONRPCRequest(request);
     CWallet *const pwallet = wallet.get();
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
@@ -145,6 +148,7 @@ class ProposerRPCImpl : public ProposerRPC {
           "get the stakeable coins\n",
           __func__));
     }
+    wallet->BlockUntilSyncedToCurrentChain();
     UniValue obj(UniValue::VOBJ);
     const staking::StakingWallet &staking_wallet = pwallet->GetWalletExtension();
     const staking::CoinSet stakeable_coins = [&]() {

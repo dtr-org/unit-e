@@ -196,7 +196,7 @@ class BIP68_112_113Test(UnitETestFramework):
         block.compute_merkle_trees()
         block.solve()
 
-        self.tip_snapshot_meta = update_snapshot_with_tx(self.nodes[0], self.tip_snapshot_meta.data, 0, self.tipheight + 1, coinbase)
+        self.tip_snapshot_meta = update_snapshot_with_tx(self.nodes[0], self.tip_snapshot_meta, self.tipheight + 1, coinbase)
         return block
 
     def sync_blocks(self, blocks, success=True, reject_code=None, reject_reason=None, request_block=True):

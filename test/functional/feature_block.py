@@ -113,9 +113,6 @@ class FullBlockTest(UnitETestFramework):
         # MIHAI: TODO: Uncomment and fix properly
         return
 
-        def out_value(idx):
-            return out[idx].tx.vout[out[idx].n].nValue
-
         node = self.nodes[0]  # convenience reference to the node
         self.setup_stake_coins(node)
 
@@ -1358,6 +1355,7 @@ class FullBlockTest(UnitETestFramework):
     def add_transactions_to_block(self, block, tx_list):
         [tx.rehash() for tx in tx_list]
         block.vtx.extend(tx_list)
+        block.ensure_ltor()
 
     # this is a little handier to use than the version in blocktools.py
     def create_tx(self, spend_tx, n, value, script=CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])):
@@ -1430,15 +1428,17 @@ class FullBlockTest(UnitETestFramework):
                     continue
                 utxo = UTXO(block_height, tx.get_type(), COutPoint(tx.sha256, idx), out)
                 outputs.append(utxo)
+
         assert_equal(block_height, self.block_heights[block.hashPrevBlock]+1)
         prev_meta = self.block_snapshot_meta[block.hashPrevBlock]
-        new_meta = calc_snapshot_hash(self.nodes[0], prev_meta.data, 0, block_height, inputs, outputs)
+        new_meta = calc_snapshot_hash(self.nodes[0], prev_meta, block_height, inputs, outputs, block.vtx[0] if block.vtx else None)
         self.block_snapshot_meta[block.sha256] = new_meta
+
 
     def next_block(self, number, coin, spend=None, additional_coinbase_value=0, script=CScript([OP_TRUE]), solve=True, coinbase_pieces=1, sign_stake=True, sign_spend=True):
         if self.tip is None:
             base_block_hash = self.genesis_hash
-            block_time = int(time.time()) + 1
+            block_time = int(time.time())+1
         else:
             base_block_hash = self.tip.sha256
             block_time = self.tip.nTime + 1
@@ -1468,7 +1468,7 @@ class FullBlockTest(UnitETestFramework):
                 coinbase = sign_coinbase(self.nodes[0], coinbase)
             coinbase.rehash()
             block = create_block(base_block_hash, coinbase, block_time)
-            tx = create_transaction(spend.tx, spend.n, b"", 1, script)  # spend 1 satoshi
+            tx = create_tx_with_script(spend.tx, spend.n, b"", amount=1, script_pub_key=script)  # spend 1 satoshi
             if sign_spend:
                 self.sign_tx(tx, spend.tx, spend.n)
                 tx.rehash()
@@ -1492,13 +1492,26 @@ class FullBlockTest(UnitETestFramework):
 
     # save the current tip so it can be spent by a later block
     def save_spendable_output(self):
-        self.log.debug("saving spendable output %s" % self.tip.vtx[0])
-        self.spendable_outputs.append(self.tip)
+        spent_in_block = []
+        block_tx_hashes = [tx.sha256 for tx in self.tip.vtx]
+        for j, tx in enumerate(self.tip.vtx):
+            for i, vin in enumerate(tx.vin):
+                if vin.prevout.hash in block_tx_hashes:
+                    spent_in_block.append((vin.prevout.hash, vin.prevout.n))
+
+        for j, tx in enumerate(self.tip.vtx):
+            for i, vout in enumerate(tx.vout):
+                if vout.nValue < 1 * UNIT:
+                    continue
+                if (tx.sha256, i) not in spent_in_block:
+                    self.spendable_outputs.append(PreviousSpendableOutput(tx, i, self.block_heights[self.tip.sha256]))
 
     # get an output that we previously marked as spendable
     def get_spendable_output(self):
-        self.log.debug("getting spendable output %s" % self.spendable_outputs[0].vtx[0])
-        return self.spendable_outputs.pop(0).vtx[0]
+        for i, output in enumerate(self.spendable_outputs):
+            if not (output.tx.is_coin_base() and output.n == 0) or self.block_heights[self.tip.sha256] - output.height > COINBASE_MATURITY:
+                return self.spendable_outputs.pop(i)
+        raise RuntimeError("No spendable outputs")
 
     # get a spendable output as staking coin
     def get_staking_coin(self):
@@ -1510,18 +1523,23 @@ class FullBlockTest(UnitETestFramework):
         self.tip = self.blocks[number]
 
     # adds transactions to the block and updates state
-    def update_block(self, block_number, new_transactions):
+    def update_block(self, block_number, new_transactions, del_refs=True):
         block = self.blocks[block_number]
-        self.add_transactions_to_block(block, new_transactions)
         old_sha256 = block.sha256
-        block.hashMerkleRoot = block.calc_merkle_root()
+        self.add_transactions_to_block(block, new_transactions)
+        block.compute_merkle_trees()
         block.solve()
         # Update the internal state just like in next_block
         self.tip = block
         if block.sha256 != old_sha256:
             self.block_heights[block.sha256] = self.block_heights[old_sha256]
-            del self.block_heights[old_sha256]
+            if del_refs:
+                del self.block_heights[old_sha256]
+                del self.block_snapshot_meta[old_sha256]
+                del self.blocks_by_hash[old_sha256]
         self.blocks[block_number] = block
+        self.blocks_by_hash[block.sha256] = block
+        self.set_block_snapshot_meta(block)
         return block
 
     def comp_snapshot_hash(self, block_number):

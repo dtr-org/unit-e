@@ -31,7 +31,7 @@ namespace staking {
 //! interface in bitcoin to separate Wallet and Node from each other.
 //! See: https://github.com/bitcoin/bitcoin/pull/14437 - in particular
 //! https://github.com/ryanofsky/bitcoin/blob/45b23efaada081a7be9e255df59670f4704c45d1/src/interfaces/chain.h
-class ActiveChain : public blockchain::ChainAccess {
+class ActiveChain : public blockchain::ChainAccess, public blockchain::UTXOView {
 
  public:
   //! \brief access to the mutex that protects the active chain
@@ -130,23 +130,8 @@ class ActiveChain : public blockchain::ChainAccess {
   //! \brief Check the current status of the initial block download.
   virtual ::SyncStatus GetInitialBlockDownloadStatus() const = 0;
 
-  //! \brief Retrieve a UTXO from the currently active chain.
-  //!
-  //! The returned coin is guaranteed to represent an _unspent_ tx output
-  //! at the point of time where this function is invoked.
-  //!
-  //! Requires the lock obtained from `GetLock()` to be held.
-  virtual boost::optional<staking::Coin> GetUTXO(const COutPoint &outpoint) const = 0;
-
-  //! \brief Shorthand for `GetUTXO({ txid, index })`.
-  //!
-  //! The returned coin is guaranteed to represent an _unspent_ tx output
-  //! at the point of time where this function is invoked.
-  //!
-  //! Requires the lock obtained from `GetLock()` to be held.
-  virtual boost::optional<staking::Coin> GetUTXO(const uint256 &txid, const std::uint32_t index) const {
-    return GetUTXO({txid, index});
-  }
+  // defined in blockchain::UTXOView
+  boost::optional<staking::Coin> GetUTXO(const COutPoint &outpoint) const override = 0;
 
   ~ActiveChain() override = default;
 

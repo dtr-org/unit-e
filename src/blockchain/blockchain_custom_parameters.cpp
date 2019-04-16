@@ -337,6 +337,7 @@ blockchain::Parameters ReadCustomParametersFromJson(
   READ_PARAMETER(maximum_block_sigops_cost);
   READ_PARAMETER(coinbase_maturity);
   READ_PARAMETER(stake_maturity);
+  READ_PARAMETER(stake_maturity_activation_height);
   READ_PARAMETER(initial_supply);
   READ_PARAMETER(maximum_supply);
   READ_PARAMETER(reward_schedule);

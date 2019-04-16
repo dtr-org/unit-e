@@ -147,7 +147,7 @@ def generate(node, n, preserve_utxos=[], send_witness=False):
         stake = txouts.pop()
         coinbase = sign_coinbase(node, create_coinbase(height, stake, snapshot_meta.hash))
         block = create_block(tip, coinbase, block_time)
-        snapshot_meta = update_snapshot_with_tx(node, snapshot_meta.data, 0, height + 1, coinbase)
+        snapshot_meta = update_snapshot_with_tx(node, snapshot_meta, height + 1, coinbase)
         block.solve()
         if send_witness:
             node.p2p.send_message(msg_witness_block(block))
@@ -263,28 +263,42 @@ def send_to_witness(use_p2wsh, node, utxo, pubkey, encode_p2sh, amount, sign=Tru
 
 
 class SnapshotMeta:
-    def __init__(self, res):
+    def __init__(self, res, stake_modifier):
         self.hash = uint256_from_str(hex_str_to_bytes(res['hash']))
         self.data = res['data']
+        self.stake_modifier = stake_modifier
 
 
 def get_tip_snapshot_meta(node):
-    return SnapshotMeta(node.gettipsnapshot())
+    height = node.getblockcount()
+    stake_modifier = node.tracechain(start=height, length=1)['chain'][0]['stake_modifier']
+    return SnapshotMeta(node.gettipsnapshot(), stake_modifier)
 
 
-def calc_snapshot_hash(node, snapshot_data, stake_modifier, height, inputs, outputs):
+def calc_snapshot_hash(node, snapshot_meta, height, inputs, outputs, stake_prevout_txid=None):
     chain_work = 2 + 2*height
+    if isinstance(stake_prevout_txid, CTransaction):
+        if len(stake_prevout_txid.vin) < 2:
+            stake_prevout_txid = None
+    if stake_prevout_txid is None:
+        stake_modifier = snapshot_meta.stake_modifier
+    else:
+        if isinstance(stake_prevout_txid, CTransaction):
+            stake_prevout_txid = stake_prevout_txid.vin[1].prevout.hash
+        if isinstance(stake_prevout_txid, int):
+            stake_prevout_txid = "%064x" % stake_prevout_txid
+        stake_modifier = node.calcstakemodifier(txid=stake_prevout_txid, prev=snapshot_meta.stake_modifier)
     res = node.calcsnapshothash(
         bytes_to_hex_str(ser_vector(inputs)),
         bytes_to_hex_str(ser_vector(outputs)),
-        bytes_to_hex_str(ser_uint256(stake_modifier)),
+        stake_modifier,
         bytes_to_hex_str(ser_uint256(chain_work)),
-        snapshot_data
+        snapshot_meta.data
     )
-    return SnapshotMeta(res)
+    return SnapshotMeta(res, stake_modifier)
 
 
-def update_snapshot_with_tx(node, snapshot_data, stake_modifier, height, tx):
+def update_snapshot_with_tx(node, snapshot_meta, height, tx):
     """
     Returns updated snapshot for a single tx (if need arises, change it to a list of txses)
     """
@@ -308,4 +322,4 @@ def update_snapshot_with_tx(node, snapshot_data, stake_modifier, height, tx):
         utxo = UTXO(height, tx.get_type(), COutPoint(tx.sha256, i), tx_out)
         outputs.append(utxo)
 
-    return calc_snapshot_hash(node, snapshot_data, stake_modifier, height, inputs, outputs)
+    return calc_snapshot_hash(node, snapshot_meta, height, inputs, outputs, tx.vin[1].prevout.hash)

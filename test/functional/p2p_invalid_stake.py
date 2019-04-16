@@ -61,7 +61,7 @@ class InvalidStakeTest(UnitETestFramework):
 
         assert_equal(len(p2p.reject_messages), 1)
         assert_equal(p2p.reject_messages[-1].message, b'block')
-        assert_equal(p2p.reject_messages[-1].reason, b'bad-txns-inputs-missingorspent')
+        assert_equal(p2p.reject_messages[-1].reason, b'bad-stake-not-found')
 
         assert_equal(node.getblockcount(), 1)
 

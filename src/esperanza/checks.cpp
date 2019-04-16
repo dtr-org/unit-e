@@ -348,8 +348,14 @@ bool ContextualCheckVoteTx(const CTransaction &tx, CValidationState &err_state,
     return false;
   }
 
-  if (fin_state.ValidateVote(vote) != +Result::SUCCESS) {
-    return err_state.DoS(10, false, REJECT_INVALID, "bad-vote-invalid-state");
+  const Result res = fin_state.ValidateVote(vote);
+  switch (+res) {
+    case Result::SUCCESS:
+      break;
+    case Result::VOTE_NOT_BY_VALIDATOR:
+      return err_state.DoS(100, false, REJECT_INVALID, "bad-vote-not-from-validator");
+    default:
+      return err_state.DoS(0, false, REJECT_INVALID, "bad-vote-invalid");
   }
 
   // We keep the check for the prev at the end because is the most expensive

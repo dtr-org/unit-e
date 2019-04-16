@@ -96,6 +96,7 @@ class UTXOManager:
         self.spent_outputs = []
         self.current_inputs = []
         self.current_outputs = []
+        self.prev_coinbase = None
 
     def process(self, tx, height):
         is_coinbase = tx.get_type() == TxType.COINBASE
@@ -120,11 +121,13 @@ class UTXOManager:
         self.available_outputs.remove(utxo)
         self.spent_outputs.append(utxo)
         coin = {'txid': hex(utxo.outpoint.hash), 'vout': utxo.outpoint.n, 'amount': utxo.txOut.nValue/UNIT}
-        return sign_coinbase(self.node, create_coinbase(height, coin, snapshot_hash, **kwargs))
+        coinbase = sign_coinbase(self.node, create_coinbase(height, coin, snapshot_hash, **kwargs))
+        self.prev_coinbase = coinbase
+        return coinbase
 
     def get_hash(self, height):
         if self.current_inputs or self.current_outputs:
-            self.snapshot_meta = calc_snapshot_hash(self.node, self.snapshot_meta.data, 0, height, self.current_inputs, self.current_outputs)
+            self.snapshot_meta = calc_snapshot_hash(self.node, self.snapshot_meta, height, self.current_inputs, self.current_outputs, self.prev_coinbase)
             for output in self.current_inputs:
                 if output in self.available_outputs:
                     self.available_outputs.remove(output)

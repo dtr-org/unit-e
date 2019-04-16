@@ -52,8 +52,8 @@ class SomeBlockValidator : public staking::AbstractBlockValidator {
 
   void CheckBlockInternal(
       const CBlock &block,
-      blockchain::Height &height_out,
-      uint256 &snapshot_hash_out,
+      blockchain::Height *height_out,
+      uint256 *snapshot_hash_out,
       staking::BlockValidationResult &result) const override {
     ++count_CheckBlockInternal;
     if (func_CheckBlockInternal) {
@@ -70,6 +70,10 @@ class SomeBlockValidator : public staking::AbstractBlockValidator {
     if (func_ContextualCheckBlockInternal) {
       (*func_ContextualCheckBlockInternal)(result);
     }
+  }
+
+  staking::BlockValidationResult CheckCoinbaseTransaction(const CTransaction &coinbase_tx) const override {
+    return staking::BlockValidationResult();
   }
 };
 

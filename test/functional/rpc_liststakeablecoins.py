@@ -22,7 +22,7 @@ class RpcGetStakeableBalanceTest(UnitETestFramework):
     def run_test(self):
         node = self.nodes[0]
         self.setup_stake_coins(node)
-        result = node.getstakeablecoins()
+        result = node.liststakeablecoins()
         assert_matches(result, {
             'stakeable_balance': Decimal,
             'stakeable_coins': [

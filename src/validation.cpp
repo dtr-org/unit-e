@@ -43,6 +43,7 @@
 #include <util.h>
 #include <utilmoneystr.h>
 #include <utilstrencodings.h>
+#include <validation_flags.h>
 #include <validationinterface.h>
 #include <warnings.h>
 
@@ -188,7 +189,7 @@ public:
     // Block (dis)connection on a given view:
     DisconnectResult DisconnectBlock(const CBlock& block, const CBlockIndex* pindex, CCoinsViewCache& view);
     bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pindex,
-                    CCoinsViewCache& view, const CChainParams& chainparams, bool fJustCheck = false);
+                    CCoinsViewCache& view, const CChainParams& chainparams, ConnectBlockFlags::Type flags = ConnectBlockFlags::NONE);
 
     // Block disconnection on our pcoinsTip:
     bool DisconnectTip(CValidationState& state, const CChainParams& chainparams, DisconnectedBlockTransactions *disconnectpool);
@@ -1929,16 +1930,41 @@ static int64_t nTimeCallbacks = 0;
 static int64_t nTimeTotal = 0;
 static int64_t nBlocksTotal = 0;
 
+class UTXOViewAdapter : public blockchain::UTXOView {
+ private:
+  const Dependency<staking::ActiveChain> m_active_chain;
+  const CCoinsViewCache &m_coins_view_cache;
+
+ public:
+  UTXOViewAdapter(
+      const Dependency<staking::ActiveChain> active_chain,
+      const CCoinsViewCache &coins_view) : m_active_chain(active_chain),
+                                           m_coins_view_cache(coins_view) {}
+
+  boost::optional<staking::Coin> GetUTXO(const COutPoint &out_point) const override {
+    AssertLockHeld(m_active_chain->GetLock());
+    const ::Coin &coin = m_coins_view_cache.AccessCoin(out_point);
+    if (coin.IsSpent()) {
+      return boost::none;
+    }
+    const CBlockIndex *const block = m_active_chain->AtHeight(coin.nHeight);
+    assert(block); // when returned by the coins cache we surely have it in block index
+    return staking::Coin(block, out_point, coin.out);
+  }
+};
+
 /** Apply the effects of this block (with given index) on the UTXO set represented by coins.
  *  Validity checks that depend on the UTXO set are also done; ConnectBlock()
  *  can fail if those validity checks fail (among other reasons). */
 bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pindex,
-                  CCoinsViewCache& view, const CChainParams& chainparams, bool fJustCheck)
+                  CCoinsViewCache& view, const CChainParams& chainparams, const ConnectBlockFlags::Type connect_block_flags)
 {
     AssertLockHeld(cs_main);
     assert(pindex);
     assert(*pindex->phashBlock == block.GetHash());
     int64_t nTimeStart = GetTimeMicros();
+
+    const bool fJustCheck = Flags::IsSet(connect_block_flags, ConnectBlockFlags::JUST_CHECK);
 
     // Check it again in case a previous version let a bad block in
     // NOTE: We don't currently (re-)invoke ContextualCheckBlock() or
@@ -1961,6 +1987,33 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
             return AbortNode(state, "Corrupt block found indicating potential hardware failure; shutting down");
         }
         return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
+    }
+
+    // Check Stake
+    if (pindex->nHeight > 0) {
+        UTXOViewAdapter utxo_view(GetComponent<staking::ActiveChain>(), view);
+        auto validator = GetComponent<staking::StakeValidator>();
+        const staking::BlockValidationResult coinbase_validation_result =
+            GetComponent<staking::BlockValidator>()->CheckCoinbaseTransaction(*block.vtx[0]);
+        if (!staking::CheckResult(coinbase_validation_result, state)) {
+            return false;
+        }
+        const boost::optional<staking::Coin> utxo = utxo_view.GetUTXO(block.GetStakingInput().prevout);
+        if (utxo) {
+            pindex->stake_modifier =
+                validator->ComputeStakeModifier(pindex->pprev, *utxo_view.GetUTXO(block.GetStakingInput().prevout));
+        }
+        CheckStakeFlags::Type check_stake_flags = CheckStakeFlags::NONE;
+        if (Flags::IsSet(connect_block_flags, ConnectBlockFlags::SKIP_ELIGIBILITY_CHECK)) {
+            check_stake_flags |= CheckStakeFlags::SKIP_ELIGIBILITY_CHECK;
+        }
+        const staking::BlockValidationResult stake_validation_result =
+            validator->CheckStake(block, &state.block_validation_info, check_stake_flags, &utxo_view);
+        if (!staking::CheckResult(stake_validation_result, state)) {
+            LogPrint(BCLog::VALIDATION, "%s: Invalid stake found for block=%s failure=%s\n",
+                     __func__, block.GetHash().ToString(), stake_validation_result.errors.ToString());
+            return false;
+        }
     }
 
     // verify that the view's current state corresponds to the previous block
@@ -2593,7 +2646,18 @@ bool CChainState::ProcessFinalizationState(const Consensus::Params &params, CBlo
         return error("Ancestor (%s -> %s) is invalid", block_index->pprev->GetBlockHash().GetHex(), block_index->GetBlockHash().GetHex());
     }
 
+    auto state_repo = GetComponent<finalization::StateRepository>();
     auto state_processor = GetComponent<finalization::StateProcessor>();
+
+    {
+        LOCK(state_repo->GetLock());
+        if (const auto *state = state_repo->Find(*block_index)) {
+            if (state->GetInitStatus() != esperanza::FinalizationState::NEW) {
+                UpdateLastJustifiedEpoch(block_index);
+                return true;
+            }
+        }
+    }
 
     CBlock block_data;
     if (block == nullptr) {
@@ -3470,7 +3534,7 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
     return true;
 }
 
-bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams, const CBlock& block, CBlockIndex* pindexPrev, bool fCheckPOW, bool fCheckMerkleRoot)
+bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams, const CBlock& block, CBlockIndex* pindexPrev, const TestBlockValidityFlags::Type flags)
 {
     AssertLockHeld(cs_main);
     assert(pindexPrev && pindexPrev == chainActive.Tip());
@@ -3481,16 +3545,21 @@ bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams,
     indexDummy.nHeight = pindexPrev->nHeight + 1;
     indexDummy.phashBlock = &block_hash;
 
+    const bool skip_merkle_tree_check = Flags::IsSet(flags, TestBlockValidityFlags::SKIP_MERKLE_TREE_CHECK);
     const auto validation = GetComponent<staking::LegacyValidationInterface>();
     // NOTE: CheckBlockHeader is called by CheckBlock
     if (!validation->ContextualCheckBlockHeader(block, state, chainparams, pindexPrev, GetAdjustedTime()))
         return error("%s: Consensus::ContextualCheckBlockHeader: %s", __func__, FormatStateMessage(state));
-    if (!validation->CheckBlock(block, state, chainparams.GetConsensus(), fCheckPOW, fCheckMerkleRoot))
+    if (!validation->CheckBlock(block, state, chainparams.GetConsensus(), false, !skip_merkle_tree_check))
         return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
     if (!validation->ContextualCheckBlock(block, state, chainparams.GetConsensus(), pindexPrev))
         return error("%s: Consensus::ContextualCheckBlock: %s", __func__, FormatStateMessage(state));
-    if (!g_chainstate.ConnectBlock(block, state, &indexDummy, viewNew, chainparams, true))
-        return error("%s: CChainState::ConnectBlock: %s", __func__, FormatStateMessage(state));;
+    ConnectBlockFlags::Type connect_block_flags = ConnectBlockFlags::JUST_CHECK;
+    if (Flags::IsSet(flags, TestBlockValidityFlags::SKIP_ELIGIBILITY_CHECK)) {
+      connect_block_flags |= ConnectBlockFlags::SKIP_ELIGIBILITY_CHECK;
+    }
+    if (!g_chainstate.ConnectBlock(block, state, &indexDummy, viewNew, chainparams, connect_block_flags))
+        return error("%s: CChainState::ConnectBlock: %s", __func__, FormatStateMessage(state));
     assert(state.IsValid());
 
     return true;

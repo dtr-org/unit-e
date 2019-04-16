@@ -1480,8 +1480,8 @@ static UniValue addwitnessaddress(const JSONRPCRequest& request)
     }
 
     if (!IsDeprecatedRPCEnabled("addwitnessaddress")) {
-        throw JSONRPCError(RPC_METHOD_DEPRECATED, "addwitnessaddress is deprecated and will be fully removed in v0.17. "
-            "To use addwitnessaddress in v0.16, restart unit-e with -deprecatedrpc=addwitnessaddress.\n"
+        throw JSONRPCError(RPC_METHOD_DEPRECATED, "addwitnessaddress is deprecated and will be fully removed. "
+            "To use addwitnessaddress, restart unit-e with -deprecatedrpc=addwitnessaddress.\n"
             "Projects should transition to using the address_type argument of getnewaddress, or option -addresstype=[bech32|p2sh-segwit] instead.\n");
     }
 
@@ -3937,6 +3937,11 @@ UniValue generateBlocks(CWallet * const pwallet, std::shared_ptr<CReserveScript>
     }
     unsigned int nExtraNonce = 0;
     UniValue blockHashes(UniValue::VARR);
+
+    // To pick up to date coins for staking we need to make sure that the wallet is synced to the current chain.
+    if (pwallet) {
+        pwallet->BlockUntilSyncedToCurrentChain();
+    }
     while (nHeight < nHeightEnd)
     {
         std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(
@@ -4033,6 +4038,7 @@ UniValue generatetoaddress(const JSONRPCRequest& request)
         throw std::runtime_error(
             "generatetoaddress nblocks address (maxtries)\n"
             "\nMine blocks immediately to a specified address (before the RPC call returns)\n"
+            "\nNote: this function can only be used on the regtest network.\n"
             "\nArguments:\n"
             "1. nblocks      (numeric, required) How many blocks are generated immediately.\n"
             "2. address      (string, required) The address to send the newly generated unite to.\n"
@@ -4043,6 +4049,10 @@ UniValue generatetoaddress(const JSONRPCRequest& request)
             "\nGenerate 11 blocks to myaddress\n"
             + HelpExampleCli("generatetoaddress", "11 \"myaddress\"")
         );
+
+    if (!Params().MineBlocksOnDemand()) {
+        throw JSONRPCError(RPC_METHOD_NOT_FOUND, "This method can only be used on regtest");
+    }
 
     int nGenerate = request.params[0].get_int();
     uint64_t nMaxTries = 1000000;

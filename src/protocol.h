@@ -333,8 +333,8 @@ enum ServiceFlags : uint64_t {
     NODE_SNAPSHOT = (1 << 15),
 
     // Bits 24-31 are reserved for temporary experiments. Just pick a bit that
-    // isn't getting used, or one not being used much, and notify the
-    // unite-development mailing list. Remember that service bits are just
+    // isn't getting used, or one not being used much, and notify the community
+    // at https://github.com/dtr-org/unit-e. Remember that service bits are just
     // unauthenticated advertisements, so your code must be robust against
     // collisions and other cases where nodes may be advertising a service they
     // do not actually support. Other service bits should be allocated via the

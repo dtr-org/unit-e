@@ -116,17 +116,33 @@ UniValue withdraw(const JSONRPCRequest &request)
     throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
   }
 
-  esperanza::ValidatorState &validator = extWallet.validatorState.get();
-  if(validator.m_last_esperanza_tx == nullptr) {
-    throw JSONRPCError(RPC_INVALID_PARAMETER, "Not a validator.");
-  }
+  assert(extWallet.validatorState);
 
-  if(validator.m_last_esperanza_tx->IsWithdraw()) {
-    throw JSONRPCError(RPC_INVALID_PARAMETER, "Already withdrawn.");
-  }
-
-  if (validator.m_phase != +esperanza::ValidatorState::Phase::NOT_VALIDATING){
+  if (extWallet.validatorState->m_phase != +esperanza::ValidatorState::Phase::NOT_VALIDATING){
     throw JSONRPCError(RPC_INVALID_PARAMETER, "The node is validating, logout first.");
+  }
+
+  uint256 last_tx_hash;
+  {
+    auto state_repo = GetComponent<finalization::StateRepository>();
+    LOCK(state_repo->GetLock());
+
+    finalization::FinalizationState *state = state_repo->GetTipState();
+    assert(state);
+
+    const esperanza::Validator *validator = state->GetValidator(extWallet.validatorState->m_validator_address);
+    if(!validator) {
+      throw JSONRPCError(RPC_INVALID_PARAMETER, "Not a validator.");
+    }
+
+    last_tx_hash = validator->m_last_transaction_hash;
+  }
+
+  const CWalletTx *last_tx = pwallet->GetWalletTx(last_tx_hash);
+  assert(last_tx);
+
+  if(last_tx->tx->IsWithdraw()) {
+    throw JSONRPCError(RPC_INVALID_PARAMETER, "Already withdrawn.");
   }
 
   CTransactionRef tx;
@@ -163,8 +179,22 @@ UniValue logout(const JSONRPCRequest& request) {
     throw JSONRPCError(RPC_INVALID_REQUEST, "The node must be a validator.");
   }
 
-  esperanza::ValidatorState &validator = extWallet.validatorState.get();
-  if (validator.m_phase !=
+  assert(extWallet.validatorState);
+
+  {
+    auto state_repo = GetComponent<finalization::StateRepository>();
+    LOCK(state_repo->GetLock());
+
+    finalization::FinalizationState *state = state_repo->GetTipState();
+    assert(state);
+
+    const esperanza::Validator *validator = state->GetValidator(extWallet.validatorState->m_validator_address);
+    if (!validator) {
+      throw JSONRPCError(RPC_INVALID_PARAMETER, "Not a validator.");
+    }
+  }
+
+  if (extWallet.validatorState->m_phase !=
       +esperanza::ValidatorState::Phase::IS_VALIDATING) {
     throw JSONRPCError(RPC_INVALID_PARAMETER,
                        "The node is not validating.");

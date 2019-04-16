@@ -11,6 +11,7 @@
 #include <primitives/transaction.h>
 #include <rpc/util.h>
 #include <staking/active_chain.h>
+#include <staking/proof_of_stake.h>
 
 #include <better-enums/enum.h>
 #include <tinyformat.h>
@@ -61,6 +62,7 @@ class StakingRPCImpl : public StakingRPC {
   static inline void BlockInfo(UniValue &obj, const CBlockIndex &block) {
     obj.pushKV("block_hash", ToUniValue(*block.phashBlock));
     obj.pushKV("block_height", ToUniValue(block.nHeight));
+    obj.pushKV("stake_modifier", ToUniValue(block.stake_modifier));
   }
   static inline void TransactionInfo(UniValue &obj, const CTransactionRef &tx) {
     obj.pushKV("txid", ToUniValue(tx->GetHash()));
@@ -405,6 +407,24 @@ class StakingRPCImpl : public StakingRPC {
     std::size_t length;
     ReadParameters(request, &start, &length);
     return TraceChain(start, length);
+  }
+
+  UniValue calcstakemodifier(const JSONRPCRequest &request) override {
+    if (request.fHelp || request.params.size() != 2 || !request.params[0].isStr() || !request.params[1].isStr()) {
+      throw std::runtime_error(strprintf(
+          "%s\n"
+          "\n"
+          "Calculates the stake modifier for a block.\n"
+          "\n"
+          "Arguments:\n"
+          "  \"txid\" The hash of the spending transaction which is used as stake.\n"
+          "  \"prev\" The stake modifier of the previous block.\n",
+          __func__, default_length));
+    }
+    const uint256 stake_transaction_hash = uint256S(request.params[0].get_str());
+    const uint256 previous_blocks_stake_modifier = uint256S(request.params[1].get_str());
+    const uint256 stake_modifier = ComputeStakeModifier(stake_transaction_hash, previous_blocks_stake_modifier);
+    return ToUniValue(stake_modifier);
   }
 };
 

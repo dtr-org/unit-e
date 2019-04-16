@@ -736,7 +736,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
   Vote vote_out{pub_key.GetID(), target_hash, 0, 5};
 
   std::vector<unsigned char> vote_sig_out;
-  BOOST_CHECK(Vote::CreateSignature(&keystore, vote_out, vote_sig_out));
+  BOOST_REQUIRE(Vote::CreateSignature(&keystore, vote_out, vote_sig_out));
 
   CMutableTransaction mt;
   mt.SetType(TxType::DEPOSIT);
@@ -763,6 +763,71 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
     bool ok = ContextualCheckVoteTx(tx, err_state, spy, view);
     BOOST_CHECK(!ok);
     BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-vote-no-prev-tx-found");
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 0);
+  }
+
+  {
+    TestMemPoolEntryHelper entry;
+    mempool.addUnchecked(prev_tx->GetHash(), entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
+
+    FinalizationStateSpy spy;
+    CAmount deposit_size = spy.MinDepositSize();
+
+    CBlockIndex block_index;
+    block_index.phashBlock = &target_hash;
+    spy.SetRecommendedTarget(block_index);
+
+    spy.CreateAndActivateDeposit(validator_address, deposit_size);
+
+    CKey other_key;
+    other_key.MakeNewKey(true);
+    keystore.AddKey(other_key);
+    Vote vote_from_other_validator{other_key.GetPubKey().GetID(), target_hash, 0, 5};
+
+    std::vector<unsigned char> vote_sig;
+    BOOST_REQUIRE(Vote::CreateSignature(&keystore, vote_from_other_validator, vote_sig));
+
+    CTransaction tx = CreateVoteTx(*prev_tx, other_key, vote_from_other_validator, vote_sig);
+    CValidationState err_state;
+
+    bool ok = ContextualCheckVoteTx(tx, err_state, spy, view);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-vote-not-from-validator");
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 100);
+  }
+
+  {
+    TestMemPoolEntryHelper entry;
+    mempool.addUnchecked(prev_tx->GetHash(), entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
+
+    FinalizationStateSpy spy;
+    CAmount deposit_size = spy.MinDepositSize();
+
+    CBlockIndex block_index;
+    block_index.phashBlock = &target_hash;
+    spy.SetRecommendedTarget(block_index);
+
+    spy.CreateAndActivateDeposit(validator_address, deposit_size);
+
+    CTransaction tx = CreateVoteTx(*prev_tx, key, vote_out, vote_sig_out);
+    CValidationState err_state;
+
+    bool ok = ContextualCheckVoteTx(tx, err_state, spy, view);
+    BOOST_CHECK(ok);
+    BOOST_CHECK(err_state.IsValid());
+
+    spy.ProcessVote(vote_out);
+
+    // Duplicate vote
+    ok = ContextualCheckVoteTx(tx, err_state, spy, view);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-vote-invalid");
 
     int dos = 0;
     err_state.IsInvalid(dos);

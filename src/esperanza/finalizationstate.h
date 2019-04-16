@@ -185,6 +185,12 @@ class FinalizationState : public FinalizationStateData {
   //! \brief Returns the current initalization status
   InitStatus GetInitStatus() const;
 
+  //! \brief Returns true if finalizer can vote in current dynasty
+  bool IsFinalizerVoting(const uint160 &finalizer_address) const;
+
+  //! \brief Returns true if finalizer can vote in current dynasty
+  bool IsFinalizerVoting(const Validator &finalizer) const;
+
  private:
   //!In case there is nobody available to justify we justify automatically.
   void InstaJustify();

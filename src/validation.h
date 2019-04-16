@@ -18,6 +18,7 @@
 #include <script/script_error.h>
 #include <sync.h>
 #include <sync_status.h>
+#include <validation_flags.h>
 #include <versionbits.h>
 
 #include <algorithm>
@@ -400,7 +401,7 @@ bool ReadRawBlockFromDisk(std::vector<uint8_t>& block, const CBlockIndex* pindex
 /** Functions for validating blocks and updating the block tree */
 
 /** Check a block is completely valid from start to finish (only works on top of our current best block) */
-bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams, const CBlock& block, CBlockIndex* pindexPrev, bool fCheckPOW = true, bool fCheckMerkleRoot = true) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams, const CBlock& block, CBlockIndex* pindexPrev, TestBlockValidityFlags::Type flags = TestBlockValidityFlags::NONE) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 /** Check whether NULLDUMMY (BIP 147) has activated. */
 bool IsNullDummyEnabled(const CBlockIndex* pindexPrev, const Consensus::Params& params);

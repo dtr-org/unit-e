@@ -379,7 +379,7 @@ class SendHeadersTest(UnitETestFramework):
                     blocks[-1].solve()
                     tip = blocks[-1].sha256
 
-                    snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, height, coinbase)
+                    snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta, height, coinbase)
 
                     block_time += 1
                     height += 1
@@ -501,7 +501,7 @@ class SendHeadersTest(UnitETestFramework):
             blocks.append(create_block(tip, coinbase, block_time))
             blocks[-1].solve()
             tip = blocks[-1].sha256
-            snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, height, coinbase)
+            snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta, height, coinbase)
             block_time += 1
             height += 1
             inv_node.send_message(msg_block(blocks[-1]))
@@ -523,7 +523,7 @@ class SendHeadersTest(UnitETestFramework):
             blocks.append(create_block(tip, coinbase, block_time))
             blocks[-1].solve()
             tip = blocks[-1].sha256
-            snapshots.append(update_snapshot_with_tx(self.nodes[0], snapshots[-1].data, 0, height, coinbase))
+            snapshots.append(update_snapshot_with_tx(self.nodes[0], snapshots[-1], height, coinbase))
             block_time += 1
             height += 1
 
@@ -548,7 +548,7 @@ class SendHeadersTest(UnitETestFramework):
             blocks.append(create_block(tip, coinbase, block_time))
             blocks[-1].solve()
             tip = blocks[-1].sha256
-            snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, height, coinbase)
+            snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta, height, coinbase)
             block_time += 1
             height += 1
 
@@ -600,7 +600,7 @@ class SendHeadersTest(UnitETestFramework):
                 blocks.append(create_block(tip, coinbase, block_time))
                 blocks[-1].solve()
                 tip = blocks[-1].sha256
-                snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, height, coinbase)
+                snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta, height, coinbase)
                 block_time += 1
                 height += 1
             # Send the header of the second block -> this won't connect.
@@ -625,7 +625,7 @@ class SendHeadersTest(UnitETestFramework):
             blocks.append(create_block(tip, coinbase, block_time))
             blocks[-1].solve()
             tip = blocks[-1].sha256
-            snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, height, coinbase)
+            snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta, height, coinbase)
             block_time += 1
             height += 1
 

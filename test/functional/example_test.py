@@ -180,12 +180,11 @@ class ExampleTest(UnitETestFramework):
             # Use the mininode and blocktools functionality to manually build a block
             # Calling the generate() rpc is easier, but this allows us to exactly
             # control the blocks and transactions.
-            txout = self.nodes[0].gettxout(stake['txid'], stake['vout'])
             coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, stake, snapshot_meta.hash))
             block = create_block(self.tip, coinbase, self.block_time)
             # Wait until the active chain picks up the previous block
             wait_until(lambda: self.nodes[0].getblockcount() == height, timeout=5)
-            snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, height + 1, coinbase)
+            snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta, height + 1, coinbase)
             block.solve()
             block_message = msg_block(block)
             # Send message is used to send a P2P message to the node over our P2PInterface

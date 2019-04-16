@@ -339,7 +339,7 @@ class P2PSnapshotTest(UnitETestFramework):
                 utxos.append(utxo)
         inputs = bytes_to_hex_str(ser_vector([]))
         outputs = bytes_to_hex_str(ser_vector(utxos))
-        stake_modifier = bytes_to_hex_str(ser_uint256(syncing_p2p.snapshot_header.stake_modifier))
+        stake_modifier = "%064x" % syncing_p2p.snapshot_header.stake_modifier
         chain_work = bytes_to_hex_str(ser_uint256(syncing_p2p.snapshot_header.chain_work))
         res = self.nodes[0].calcsnapshothash(inputs, outputs, stake_modifier, chain_work)
         snapshot_hash = uint256_from_hex(res['hash'])

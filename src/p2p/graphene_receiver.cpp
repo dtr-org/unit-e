@@ -136,7 +136,6 @@ void GrapheneReceiverImpl::OnGrapheneBlockReceived(CNode &from,
       // resources on it
       LogPrint(BCLog::NET, "Graphene block %s from peer %d was not requested\n",
                block_hash.GetHex(), from.GetId());
-      Misbehaving(from.GetId(), 20);
 
       return;
     }

@@ -162,10 +162,10 @@ UNITE_TESTS += \
   test/txvalidation_tests.cpp \
   test/txvalidationcache_tests.cpp \
   test/validation_block_tests.cpp \
-  test/waiter_tests.cpp \
   wallet/test/accounting_tests.cpp \
   wallet/test/psbt_wallet_tests.cpp \
   wallet/test/rpcvalidator_tests.cpp \
+  wallet/test/rpcwalletext_tests.cpp \
   wallet/test/wallet_tests.cpp \
   wallet/test/wallet_crypto_tests.cpp \
   wallet/test/coinselector_tests.cpp
