@@ -118,6 +118,10 @@ class RemoteStakingTest(UnitETestFramework):
         result = alice.stakeat(recipient, True)
         assert_greater_than(0.001, result['fee'])
 
+        # Estimate Alice balance
+        # Fee is doubled since we send two transactions - to p2wpkh and p2wsh
+        alice_balance = regtest_mnemonics[0]['balance'] - 2 * result['fee']
+
         ps = bob.proposerstatus()
         assert_equal(ps['wallets'][0]['stakeable_balance'], 0)
 
@@ -129,6 +133,7 @@ class RemoteStakingTest(UnitETestFramework):
 
         wi = alice.getwalletinfo()
         assert_equal(wi['remote_staking_balance'], 2)
+        assert_equal(wi['balance'], alice_balance)
 
         def bob_is_staking_the_new_coin():
             ps = bob.proposerstatus()
@@ -142,8 +147,10 @@ class RemoteStakingTest(UnitETestFramework):
 
         # Reward from the Bob's block comes to remote staking balance of Alice
         # But stake output from the Bob's block must be ignored
+        # Actual spendable balance shouldn't change
         wi = alice.getwalletinfo()
         assert_equal(wi['remote_staking_balance'], 2 + PROPOSER_REWARD)
+        assert_equal(wi['balance'], alice_balance)
 
         # Change outputs for both staked coins, and the balance staked remotely
         assert_equal(len(alice.listunspent()), 2 +
