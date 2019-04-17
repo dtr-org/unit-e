@@ -26,32 +26,16 @@ Node shouldn't switch to the fork because its epoch=5 is not finalized
 
 """
 from test_framework.test_framework import UnitETestFramework
-from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.util import (
     connect_nodes,
     assert_finalizationstate,
-    bytes_to_hex_str,
     disconnect_nodes,
     sync_blocks,
     assert_equal,
     wait_until,
+    make_vote_tx,
 )
-from test_framework.messages import FromHex, ToHex, CTransaction
-from test_framework.keytools import BinaryData
 import time
-
-
-def make_vote_tx(finalizer, finalizer_address, target_hash, source_epoch, target_epoch, input_tx_id):
-    vote = {
-        'validator_address': finalizer_address,
-        'target_hash': target_hash,
-        'target_epoch': target_epoch,
-        'source_epoch': source_epoch
-    }
-    vtx = finalizer.createvotetransaction(vote, input_tx_id)
-    vtx = finalizer.signrawtransaction(vtx)
-    vtx = FromHex(CTransaction(), vtx['hex'])
-    return vtx
 
 
 class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
@@ -82,21 +66,17 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         self.start_node(fork.index)
         self.start_node(finalizer.index)
 
-        finalizer.importmasterkey(regtest_mnemonics[0]['mnemonics'])
-        node.importmasterkey(regtest_mnemonics[1]['mnemonics'])
-        fork.importmasterkey(regtest_mnemonics[2]['mnemonics'])
+        self.setup_stake_coins(node, fork, finalizer)
 
         connect_nodes(node, fork.index)
         connect_nodes(node, finalizer.index)
 
         # leave IBD
-        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
-        sync_blocks([node, fork, finalizer])
+        self.generate_sync(node, nodes=[node, fork, finalizer])
 
         # create deposit
-        payto = finalizer.getnewaddress('', 'legacy')
-        finalizer_address = bytes_to_hex_str(BinaryData.from_base58check(payto).to_bytes()[::-1])
-        deposit_tx_id = finalizer.deposit(payto, 1500)
+        finalizer_address = finalizer.getnewaddress('', 'legacy')
+        deposit_tx_id = finalizer.deposit(finalizer_address, 1500)
         wait_until(lambda: len(node.getrawmempool()) > 0, timeout=10)
         node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         disconnect_nodes(node, finalizer.index)
@@ -122,7 +102,7 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         fork.generatetoaddress(1, fork.getnewaddress('', 'bech32'))
         vtx = make_vote_tx(finalizer, finalizer_address, target,
                            source_epoch=4, target_epoch=7, input_tx_id=deposit_tx_id)
-        fork.sendrawtransaction(ToHex(vtx))
+        fork.sendrawtransaction(vtx)
         fork.generatetoaddress(1, fork.getnewaddress('', 'bech32'))
         assert_equal(fork.getblockcount(), 37)
         assert_finalizationstate(fork, {'currentDynasty': 3,
@@ -194,21 +174,17 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         self.start_node(fork.index)
         self.start_node(finalizer.index)
 
-        finalizer.importmasterkey(regtest_mnemonics[0]['mnemonics'])
-        node.importmasterkey(regtest_mnemonics[1]['mnemonics'])
-        fork.importmasterkey(regtest_mnemonics[2]['mnemonics'])
+        self.setup_stake_coins(node, fork, finalizer)
 
         connect_nodes(node, fork.index)
         connect_nodes(node, finalizer.index)
 
         # leave IBD
-        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
-        sync_blocks([node, fork, finalizer])
+        self.generate_sync(node, nodes=[node, fork, finalizer])
 
         # create deposit
-        payto = finalizer.getnewaddress('', 'legacy')
-        finalizer_address = bytes_to_hex_str(BinaryData.from_base58check(payto).to_bytes()[::-1])
-        finalizer.deposit(payto, 1500)
+        finalizer_address = finalizer.getnewaddress('', 'legacy')
+        finalizer.deposit(finalizer_address, 1500)
         wait_until(lambda: len(node.getrawmempool()) > 0, timeout=10)
         node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         disconnect_nodes(node, finalizer.index)
@@ -263,7 +239,7 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         fork.generatetoaddress(1, fork.getnewaddress('', 'bech32'))
         vtx = make_vote_tx(finalizer, finalizer_address, target,
                            source_epoch=5, target_epoch=8, input_tx_id=vote_tx_id)
-        fork.sendrawtransaction(ToHex(vtx))
+        fork.sendrawtransaction(vtx)
         fork.generatetoaddress(4, fork.getnewaddress('', 'bech32'))
         assert_equal(fork.getblockcount(), 45)
         assert_finalizationstate(fork, {'currentDynasty': 4,
