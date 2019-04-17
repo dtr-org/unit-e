@@ -207,11 +207,11 @@ UniValue logout(const JSONRPCRequest& request) {
 
     const esperanza::Validator *validator = state->GetValidator(extWallet.validatorState->m_validator_address);
     if (!validator) {
-      throw JSONRPCError(RPC_VERIFY_ERROR, "Not a validator.");
+      throw JSONRPCError(RPC_INVALID_REQUEST, "Not a validator.");
     }
 
     if (!state->IsFinalizerVoting(*validator)) {
-      throw JSONRPCError(RPC_INVALID_PARAMETER, "The node is not validating.");
+      throw JSONRPCError(RPC_VERIFY_ERROR, "The node is not validating.");
     }
   }
 

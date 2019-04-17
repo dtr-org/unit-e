@@ -803,12 +803,12 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
   LOCK(m_enclosing_wallet.cs_wallet);
   ValidatorStateWatchWriter validator_writer(*this);
 
+  LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
+  const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().GetTipState();
+  assert(fin_state != nullptr);
+
   switch (tx.GetType()) {
     case TxType::DEPOSIT: {
-      LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
-      const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().GetTipState();
-      assert(fin_state != nullptr);
-
       const ValidatorState::Phase cur_phase = GetFinalizerPhase(*fin_state);
       if (cur_phase != +ValidatorState::Phase::NOT_VALIDATING &&                // deposit received via (re-)indexing
           cur_phase != +ValidatorState::Phase::WAITING_DEPOSIT_CONFIRMATION) {  // deposit was sent explicitly
@@ -830,10 +830,6 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
       break;
     }
     case TxType::LOGOUT: {
-      LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
-      const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().GetTipState();
-      assert(fin_state != nullptr);
-
       const esperanza::Validator *validator = fin_state->GetValidator(validatorState->m_validator_address);
       if (!validator) {
         LogPrint(BCLog::FINALIZATION,
@@ -860,10 +856,6 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
       break;
     }
     case TxType::VOTE: {
-      LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
-      const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().GetTipState();
-      assert(fin_state != nullptr);
-
       const esperanza::Validator *validator = fin_state->GetValidator(validatorState->m_validator_address);
       if (!validator) {
         LogPrint(BCLog::FINALIZATION,
@@ -886,10 +878,6 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
       break;
     }
     case TxType::WITHDRAW: {
-      LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
-      const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().GetTipState();
-      assert(fin_state != nullptr);
-
       const ValidatorState::Phase cur_phase = GetFinalizerPhase(*fin_state);
       if (cur_phase != +ValidatorState::Phase::WAITING_TO_WITHDRAW &&  // __func__ is called before block is processed
           cur_phase != +ValidatorState::Phase::NOT_VALIDATING) {       // __func__ is called after block is processed
