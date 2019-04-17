@@ -23,7 +23,7 @@ the [technical paper](https://unit-e.io/technical-design.pdf).
 subject to breaking protocol changes (consensus, blockchain, p2p, RPC) and
 redoing from scratch of the alpha testnet.
 Please check the [announcements page](https://docs.unit-e.io/announcements.html)
-for information regarding such changes :warning::warning::warning:
+for information regarding such changes. :warning::warning::warning:
 
 This repository hosts the implementation of the first Unit-e client: `unit-e`,
 also known as the "Feuerland" client. It's based on the [Bitcoin C++
