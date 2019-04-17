@@ -14,9 +14,7 @@ from test_framework.mininode import (
     P2PInterface,
     sha256,
 )
-from test_framework.regtest_mnemonics import (
-    regtest_mnemonics,
-)
+from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.script import (
     CScript,
     OP_2,
@@ -66,7 +64,7 @@ def build_block_with_remote_stake(node):
     stakes = node.liststakeablecoins()
 
     coin = stakes['stakeable_coins'][0]['coin']
-    pubkey = hex_str_to_bytes(coin['script_pub_key']['hex'])
+    script_pubkey = hex_str_to_bytes(coin['script_pub_key']['hex'])
     stake = {
         'txid': coin['out_point']['txid'],
         'vout': coin['out_point']['n'],
@@ -78,7 +76,7 @@ def build_block_with_remote_stake(node):
         node.getbestblockhash())['time'] + 1
     coinbase = sign_coinbase(
         node, create_coinbase(
-            height, stake, snapshot_meta.hash, raw_script_pubkey=pubkey))
+            height, stake, snapshot_meta.hash, raw_script_pubkey=script_pubkey))
 
     return create_block(tip, coinbase, block_time)
 
@@ -124,7 +122,6 @@ class RemoteStakingTest(UnitETestFramework):
         self.sync_all()
 
         # Estimate Alice balance
-        # Fee is the sum of two transactions - p2wpkh and p2wsh
         tx1_fee = alice.gettransaction(tx1_hash)['fee']
         tx2_fee = alice.gettransaction(tx2_hash)['fee']
         alice_balance = regtest_mnemonics[0]['balance'] + tx1_fee + tx2_fee
@@ -144,8 +141,7 @@ class RemoteStakingTest(UnitETestFramework):
         self.sync_all()
 
         # Reward from the Bob's block comes to remote staking balance of Alice
-        # But stake output from the Bob's block must be ignored
-        # Actual spendable balance shouldn't change
+        # Actual spendable balance shouldn't change because the reward is not yet mature
         wi = alice.getwalletinfo()
         assert_equal(wi['remote_staking_balance'], 2 + PROPOSER_REWARD)
         assert_equal(wi['balance'], alice_balance)
@@ -154,7 +150,7 @@ class RemoteStakingTest(UnitETestFramework):
         assert_equal(len(alice.listunspent()), 2 +
                      (regtest_mnemonics[0]['balance'] // STAKE_SPLIT_THRESHOLD))
 
-        # Spend coins, given to remote stake
+        # Chech that Alice can spend remotely staked coins
         inputs = []
         for coin in bob.liststakeablecoins()['stakeable_coins']:
             out_point = coin['coin']['out_point']
