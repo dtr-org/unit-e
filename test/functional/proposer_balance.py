@@ -156,7 +156,7 @@ class ProposerBalanceTest(UnitETestFramework):
     @staticmethod
     def generate_block(nodes, node_idx):
         try:
-            nodes[node_idx].generatetoaddress(nblocks=1, address=nodes[node_idx].getnewaddress())
+            nodes[node_idx].generatetoaddress(nblocks=1, address=nodes[node_idx].getnewaddress("", "bech32"))
             sync_blocks(nodes)
         except JSONRPCException as exp:
             print("error generating block:", exp.error)

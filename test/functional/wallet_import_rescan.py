@@ -133,7 +133,7 @@ class ImportRescanTest(UnitETestFramework):
     def run_test(self):
 
         self.setup_stake_coins(self.nodes[0])
-        self.nodes[0].generatetoaddress(200, self.nodes[0].getnewaddress())
+        self.nodes[0].generatetoaddress(200, self.nodes[0].getnewaddress("", "bech32"))
         sync_blocks(self.nodes)
 
         # Create one transaction on node 0 with a unique amount and label for

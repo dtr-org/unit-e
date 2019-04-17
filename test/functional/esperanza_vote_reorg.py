@@ -202,7 +202,7 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
                                          'lastFinalizedEpoch': 4,
                                          'validators': 2})
 
-        fork1.generatetoaddress(3, fork1.getnewaddress())
+        fork1.generatetoaddress(3, fork1.getnewaddress("", "bech32"))
         assert_equal(fork1.getblockcount(), 46)
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork1)
         fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))

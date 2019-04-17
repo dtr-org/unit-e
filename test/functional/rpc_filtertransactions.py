@@ -100,7 +100,7 @@ class FilterTransactionsTest(UnitETestFramework):
 
         # coinbase
         sync_mempools(self.nodes)
-        self.nodes[0].generatetoaddress(1, self.nodes[0].getnewaddress())  # Clear node1's mempool
+        self.nodes[0].generatetoaddress(1, self.nodes[0].getnewaddress("", "bech32"))  # Clear node1's mempool
         sync_blocks(self.nodes)
 
         address = self.nodes[1].getnewaddress()
