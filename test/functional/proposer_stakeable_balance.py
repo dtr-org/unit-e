@@ -88,13 +88,7 @@ class ProposerStakeableBalanceTest(UnitETestFramework):
             assert_equal(wallet['stakeable_balance'], Decimal('0.00000000'))
 
         # Check that if we send all the money to a P2PKH address we cannot stake anymore.
-        for node in self.nodes[2:]:
-            node.stop_node(wait=0)
-
-        self.nodes = self.nodes[0:2]
-
-        # Disconnecting all nodes to stop proposal.
-        disconnect_nodes(nodes[0], nodes[1].index)
+        disconnect_all_nodes(nodes)
 
         p2pkh_tx = nodes[0].sendtoaddress(nodes[0].getnewaddress("", "legacy"), nodes[0].getbalance(), "", "", True)
 

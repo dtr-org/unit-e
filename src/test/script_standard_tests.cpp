@@ -495,7 +495,7 @@ BOOST_AUTO_TEST_CASE(script_standard_IsMine)
         keystore.AddKey(keys[0]);
         result = IsMine(keystore, scriptPubKey);
         BOOST_CHECK_EQUAL(result, ISMINE_SPENDABLE);
-        BOOST_CHECK(IsStakeableByMe(keystore, scriptPubKey));
+        BOOST_CHECK(!IsStakeableByMe(keystore, scriptPubKey));
     }
 
     // P2PKH uncompressed
