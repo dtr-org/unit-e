@@ -121,11 +121,11 @@ CAmount WalletExtension::GetRemoteStakingBalance() const {
   CAmount balance = 0;
 
   for (const auto &it : m_enclosing_wallet.mapWallet) {
-    const CWalletTx *const tx = &it.second;
-    const uint256 &tx_hash = tx->GetHash();
+    const CWalletTx &tx = it.second;
+    const uint256 &tx_hash = tx.GetHash();
 
-    for (size_t i = 0; i < tx->tx->vout.size(); ++i) {
-      const CTxOut &tx_out = tx->tx->vout[i];
+    for (size_t i = 0; i < tx.tx->vout.size(); ++i) {
+      const CTxOut &tx_out = tx.tx->vout[i];
       if (m_enclosing_wallet.IsSpent(tx_hash, i)) {
         continue;
       }

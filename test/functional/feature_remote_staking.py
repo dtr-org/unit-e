@@ -57,7 +57,7 @@ def stake_p2wsh(node, staking_node, amount):
     rs_p2wsh = CScript([OP_2, staking_key_hash, spending_script_hash])
     outputs = [{'address': 'script', 'amount': amount,
                 'script': bytes_to_hex_str(rs_p2wsh)}]
-    node.sendtypeto('unite', 'unite', outputs)
+    return node.sendtypeto('unite', 'unite', outputs)
 
 
 def build_block_with_remote_stake(node):
@@ -78,7 +78,7 @@ def build_block_with_remote_stake(node):
         node.getbestblockhash())['time'] + 1
     coinbase = sign_coinbase(
         node, create_coinbase(
-            height, stake, snapshot_meta.hash, raw_pubkey=pubkey))
+            height, stake, snapshot_meta.hash, raw_script_pubkey=pubkey))
 
     return create_block(tip, coinbase, block_time)
 
@@ -91,8 +91,6 @@ class RemoteStakingTest(UnitETestFramework):
             [],
             ['-minimumchainwork=0', '-maxtipage=1000000000']
         ]
-        self.customchainparams = [
-            {"stake_maturity": 1, "stake_maturity_activation_height": 2}] * 2
 
     def run_test(self):
         alice, bob = self.nodes
@@ -100,8 +98,6 @@ class RemoteStakingTest(UnitETestFramework):
 
         bob.add_p2p_connection(P2PInterface())
         network_thread_start()
-
-        self.log.info("Waiting untill the P2P connection is fully up...")
         bob.p2p.wait_for_verack()
 
         alice.generate(1)
@@ -118,18 +114,20 @@ class RemoteStakingTest(UnitETestFramework):
         result = alice.stakeat(recipient, True)
         assert_greater_than(0.001, result['fee'])
 
-        # Estimate Alice balance
-        # Fee is doubled since we send two transactions - to p2wpkh and p2wsh
-        alice_balance = regtest_mnemonics[0]['balance'] - 2 * result['fee']
-
         ps = bob.proposerstatus()
         assert_equal(ps['wallets'][0]['stakeable_balance'], 0)
 
         # Stake the funds
-        result = alice.stakeat(recipient)
-        stake_p2wsh(alice, staking_node=bob, amount=1)
+        tx1_hash = alice.stakeat(recipient)
+        tx2_hash = stake_p2wsh(alice, staking_node=bob, amount=1)
         alice.generatetoaddress(1, alices_addr)
         self.sync_all()
+
+        # Estimate Alice balance
+        # Fee is the sum of two transactions - p2wpkh and p2wsh
+        tx1_fee = alice.gettransaction(tx1_hash)['fee']
+        tx2_fee = alice.gettransaction(tx2_hash)['fee']
+        alice_balance = regtest_mnemonics[0]['balance'] + tx1_fee + tx2_fee
 
         wi = alice.getwalletinfo()
         assert_equal(wi['remote_staking_balance'], 2)
@@ -155,6 +153,17 @@ class RemoteStakingTest(UnitETestFramework):
         # Change outputs for both staked coins, and the balance staked remotely
         assert_equal(len(alice.listunspent()), 2 +
                      (regtest_mnemonics[0]['balance'] // STAKE_SPLIT_THRESHOLD))
+
+        # Spend coins, given to remote stake
+        inputs = []
+        for coin in bob.liststakeablecoins()['stakeable_coins']:
+            out_point = coin['coin']['out_point']
+            inputs.append({'tx': out_point['txid'], 'n': out_point['n']})
+        alice.sendtypeto('', '', [{'address': alices_addr, 'amount': 1.9}], '', '', False,
+                         {'changeaddress': alices_addr, 'inputs': inputs})
+
+        wi = alice.getwalletinfo()
+        assert_equal(wi['remote_staking_balance'], PROPOSER_REWARD)
 
 
 if __name__ == '__main__':
