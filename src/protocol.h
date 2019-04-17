@@ -262,12 +262,12 @@ extern const char *GETSNAPSHOT;
  */
 extern const char *SNAPSHOT;
 /**
- * Contains a getcommits request as described in ADR-21.
+ * Contains a getcommits request as described in UIP-21.
  * Peer should respond with the "commits" message.
  */
 extern const char *GETCOMMITS;
 /**
- * Contains commits message as described in ADR-21.
+ * Contains commits message as described in UIP-21.
  * Sent in respose to a "getcommits" message.
  */
 extern const char *COMMITS;
