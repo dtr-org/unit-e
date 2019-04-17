@@ -514,7 +514,7 @@ def disconnect_nodes_bi(nodes, a, b):
 def disconnect_all_nodes(nodes):
     for i in range(0, len(nodes)):
         if i+1 < len(nodes):
-            connect_nodes_bi(nodes, i, i + 1)
+            disconnect_nodes_bi(nodes, i, i + 1)
 
 def sync_blocks(rpc_connections, *, wait=1, timeout=60, height=None):
     """
