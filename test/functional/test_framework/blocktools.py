@@ -69,7 +69,7 @@ def serialize_script_num(value):
 # If pubkey is passed in, the coinbase outputs will be P2PK outputs;
 # otherwise anyone-can-spend outputs. The first output is the reward,
 # which is not spendable for COINBASE_MATURITY blocks.
-def create_coinbase(height, stake, snapshot_hash, pubkey = None, n_pieces = 1):
+def create_coinbase(height, stake, snapshot_hash, pubkey=None, raw_script_pubkey=None, n_pieces=1):
     assert n_pieces > 0
     stake_in = COutPoint(int(stake['txid'], 16), stake['vout'])
     coinbase = CTransaction()
@@ -81,6 +81,8 @@ def create_coinbase(height, stake, snapshot_hash, pubkey = None, n_pieces = 1):
     output_script = None
     if (pubkey != None):
         output_script = CScript([pubkey, OP_CHECKSIG])
+    elif raw_script_pubkey is not None:
+        output_script = CScript(raw_script_pubkey)
     else:
         output_script = CScript([OP_TRUE])
 
