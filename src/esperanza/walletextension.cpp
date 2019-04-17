@@ -120,19 +120,17 @@ CAmount WalletExtension::GetRemoteStakingBalance() const {
 
   CAmount balance = 0;
 
-  const CCoinsViewCache &view = pcoinsTip.get();  // requires cs_main
-
   for (const auto &it : m_enclosing_wallet.mapWallet) {
     const CWalletTx *const tx = &it.second;
-    const uint256 &hashTx = tx->GetHash();
+    const uint256 &tx_hash = tx->GetHash();
 
     for (size_t i = 0; i < tx->tx->vout.size(); ++i) {
-      const CTxOut &txout = tx->tx->vout[i];
-      if (m_enclosing_wallet.IsSpent(hashTx, i)) {
+      const CTxOut &tx_out = tx->tx->vout[i];
+      if (m_enclosing_wallet.IsSpent(tx_hash, i)) {
         continue;
       }
-      if (::IsStakedRemotely(m_enclosing_wallet, txout.scriptPubKey)) {
-        balance += txout.nValue;
+      if (::IsStakedRemotely(m_enclosing_wallet, tx_out.scriptPubKey)) {
+        balance += tx_out.nValue;
       }
     }
   }
