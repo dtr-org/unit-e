@@ -867,7 +867,8 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
 
         if (!esperanza::ExtractValidatorAddress(tx, validatorAddress)) {
           LogPrint(BCLog::FINALIZATION,
-                   "ERROR: %s - Cannot extract validator index.\n");
+                   "ERROR: %s: Cannot extract validator index.\n",
+                   __func__);
           return false;
         }
 
