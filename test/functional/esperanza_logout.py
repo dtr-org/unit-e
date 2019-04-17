@@ -146,7 +146,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
         connect_nodes(finalizer1, proposer.index)
         sync_blocks([finalizer1, proposer], timeout=10)
         assert_equal(finalizer1.getvalidatorinfo()['validator_status'], 'WAITING_FOR_WITHDRAW_DELAY')
-        assert_raises_rpc_error(-8, 'The node is not validating.', finalizer1.logout)
+        assert_raises_rpc_error(-25, 'The node is not validating.', finalizer1.logout)
 
         # Check that we manage to finalize even with one finalizer
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=proposer)
