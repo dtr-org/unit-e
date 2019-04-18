@@ -856,7 +856,7 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
       }
 
       // at this point we don't care about the last deposit as it can't be reverted.
-      // we must reset this field to misinterpret NOT_VALIDATING as WAITING_DEPOSIT_CONFIRMATION
+      // we must reset this field not to misinterpret NOT_VALIDATING as WAITING_DEPOSIT_CONFIRMATION
       validatorState->m_last_deposit_tx.SetNull();
       break;
     }
