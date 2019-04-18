@@ -17,7 +17,7 @@
 // clang-format off
 BETTER_ENUM(
   TxType,
-  uint16_t,
+  uint8_t,
   REGULAR = 0,
   COINBASE = 1,
   DEPOSIT = 2,
