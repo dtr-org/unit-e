@@ -18,7 +18,8 @@ BOOST_FIXTURE_TEST_SUITE(finalizationstate_tests, TestingSetup)
 
 BOOST_AUTO_TEST_CASE(constructor) {
 
-  FinalizationStateSpy state;
+  finalization::Params params;
+  FinalizationStateSpy state(params);
 
   BOOST_CHECK_EQUAL(0, state.GetCurrentEpoch());
   BOOST_CHECK_EQUAL(0, state.GetCurrentDynasty());
@@ -44,8 +45,8 @@ BOOST_AUTO_TEST_CASE(get_epoch) {
       {25, 5},
   };
 
-  FinalizationParams params;
-  FinalizationState state(params, esperanza::AdminParams{});
+  finalization::Params params;
+  FinalizationState state(params);
   BOOST_REQUIRE_EQUAL(state.GetEpochLength(), 5);
 
   for (const auto &it : height_to_epoch) {
@@ -57,7 +58,8 @@ BOOST_AUTO_TEST_CASE(get_epoch) {
 
 BOOST_AUTO_TEST_CASE(initialize_epoch_wrong_height_passed) {
 
-  FinalizationStateSpy state;
+  finalization::Params params;
+  FinalizationStateSpy state(params);
 
   BOOST_CHECK_EQUAL(state.InitializeEpoch(state.EpochLength() * 2 + 1),
                     +Result::INIT_WRONG_EPOCH);
@@ -69,7 +71,8 @@ BOOST_AUTO_TEST_CASE(initialize_epoch_wrong_height_passed) {
 
 BOOST_AUTO_TEST_CASE(initialize_epoch_insta_justify) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
   BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 0);
   BOOST_CHECK_EQUAL(spy.GetLastJustifiedEpoch(), 0);
   BOOST_CHECK_EQUAL(spy.GetLastFinalizedEpoch(), 0);
@@ -103,7 +106,8 @@ BOOST_AUTO_TEST_CASE(initialize_epoch_insta_justify) {
 // 6% per year given that the total deposit of validator is 150Mln units
 BOOST_AUTO_TEST_CASE(initialize_epoch_reward_factor) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params = finalization::Params::TestNet();
+  FinalizationStateSpy spy(params);
   *spy.CurDynDeposits() = 150000000;
   *spy.PrevDynDeposits() = 150000000;
 
@@ -113,7 +117,8 @@ BOOST_AUTO_TEST_CASE(initialize_epoch_reward_factor) {
 
 // GetRecommendedVote tests
 BOOST_AUTO_TEST_CASE(get_recommended_vote) {
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
   uint160 validator_address = RandValidatorAddr();
 
   const uint256 target_hash = GetRandHash();
@@ -132,7 +137,8 @@ BOOST_AUTO_TEST_CASE(get_recommended_vote) {
 }
 
 BOOST_AUTO_TEST_CASE(register_last_validator_tx) {
-  FinalizationStateSpy state;
+  finalization::Params params = finalization::Params::TestNet();
+  FinalizationStateSpy state(params);
 
   CKey k;
   InsecureNewKey(k, true);
@@ -232,7 +238,8 @@ BOOST_AUTO_TEST_CASE(deposit_amount) {
 
   block.vtx = std::vector<CTransactionRef>{MakeTransactionRef(deposit_tx)};
 
-  FinalizationStateSpy state;
+  finalization::Params params;
+  FinalizationStateSpy state(params);
   state.ProcessNewTip(blockIndex, block);
 
   BOOST_CHECK_EQUAL(10000, state.GetDepositSize(validatorAddress));

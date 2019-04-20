@@ -21,7 +21,8 @@ BOOST_FIXTURE_TEST_SUITE(finalizationstate_withdraw_tests, TestingSetup)
 
 BOOST_AUTO_TEST_CASE(validate_withdraw_not_a_validator) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
   CAmount withdrawAmount = 0;
 
   BOOST_CHECK_EQUAL(spy.ValidateWithdraw(RandValidatorAddr(), withdrawAmount),
@@ -30,7 +31,8 @@ BOOST_AUTO_TEST_CASE(validate_withdraw_not_a_validator) {
 
 BOOST_AUTO_TEST_CASE(process_withdraw_before_end_dynasty) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params = finalization::Params::TestNet();
+  FinalizationStateSpy spy(params);
   CAmount withdrawAmount = 0;
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
@@ -61,7 +63,8 @@ BOOST_AUTO_TEST_CASE(process_withdraw_before_end_dynasty) {
 
 BOOST_AUTO_TEST_CASE(process_withdraw_too_early) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params = finalization::Params::TestNet();
+  FinalizationStateSpy spy(params);
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
@@ -116,7 +119,8 @@ BOOST_AUTO_TEST_CASE(process_withdraw_too_early) {
 
 BOOST_AUTO_TEST_CASE(process_withdraw_completely_slashed) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params = finalization::Params::TestNet();
+  FinalizationStateSpy spy(params);
   CAmount withdrawAmount = 0;
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();

@@ -10,9 +10,11 @@ namespace {
 
 class ProcessorImpl final : public StateProcessor {
  public:
-  explicit ProcessorImpl(Dependency<finalization::StateRepository> repo,
+  explicit ProcessorImpl(Dependency<finalization::Params> finalization_params,
+                         Dependency<finalization::StateRepository> repo,
                          Dependency<staking::ActiveChain> active_chain)
-      : m_repo(repo),
+      : m_finalization_params(finalization_params),
+        m_repo(repo),
         m_active_chain(active_chain) {}
 
   bool ProcessNewCommits(const CBlockIndex &block_index, const std::vector<CTransactionRef> &txes) override;
@@ -23,6 +25,7 @@ class ProcessorImpl final : public StateProcessor {
   bool ProcessNewTipWorker(const CBlockIndex &block_index, const CBlock &block);
   bool FinalizationHappened(const CBlockIndex &block_index);
 
+  Dependency<finalization::Params> m_finalization_params;
   Dependency<finalization::StateRepository> m_repo;
   Dependency<staking::ActiveChain> m_active_chain;
 };
@@ -104,7 +107,7 @@ bool ProcessorImpl::ProcessNewTip(const CBlockIndex &block_index, const CBlock &
     return false;
   }
 
-  const uint32_t epoch_length = m_repo->GetFinalizationParams().epoch_length;
+  const uint32_t epoch_length = m_finalization_params->epoch_length;
   if (block_index.nHeight > 0 && !m_repo->Restoring() &&
       (block_index.nHeight + 1) % epoch_length == 0) {
     // Generate the snapshot for the block which is one block behind the last one.
@@ -174,9 +177,11 @@ bool ProcessorImpl::ProcessNewCommits(const CBlockIndex &block_index, const std:
 
 }  // namespace
 
-std::unique_ptr<StateProcessor> StateProcessor::New(Dependency<finalization::StateRepository> repo,
-                                                    Dependency<staking::ActiveChain> active_chain) {
-  return MakeUnique<ProcessorImpl>(repo, active_chain);
+std::unique_ptr<StateProcessor> StateProcessor::New(
+    Dependency<finalization::Params> finalization_params,
+    Dependency<finalization::StateRepository> repo,
+    Dependency<staking::ActiveChain> active_chain) {
+  return MakeUnique<ProcessorImpl>(finalization_params, repo, active_chain);
 }
 
 }  // namespace finalization

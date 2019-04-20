@@ -329,32 +329,24 @@ class StateDBMock : public finalization::StateDB {
     return false;
   }
 
-  bool Load(const esperanza::FinalizationParams &fin_params,
-            const esperanza::AdminParams &admin_params,
-            std::map<const CBlockIndex *, FinalizationState> *states) override {
+  bool Load(std::map<const CBlockIndex *, FinalizationState> *states) override {
     ++invocations_Load;
     return false;
   }
 
   bool Load(const CBlockIndex &index,
-            const esperanza::FinalizationParams &fin_params,
-            const esperanza::AdminParams &admin_params,
             std::map<const CBlockIndex *, FinalizationState> *states) const override {
     ++invocations_LoadParticular;
     return false;
   }
 
-  boost::optional<uint32_t> FindLastFinalizedEpoch(
-      const esperanza::FinalizationParams &fin_params,
-      const esperanza::AdminParams &admin_params) const override {
+  boost::optional<uint32_t> FindLastFinalizedEpoch() const override {
     ++invocations_FindLastFinalizedEpoch;
     return boost::none;
   }
 
   void LoadStatesHigherThan(
       blockchain::Height height,
-      const esperanza::FinalizationParams &fin_params,
-      const esperanza::AdminParams &admin_params,
       std::map<const CBlockIndex *, FinalizationState> *states) const override {
     ++invocations_LoadStatesHigherThan;
   }

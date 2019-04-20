@@ -13,8 +13,6 @@
 #include <dependency.h>
 #include <primitives/block.h>
 #include <protocol.h>
-#include <esperanza/adminparams.h>
-#include <esperanza/finalizationparams.h>
 #include <snapshot/params.h>
 
 #include <memory>
@@ -43,8 +41,6 @@ class CChainParams
 {
 public:
     const Consensus::Params& GetConsensus() const { return consensus; }
-    const esperanza::FinalizationParams& GetFinalization() const { return finalization; }
-    const esperanza::AdminParams& GetAdminParams() const { return adminParams; }
     const snapshot::Params& GetSnapshotParams() const { return snapshotParams; }
     const CMessageHeader::MessageStartChars& MessageStart() const { return parameters.message_start_characters; }
     int GetDefaultPort() const { return parameters.default_settings.p2p_port; }
@@ -63,7 +59,6 @@ public:
     const std::vector<SeedSpec6>& FixedSeeds() const { return vFixedSeeds; }
     const ChainTxData& TxData() const { return chainTxData; }
     void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout);
-    void UpdateFinalizationParams(esperanza::FinalizationParams &params);
 
     const blockchain::Parameters parameters;
 
@@ -71,8 +66,6 @@ protected:
     explicit CChainParams(const blockchain::Parameters &parameters) : parameters(parameters) {}
 
     Consensus::Params consensus;
-    esperanza::FinalizationParams finalization;
-    esperanza::AdminParams adminParams;
     snapshot::Params snapshotParams;
     std::vector<std::string> vSeeds;
     CBlock genesis;
@@ -106,10 +99,5 @@ void SelectParams(Dependency<blockchain::Behavior>, const std::string& chain);
  * Allows modifying the Version Bits regtest parameters.
  */
 void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout);
-
-/**
- * Allows modifying the esperanza regtest parameters.
- */
-void UpdateFinalizationParams(esperanza::FinalizationParams &params);
 
 #endif // UNITE_CHAINPARAMS_H

@@ -17,12 +17,11 @@ class Fixture {
   static constexpr blockchain::Height epoch_length = 5;
 
   Fixture()
-      : m_repo(finalization::StateRepository::New(&m_block_indexes, &m_chain, &m_state_db, &m_block_db)),
-        m_proc(finalization::StateProcessor::New(m_repo.get(), &m_chain)) {
-    m_finalization_params = Params().GetFinalization();
-    m_finalization_params.epoch_length = epoch_length;
-    m_admin_params = Params().GetAdminParams();
-    m_repo->Reset(m_finalization_params, m_admin_params);
+      : m_finalization_params(SetupFinalizationParams()),
+        m_repo(finalization::StateRepository::New(
+            &m_finalization_params, &m_block_indexes, &m_chain, &m_state_db, &m_block_db)),
+        m_proc(finalization::StateProcessor::New(
+            &m_finalization_params, m_repo.get(), &m_chain)) {
     m_chain.stub_AtHeight = [this](blockchain::Height h) -> CBlockIndex * {
       auto const it = this->m_block_heights.find(h);
       if (it == this->m_block_heights.end()) {
@@ -85,8 +84,13 @@ class Fixture {
     }
   }
 
-  esperanza::FinalizationParams m_finalization_params;
-  esperanza::AdminParams m_admin_params;
+  finalization::Params SetupFinalizationParams() {
+    finalization::Params params;
+    params.epoch_length = epoch_length;
+    return params;
+  }
+
+  finalization::Params m_finalization_params;
   mocks::BlockIndexMapMock m_block_indexes;
   std::map<blockchain::Height, CBlockIndex *> m_block_heights;  // m_block_index owns these block indexes
   mocks::ActiveChainMock m_chain;

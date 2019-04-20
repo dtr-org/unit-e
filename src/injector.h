@@ -11,6 +11,7 @@
 #include <blockchain/blockchain_parameters.h>
 #include <blockchain/blockchain_rpc.h>
 #include <blockdb.h>
+#include <finalization/params.h>
 #include <finalization/state_db.h>
 #include <finalization/state_processor.h>
 #include <finalization/state_repository.h>
@@ -73,20 +74,27 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
   COMPONENT(BlockDB, BlockDB, BlockDB::New)
 
+  COMPONENT(FinalizationParams, finalization::Params, finalization::Params::New,
+            UnitEInjectorConfiguration,
+            ArgsManager)
+
   COMPONENT(FinalizationStateDB, finalization::StateDB, finalization::StateDB::New,
             UnitEInjectorConfiguration,
             Settings,
+            finalization::Params,
             staking::BlockIndexMap,
             staking::ActiveChain,
             ArgsManager)
 
   COMPONENT(FinalizationStateRepository, finalization::StateRepository, finalization::StateRepository::New,
+            finalization::Params,
             staking::BlockIndexMap,
             staking::ActiveChain,
             finalization::StateDB,
             BlockDB)
 
   COMPONENT(FinalizationStateProcessor, finalization::StateProcessor, finalization::StateProcessor::New,
+            finalization::Params,
             finalization::StateRepository,
             staking::ActiveChain)
 

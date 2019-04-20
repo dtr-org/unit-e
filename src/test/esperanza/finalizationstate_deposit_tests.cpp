@@ -8,7 +8,8 @@ BOOST_FIXTURE_TEST_SUITE(finalizationstate_deposit_tests, TestingSetup)
 
 BOOST_AUTO_TEST_CASE(validate_deposit_tx_not_enough_deposit) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize() - 1;
 
@@ -18,7 +19,8 @@ BOOST_AUTO_TEST_CASE(validate_deposit_tx_not_enough_deposit) {
 
 BOOST_AUTO_TEST_CASE(validate_deposit_tx_double_deposit) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
 
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
@@ -32,7 +34,8 @@ BOOST_AUTO_TEST_CASE(validate_deposit_tx_double_deposit) {
 
 BOOST_AUTO_TEST_CASE(process_deposit_tx) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
   uint160 validatorAddress = RandValidatorAddr();
   uint160 validatorAddress2 = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();

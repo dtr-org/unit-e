@@ -7,6 +7,7 @@
 
 struct UnitEInjectorConfiguration {
   bool use_in_memory_databases = false;
+  bool disable_finalization = false;
 };
 
 #endif //UNIT_E_INJECTOR_CONFIG_H
