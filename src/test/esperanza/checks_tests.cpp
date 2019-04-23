@@ -771,7 +771,10 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
 
   {
     TestMemPoolEntryHelper entry;
-    mempool.addUnchecked(prev_tx->GetHash(), entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
+    {
+      LOCK(mempool.cs);
+      mempool.addUnchecked(prev_tx->GetHash(), entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
+    }
 
     FinalizationStateSpy spy;
     CAmount deposit_size = spy.MinDepositSize();
@@ -804,7 +807,10 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
 
   {
     TestMemPoolEntryHelper entry;
-    mempool.addUnchecked(prev_tx->GetHash(), entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
+    {
+      LOCK(mempool.cs);
+      mempool.addUnchecked(prev_tx->GetHash(), entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
+    }
 
     FinalizationStateSpy spy;
     CAmount deposit_size = spy.MinDepositSize();
