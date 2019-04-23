@@ -27,7 +27,6 @@ UNITE_INCLUDES += $(UNIVALUE_CFLAGS)
 LIBUNITE_SERVER=libunite_server.a
 LIBUNITE_COMMON=libunite_common.a
 LIBUNITE_CONSENSUS=libunite_consensus.a
-LIBUNITE_CLI=libunite_cli.a
 LIBUNITE_UTIL=libunite_util.a
 LIBUNITE_CRYPTO_BASE=crypto/libunite_crypto_base.a
 LIBSECP256K1=secp256k1/libsecp256k1.la
@@ -650,12 +649,6 @@ libunite_util_a_SOURCES += compat/glibc_compat.cpp
 AM_LDFLAGS += $(COMPAT_LDFLAGS)
 endif
 
-# cli: used by unite-cli
-libunite_cli_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
-libunite_cli_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libunite_cli_a_SOURCES = \
-  $(UNITE_CORE_H)
-
 nodist_libunite_util_a_SOURCES = $(srcdir)/obj/build.h
 #
 
@@ -698,7 +691,6 @@ unit_e_cli_SOURCES += unit-e-cli-res.rc
 endif
 
 unit_e_cli_LDADD = \
-  $(LIBUNITE_CLI) \
   $(LIBUNIVALUE) \
   $(LIBUNITE_UTIL) \
   $(LIBUNITE_CRYPTO)
