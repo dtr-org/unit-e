@@ -225,9 +225,8 @@ class WalletLabelsTest(UnitETestFramework):
                 node.move(label.name, "", node.getbalance(label.name))
             label.verify(node)
         node.generate(101)
-        expected_account_balances = {"": 20397.5} # 20k + 3.75 * #no blocks reward
-        for label in labels:
-            expected_account_balances[label.name] = 0
+        expected_account_balances = {label.name: 0 for label in labels}
+        expected_account_balances[""] = 20397.5  # 20k + 397.5, no blocks reward
         if accounts_api:
             assert_equal(node.listaccounts(), expected_account_balances)
             assert_equal(node.getbalance(""), 20397.5)

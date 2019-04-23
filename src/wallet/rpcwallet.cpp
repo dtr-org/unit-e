@@ -2140,51 +2140,21 @@ static UniValue listaccounts(const JSONRPCRequest& request)
     LOCK2(cs_main, pwallet->cs_wallet);
 
     int nMinDepth = 1;
-    if (!request.params[0].isNull())
+    if (!request.params[0].isNull()) {
         nMinDepth = request.params[0].get_int();
+    }
     isminefilter includeWatchonly = ISMINE_SPENDABLE;
-    if(!request.params[1].isNull())
-        if(request.params[1].get_bool())
+    if(!request.params[1].isNull()) {
+        if (request.params[1].get_bool()) {
             includeWatchonly = includeWatchonly | ISMINE_WATCH_ONLY;
-
-    std::map<std::string, CAmount> mapAccountBalances;
-    for (const std::pair<const CTxDestination, CAddressBookData>& entry : pwallet->mapAddressBook) {
-        if (IsMine(*pwallet, entry.first) & includeWatchonly) {  // This address belongs to me
-            mapAccountBalances[entry.second.name] = 0;
         }
     }
-
-    for (const std::pair<const uint256, CWalletTx>& pairWtx : pwallet->mapWallet) {
-        const CWalletTx& wtx = pairWtx.second;
-        CAmount nFee;
-        std::string strSentAccount;
-        std::list<COutputEntry> listReceived;
-        std::list<COutputEntry> listSent;
-        int nDepth = wtx.GetDepthInMainChain();
-        if (wtx.GetBlocksToRewardMaturity() > 0 || nDepth < 0)
-            continue;
-        wtx.GetAmounts(listReceived, listSent, nFee, strSentAccount, includeWatchonly);
-        mapAccountBalances[strSentAccount] -= nFee;
-        for (const COutputEntry& s : listSent)
-            mapAccountBalances[strSentAccount] -= s.amount;
-        if (nDepth >= nMinDepth)
-        {
-            for (const COutputEntry& r : listReceived)
-                if (pwallet->mapAddressBook.count(r.destination)) {
-                    mapAccountBalances[pwallet->mapAddressBook[r.destination].name] += r.amount;
-                }
-                else
-                    mapAccountBalances[""] += r.amount;
-        }
-    }
-
-    const std::list<CAccountingEntry>& acentries = pwallet->laccentries;
-    for (const CAccountingEntry& entry : acentries)
-        mapAccountBalances[entry.strAccount] += entry.nCreditDebit;
 
     UniValue ret(UniValue::VOBJ);
-    for (const std::pair<const std::string, CAmount>& accountBalance : mapAccountBalances) {
-        ret.pushKV(accountBalance.first, ValueFromAmount(accountBalance.second));
+    for (const std::pair<const CTxDestination, CAddressBookData>& entry : pwallet->mapAddressBook) {
+        if (IsMine(*pwallet, entry.first) & includeWatchonly) {  // This address belongs to me
+            ret.pushKV(entry.second.name, ValueFromAmount(pwallet->GetLegacyBalance(includeWatchonly, nMinDepth, &entry.second.name)));
+        }
     }
     return ret;
 }
