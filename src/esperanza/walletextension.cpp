@@ -943,8 +943,7 @@ const ValidatorState::Phase WalletExtension::GetFinalizerPhase(const Finalizatio
     return ValidatorState::Phase::IS_VALIDATING;
   }
 
-  if (state.GetCurrentEpoch() < state.CalculateWithdrawEpoch(*validator,
-                                                             /*result_out*/ nullptr)) {
+  if (state.GetCurrentEpoch() < state.CalculateWithdrawEpoch(*validator)) {
     return ValidatorState::Phase::WAITING_FOR_WITHDRAW_DELAY;
   }
 

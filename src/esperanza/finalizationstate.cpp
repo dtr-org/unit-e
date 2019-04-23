@@ -628,16 +628,7 @@ Result FinalizationState::CalculateWithdrawAmount(const uint160 &validatorAddres
   }
 
   const Validator &validator = it->second;
-  Result result = Result::SUCCESS;
-  const uint32_t withdrawalEpoch = CalculateWithdrawEpoch(validator, &result);
-  if (result != +Result::SUCCESS) {
-    return fail(Result::WITHDRAW_BEFORE_END_DYNASTY,
-                /*log_errors=*/true,
-                "%s: Too early to withdraw, minimum expected dynasty for "
-                "withdraw is %d.\n",
-                __func__, validator.m_end_dynasty);
-  }
-
+  const uint32_t withdrawalEpoch = CalculateWithdrawEpoch(validator);
   if (m_current_epoch < withdrawalEpoch) {
     return fail(Result::WITHDRAW_TOO_EARLY,
                 /*log_errors=*/true,
@@ -1119,21 +1110,14 @@ bool FinalizationState::IsFinalizerVoting(const Validator &finalizer) const {
   return IsInDynasty(finalizer, m_current_dynasty) || IsInDynasty(finalizer, m_current_dynasty - 1);
 }
 
-uint32_t FinalizationState::CalculateWithdrawEpoch(const Validator &finalizer,
-                                                   Result *result_out) const {
+uint32_t FinalizationState::CalculateWithdrawEpoch(const Validator &finalizer) const {
 
   // m_end_dynasty is not set
   if (finalizer.m_end_dynasty == DEFAULT_END_DYNASTY) {
-    if (result_out) {
-      *result_out = Result::WITHDRAW_BEFORE_END_DYNASTY;
-    }
     return std::numeric_limits<uint32_t>::max();
   }
 
   if (m_current_dynasty <= finalizer.m_end_dynasty) {
-    if (result_out) {
-      *result_out = Result::WITHDRAW_BEFORE_END_DYNASTY;
-    }
     return std::numeric_limits<uint32_t>::max();
   }
 
@@ -1141,10 +1125,6 @@ uint32_t FinalizationState::CalculateWithdrawEpoch(const Validator &finalizer,
   assert(it != m_dynasty_start_epoch.end() && "incorrect m_dynasty_start_epoch mapping");
   const uint32_t &end_epoch = it->second;
   const uint32_t withdraw_epoch = end_epoch + m_settings.withdrawal_epoch_delay;
-
-  if (result_out) {
-    *result_out = Result::SUCCESS;
-  }
   return withdraw_epoch;
 }
 

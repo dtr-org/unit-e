@@ -189,7 +189,7 @@ class FinalizationState : public FinalizationStateData {
   bool IsFinalizerVoting(const Validator &finalizer) const;
 
   //! \brief Calculate the epoch at which finalizer can start withdrawing
-  uint32_t CalculateWithdrawEpoch(const Validator &finalizer, Result *result_out) const;
+  uint32_t CalculateWithdrawEpoch(const Validator &finalizer) const;
 
  private:
   //!In case there is nobody available to justify we justify automatically.
