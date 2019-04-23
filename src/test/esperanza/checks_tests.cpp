@@ -42,7 +42,7 @@ CTransaction CreateAdminTx(const AdminKeySet &key_set) {
 
 CTransaction CreateSlashTx(const CPubKey &pub_key, const Vote &vote1, const Vote &vote2) {
 
-  CScript vout_script = CScript::CreatePayVoteSlashScript(pub_key);
+  CScript vout_script = CScript::CreateFinalizerCommitScript(pub_key);
 
   CMutableTransaction mtx;
   mtx.SetType(TxType::SLASH);
@@ -56,7 +56,7 @@ CTransaction CreateSlashTx(const CPubKey &pub_key, const Vote &vote1, const Vote
   CScript encoded_vote2 = CScript::EncodeVote(vote2, ToByteVector(GetRandHash()));
   std::vector<unsigned char> vote2_vector(encoded_vote2.begin(), encoded_vote2.end());
 
-  CScript vinScript = CScript() << ToByteVector(GetRandHash()) << vote1_vector << vote2_vector;
+  CScript vinScript = CScript() << vote1_vector << vote2_vector;
 
   mtx.vin = {CTxIn(GetRandHash(), 0, vinScript)};
 
@@ -377,7 +377,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckLogoutTx_test) {
   CPubKey pkey = key.GetPubKey();
   uint160 validator_address = pkey.GetID();
 
-  CScript script = CScript::CreatePayVoteSlashScript(pkey);
+  CScript script = CScript::CreateFinalizerCommitScript(pkey);
 
   CMutableTransaction mtx;
   mtx.SetType(TxType::DEPOSIT);
@@ -660,7 +660,7 @@ BOOST_AUTO_TEST_CASE(CheckVoteTx_test) {
   }
 
   {
-    CScript script = CScript::CreatePayVoteSlashScript(key.GetPubKey());
+    CScript script = CScript::CreateFinalizerCommitScript(key.GetPubKey());
     mtx.vout = {CTxOut(1, script)};
 
     CTransaction tx(mtx);
@@ -712,7 +712,7 @@ BOOST_AUTO_TEST_CASE(CheckVoteTx_test) {
     Vote vote_out{pub_key.GetID(), GetRandHash(), 10, 100};
 
     std::vector<unsigned char> vote_sig_out;
-    BOOST_CHECK(Vote::CreateSignature(&keystore, vote_out, vote_sig_out));
+    BOOST_CHECK(CreateVoteSignature(&keystore, vote_out, vote_sig_out));
 
     CTransaction tx = CreateVoteTx(prev_tx, key, vote_out, vote_sig_out);
     CValidationState err_state;
@@ -736,13 +736,13 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
   Vote vote_out{pub_key.GetID(), target_hash, 0, 5};
 
   std::vector<unsigned char> vote_sig_out;
-  BOOST_REQUIRE(Vote::CreateSignature(&keystore, vote_out, vote_sig_out));
+  BOOST_REQUIRE(CreateVoteSignature(&keystore, vote_out, vote_sig_out));
 
   CMutableTransaction mt;
   mt.SetType(TxType::DEPOSIT);
   mt.vin.resize(1);
   mt.vout.resize(1);
-  mt.vout = {CTxOut(1, CScript::CreatePayVoteSlashScript(pub_key))};
+  mt.vout = {CTxOut(1, CScript::CreateFinalizerCommitScript(pub_key))};
   CTransactionRef prev_tx = MakeTransactionRef(mt);
 
   CCoinsView view;
@@ -788,7 +788,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
     Vote vote_from_other_validator{other_key.GetPubKey().GetID(), target_hash, 0, 5};
 
     std::vector<unsigned char> vote_sig;
-    BOOST_REQUIRE(Vote::CreateSignature(&keystore, vote_from_other_validator, vote_sig));
+    BOOST_REQUIRE(CreateVoteSignature(&keystore, vote_from_other_validator, vote_sig));
 
     CTransaction tx = CreateVoteTx(*prev_tx, other_key, vote_from_other_validator, vote_sig);
     CValidationState err_state;
@@ -939,7 +939,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckWithdrawTx_test) {
   mt.SetType(TxType::LOGOUT);
   mt.vin.resize(1);
   mt.vout.resize(1);
-  mt.vout = {CTxOut(1, CScript::CreatePayVoteSlashScript(pub_key))};
+  mt.vout = {CTxOut(1, CScript::CreateFinalizerCommitScript(pub_key))};
   CTransactionRef prev_tx = MakeTransactionRef(mt);
 
   CCoinsView view;

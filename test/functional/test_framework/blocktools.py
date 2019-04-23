@@ -85,7 +85,7 @@ def serialize_script_num(value):
         r[-1] |= 0x80
     return r
 
-def create_coinbase(height, stake, snapshot_hash, pubkey = None, n_pieces = 1):
+def create_coinbase(height, stake, snapshot_hash, pubkey=None, raw_script_pubkey=None, n_pieces=1):
     """Create a coinbase transaction, assuming no miner fees.
 
     If pubkey is passed in, the coinbase outputs will be P2PK outputs;
@@ -102,6 +102,8 @@ def create_coinbase(height, stake, snapshot_hash, pubkey = None, n_pieces = 1):
     output_script = None
     if (pubkey != None):
         output_script = CScript([pubkey, OP_CHECKSIG])
+    elif raw_script_pubkey is not None:
+        output_script = CScript(raw_script_pubkey)
     else:
         output_script = CScript([OP_TRUE])
 

@@ -77,7 +77,8 @@ class VoteRecorder : private boost::noncopyable {
  public:
   void RecordVote(const esperanza::Vote &vote,
                   const std::vector<unsigned char> &voteSig,
-                  const FinalizationState &fin_state);
+                  const FinalizationState &fin_state,
+                  bool log_errors = true);
 
   boost::optional<VoteRecord> GetVote(const uint160 &validatorAddress,
                                       uint32_t epoch) const;
@@ -94,7 +95,8 @@ class VoteRecorder : private boost::noncopyable {
 //!           and slashable condition. It must be best known finalization state on a moment.
 bool RecordVote(const CTransaction &tx,
                 CValidationState &err_state,
-                const FinalizationState &fin_state);
+                const FinalizationState &fin_state,
+                bool log_errors = true);
 
 }  // namespace finalization
 

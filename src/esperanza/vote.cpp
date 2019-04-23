@@ -3,26 +3,8 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <esperanza/vote.h>
-#include <key.h>
-#include <keystore.h>
 
 namespace esperanza {
-
-bool Vote::CreateSignature(CKeyStore *keystore, const Vote &vote,
-                           std::vector<unsigned char> &voteSigOut) {
-
-  CKey privKey;
-  if (!keystore->GetKey(CKeyID(vote.m_validator_address), privKey)) {
-    return false;
-  }
-
-  return privKey.Sign(vote.GetHash(), voteSigOut);
-}
-
-bool Vote::CheckSignature(const CPubKey &pubkey, const Vote &vote,
-                          std::vector<unsigned char> &voteSig) {
-  return pubkey.Verify(vote.GetHash(), voteSig);
-}
 
 uint256 Vote::GetHash() const {
 

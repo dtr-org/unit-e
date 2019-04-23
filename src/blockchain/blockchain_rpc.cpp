@@ -36,9 +36,7 @@ class BlockchainRPCImpl : public BlockchainRPC {
     PUT_PARAMETER(stake_maturity);
     PUT_PARAMETER(stake_maturity_activation_height);
     PUT_PARAMETER(initial_supply);
-    PUT_PARAMETER(maximum_supply);
-    PUT_PARAMETER(reward_schedule);
-    PUT_PARAMETER(period_blocks);
+    PUT_PARAMETER(reward);
     PUT_PARAMETER(mine_blocks_on_demand);
     PUT_PARAMETER(base58_prefixes);
     PUT_PARAMETER(bech32_human_readable_prefix);

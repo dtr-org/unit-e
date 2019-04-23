@@ -200,7 +200,7 @@ class MempoolAcceptanceTest(UnitETestFramework):
 
         self.log.info('A transaction with too large output value')
         tx.deserialize(BytesIO(hex_str_to_bytes(raw_tx_reference)))
-        tx.vout[0].nValue = 2718275100 * UNIT + 1
+        tx.vout[0].nValue = 27182751000 * UNIT + 1
         self.check_mempool_result(
             result_expected=[{'txid': tx.rehash(), 'allowed': False, 'reject-reason': '16: bad-txns-vout-toolarge'}],
             rawtxs=[bytes_to_hex_str(tx.serialize())],
@@ -209,7 +209,7 @@ class MempoolAcceptanceTest(UnitETestFramework):
         self.log.info('A transaction with too large sum of output values')
         tx.deserialize(BytesIO(hex_str_to_bytes(raw_tx_reference)))
         tx.vout = [tx.vout[0]] * 2
-        tx.vout[0].nValue = 2718275100 * UNIT
+        tx.vout[0].nValue = 27182751000 * UNIT
         self.check_mempool_result(
             result_expected=[{'txid': tx.rehash(), 'allowed': False, 'reject-reason': '16: bad-txns-txouttotal-toolarge'}],
             rawtxs=[bytes_to_hex_str(tx.serialize())],

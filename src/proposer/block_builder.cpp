@@ -17,7 +17,6 @@ namespace proposer {
 
 class BlockBuilderImpl : public BlockBuilder {
  private:
-  const Dependency<blockchain::Behavior> m_blockchain_behavior;
   const Dependency<Settings> m_settings;
 
   std::vector<CAmount> SplitAmount(const CAmount amount, const CAmount threshold) const {
@@ -64,10 +63,8 @@ class BlockBuilderImpl : public BlockBuilder {
 
  public:
   explicit BlockBuilderImpl(
-      Dependency<blockchain::Behavior> blockchain_behavior,
       Dependency<Settings> settings)
-      : m_blockchain_behavior(blockchain_behavior),
-        m_settings(settings) {}
+      : m_settings(settings) {}
 
   const CTransactionRef BuildCoinbaseTransaction(
       const uint256 &snapshot_hash,
@@ -189,10 +186,8 @@ class BlockBuilderImpl : public BlockBuilder {
   }
 };
 
-std::unique_ptr<BlockBuilder> BlockBuilder::New(
-    const Dependency<blockchain::Behavior> blockchain_behavior,
-    const Dependency<Settings> settings) {
-  return std::unique_ptr<BlockBuilder>(new BlockBuilderImpl(blockchain_behavior, settings));
+std::unique_ptr<BlockBuilder> BlockBuilder::New(const Dependency<Settings> settings) {
+  return std::unique_ptr<BlockBuilder>(new BlockBuilderImpl(settings));
 }
 
 }  // namespace proposer

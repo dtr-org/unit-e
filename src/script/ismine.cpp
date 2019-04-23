@@ -196,7 +196,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
         break;
     }
 
-    case TX_PAYVOTESLASH:
+    case TX_COMMIT:
     {
         if (vSolutions[0].size() == 33) {
             keyID = CPubKey(vSolutions[0]).GetID();

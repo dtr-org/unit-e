@@ -412,14 +412,14 @@ class StakingRPCImpl : public StakingRPC {
   UniValue calcstakemodifier(const JSONRPCRequest &request) override {
     if (request.fHelp || request.params.size() != 2 || !request.params[0].isStr() || !request.params[1].isStr()) {
       throw std::runtime_error(strprintf(
-          "%s\n"
+          "%s \"txid\" \"prev\"\n"
           "\n"
           "Calculates the stake modifier for a block.\n"
           "\n"
           "Arguments:\n"
           "  \"txid\" The hash of the spending transaction which is used as stake.\n"
           "  \"prev\" The stake modifier of the previous block.\n",
-          __func__, default_length));
+          __func__));
     }
     const uint256 stake_transaction_hash = uint256S(request.params[0].get_str());
     const uint256 previous_blocks_stake_modifier = uint256S(request.params[1].get_str());

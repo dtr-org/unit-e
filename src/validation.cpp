@@ -3348,8 +3348,8 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
             assert(most_common_index != nullptr);
             if (fin_state->GetEpoch(most_common_index->nHeight) < fin_state->GetLastFinalizedEpoch()) {
                 return state.DoS(10,
-                                 error("%s: %s came from previous dynasty", __func__, hash.ToString()),
-                                 REJECT_INVALID, "bad-fork-dynasty");
+                                 error("%s: %s came from a different fork, forking before the last finalized epoch.", __func__, hash.ToString()),
+                                 REJECT_INVALID, "bad-fork-before-last-finalized-epoch");
             }
         }
     }

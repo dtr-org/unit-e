@@ -160,7 +160,7 @@ struct Parameters {
   //! \brief Stake maturity must be ignored on the network start for activation height.
   //!
   //! If there are less than the required depth number of spendable/mature coins
-  //! in the system than the system will be stuck.
+  //! in the system then the system will be stuck.
   //! To make the situation when there are no mature coins for staking less likely
   //! we activate stake maturity validation only when the blockchain's heigth is bigger than activation height.
   Height stake_maturity_activation_height;
@@ -168,17 +168,11 @@ struct Parameters {
   //! \brief The initial amount of premined coins.
   CAmount initial_supply;
 
-  //! \brief The maximum amount of money that can be in the system.
-  CAmount maximum_supply;
-
-  //! \brief The base block reward for each period.
-  std::vector<CAmount> reward_schedule;
+  //! \brief The base block reward
+  CAmount reward;
 
   //! \brief The reward immediately given upon block proposal.
   ufp64::ufp64_t immediate_reward_fraction;
-
-  //! \brief The period size in blocks.
-  std::uint32_t period_blocks;
 
   //! \brief The function calculating the reward for a newly proposed block.
   //!

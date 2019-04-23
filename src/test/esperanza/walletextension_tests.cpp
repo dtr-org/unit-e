@@ -40,13 +40,13 @@ BOOST_FIXTURE_TEST_CASE(vote_signature, ReducedTestingSetup) {
 
   esperanza::Vote vote{pk.GetID(), GetRandHash(), 10, 100};
   std::vector<unsigned char> voteSig;
-  BOOST_CHECK(esperanza::Vote::CreateSignature(&keystore, vote, voteSig));
+  BOOST_CHECK(CreateVoteSignature(&keystore, vote, voteSig));
 
   std::vector<unsigned char> expectedSig;
   k.Sign(vote.GetHash(), expectedSig);
 
   BOOST_CHECK_EQUAL(HexStr(expectedSig), HexStr(voteSig));
-  BOOST_CHECK(esperanza::Vote::CheckSignature(pk, vote, voteSig));
+  BOOST_CHECK(CheckVoteSignature(pk, vote, voteSig));
 }
 
 BOOST_FIXTURE_TEST_CASE(vote_signature2, TestingSetup) {
@@ -66,7 +66,7 @@ BOOST_FIXTURE_TEST_CASE(vote_signature2, TestingSetup) {
   keystore.AddKey(key);
 
   std::vector<unsigned char> voteSig;
-  esperanza::Vote::CreateSignature(&keystore, vote, voteSig);
+  BOOST_CHECK(CreateVoteSignature(&keystore, vote, voteSig));
 }
 
 BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
@@ -78,8 +78,7 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
   const auto pubkey = key.GetPubKey();
   const auto pubkeydata = std::vector<unsigned char>(pubkey.begin(), pubkey.end());
 
-  auto behavior = blockchain::Behavior::NewFromParameters(blockchain::Parameters::TestNet());
-  auto block_builder = proposer::BlockBuilder::New(behavior.get(), &settings);
+  auto block_builder = proposer::BlockBuilder::New(&settings);
 
   {
     LOCK(m_wallet->cs_wallet);

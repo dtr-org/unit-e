@@ -20,6 +20,8 @@ BOOST_AUTO_TEST_CASE(pick_settings_test) {
     ArgsManager args_manager;
     blockchain::Parameters blockchain_parameters;
     blockchain_parameters.default_settings.stake_combine_maximum = v;
+    blockchain_parameters.stake_maturity = 2;
+    blockchain_parameters.stake_maturity_activation_height = 2;
     std::unique_ptr<blockchain::Behavior> blockchain_behavior =
         blockchain::Behavior::NewFromParameters(blockchain_parameters);
 

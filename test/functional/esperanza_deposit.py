@@ -66,6 +66,7 @@ class EsperanzaDepositTest(UnitETestFramework):
         proposer.generate(1)
         sync_blocks([proposer, finalizer])
 
+        test_deposit_with_unknown_address(finalizer, proposer)
         test_not_enough_money_for_deposit(finalizer)
         test_not_enabled_finalizer(proposer)
         test_deposit_too_small(finalizer)
@@ -155,6 +156,12 @@ class EsperanzaDepositTest(UnitETestFramework):
 
         wait_until(lambda: finalizer.getvalidatorinfo()['validator_status'] == 'IS_VALIDATING',
                    timeout=5)
+
+
+# Try to deposit with an unknown address
+def test_deposit_with_unknown_address(finalizer, proposer):
+    payto = proposer.getnewaddress("", "legacy")
+    assert_raises_rpc_error(-25, "Cannot create deposit.", finalizer.deposit, payto, 1500)
 
 
 # Deposit with a non enabled finalizer

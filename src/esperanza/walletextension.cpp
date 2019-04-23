@@ -121,11 +121,16 @@ CAmount WalletExtension::GetRemoteStakingBalance() const {
   CAmount balance = 0;
 
   for (const auto &it : m_enclosing_wallet.mapWallet) {
-    const CWalletTx *const tx = &it.second;
+    const CWalletTx &tx = it.second;
+    const uint256 &tx_hash = tx.GetHash();
 
-    for (const auto &txout : tx->tx->vout) {
-      if (::IsStakedRemotely(m_enclosing_wallet, txout.scriptPubKey)) {
-        balance += txout.nValue;
+    for (size_t i = 0; i < tx.tx->vout.size(); ++i) {
+      const CTxOut &tx_out = tx.tx->vout[i];
+      if (m_enclosing_wallet.IsSpent(tx_hash, i)) {
+        continue;
+      }
+      if (::IsStakedRemotely(m_enclosing_wallet, tx_out.scriptPubKey)) {
+        balance += tx_out.nValue;
       }
     }
   }
@@ -285,9 +290,13 @@ bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
 
   CReserveKey reservekey(&m_enclosing_wallet);
   CPubKey pubKey;
-  m_enclosing_wallet.GetPubKey(keyID, pubKey);
+  if (!m_enclosing_wallet.GetPubKey(keyID, pubKey)) {
+    LogPrint(BCLog::FINALIZATION, "%s: Cannot deposit to an unknown address.\n",
+             __func__);
+    return false;
+  }
 
-  CRecipient r{CScript::CreatePayVoteSlashScript(pubKey), amount, /*fSubtractFeeFromAmount=*/false};
+  CRecipient r{CScript::CreateFinalizerCommitScript(pubKey), amount, /*fSubtractFeeFromAmount=*/false};
   vecSend.push_back(r);
 
   if (!m_enclosing_wallet.CreateTransaction(
@@ -617,7 +626,7 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
   const CAmount amount = prevTxRef->vout[0].nValue;
 
   std::vector<unsigned char> voteSig;
-  if (!esperanza::Vote::CreateSignature(&m_enclosing_wallet, vote, voteSig)) {
+  if (!CreateVoteSignature(&m_enclosing_wallet, vote, voteSig)) {
     return error("%s: Cannot sign vote.", __func__);
   }
   CScript scriptSig = CScript::EncodeVote(vote, voteSig);
@@ -712,40 +721,7 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
   const CTxOut burnOut(lastSlashableTx->vout[0].nValue, burnScript);
   txNew.vout.push_back(burnOut);
 
-  CTransaction txNewConst(txNew);
-  const uint32_t nIn = 0;
-  SignatureData sigdata;
-
   CReserveKey reservekey(&m_enclosing_wallet);
-  CPubKey pubKey;
-  bool ret;
-
-  ret = reservekey.GetReservedKey(pubKey, true);
-
-  if (!ret) {
-    if (!m_enclosing_wallet.GenerateNewKeys(100)) {
-      LogPrint(BCLog::FINALIZATION, "%s: Error: No keys available for creating the slashing transaction for: %s.\n",
-               __func__, validatorAddress.GetHex());
-      return false;
-    }
-
-    ret = reservekey.GetReservedKey(pubKey, true);
-    if (!ret) {
-      LogPrint(BCLog::FINALIZATION, "%s: Error: Cannot reserve pubkey even after top-up for slashing validator: %s.\n",
-               __func__, validatorAddress.GetHex());
-      return false;
-    }
-  }
-
-  auto sigCreator = MutableTransactionSignatureCreator(
-      &txNew, nIn, burnOut.nValue, SIGHASH_ALL);
-
-  std::vector<unsigned char> vchSig;
-  sigCreator.CreateSig(m_enclosing_wallet, vchSig, pubKey.GetID(), burnOut.scriptPubKey, SigVersion::BASE);
-  sigdata.scriptSig = CScript() << vchSig;
-  sigdata.scriptSig += scriptSig;
-
-  UpdateInput(txNew.vin.at(nIn), sigdata);
 
   auto txref = MakeTransactionRef(std::move(txNew));
 
@@ -882,7 +858,8 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
 
         if (!esperanza::ExtractValidatorAddress(tx, validatorAddress)) {
           LogPrint(BCLog::FINALIZATION,
-                   "ERROR: %s - Cannot extract validator index.\n", __func__);
+                   "ERROR: %s: Cannot extract validator index.\n",
+                   __func__);
           return false;
         }
 

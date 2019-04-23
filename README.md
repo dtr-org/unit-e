@@ -21,7 +21,9 @@ the [technical paper](https://unit-e.io/technical-design.pdf).
 
 :warning::warning::warning: WARNING: The client is under rapid development, is
 subject to breaking protocol changes (consensus, blockchain, p2p, RPC) and
-redoing from scratch of the alpha testnet :warning::warning::warning:
+redoing from scratch of the alpha testnet.
+Please check the [announcements page](https://docs.unit-e.io/announcements.html)
+for information regarding such changes. :warning::warning::warning:
 
 This repository hosts the implementation of the first Unit-e client: `unit-e`,
 also known as the "Feuerland" client. It's based on the [Bitcoin C++
@@ -82,6 +84,7 @@ https://github.com/bitcoin/bitcoin/tree/0.17), plus some changes cherry-picked
 from later development branches.
 
 ## Alpha Testnet
+
 With the [launch of the alpha testnet](
 https://github.com/dtr-org/unit-e/milestone/11) we will start a regular cadence
 of releases. The goals of opening the project and network are to further develop
@@ -96,6 +99,22 @@ figure out important aspects such as the level of stake required to keep the
 system secured and how should influence the emission rate.
 * We're opening our code repository to the blockchain and open-source
 community. We aspire to develop a community of active participants.
+
+## Currency emission
+
+The current emission rate is fixed over time and isn't meant to be definitive,
+as we are still exploring the emission model from the economics & security
+perspectives, which goes side by side with the consensus protocol that is going
+to be further developed.
+
+We plan to explore models with dynamic emission rate, where the network pays
+for the security it needs. In PoS consensus, taking into account the number of
+tokens being deposited/staked seems like the right direction.
+
+As was also [researched](https://arxiv.org/pdf/1809.07468.pdf), time-based
+emission, starting very high and decreasing over the years (in Bitcoin halving
+every four years), isn't securing the protocol efficiently nor is it fair in
+terms of compounding and the future currency distribution.
 
 ## Running from source
 

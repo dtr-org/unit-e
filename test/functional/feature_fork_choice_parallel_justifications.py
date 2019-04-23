@@ -351,7 +351,7 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         attacker.send_message(msg_witness_block(block))
 
         # node should't re-org to malicious fork
-        wait_for_reject(attacker, b'bad-fork-dynasty', block.sha256)
+        wait_for_reject(attacker, b'bad-fork-before-last-finalized-epoch', block.sha256)
         assert_equal(node.getblockcount(), 57)
         assert_equal(node.getblockhash(57), tip)
         assert_finalizationstate(node, {'currentDynasty': 5,

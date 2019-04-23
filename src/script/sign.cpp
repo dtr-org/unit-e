@@ -6,6 +6,7 @@
 #include <script/sign.h>
 
 #include <key.h>
+#include <keystore.h>
 #include <policy/policy.h>
 #include <primitives/transaction.h>
 #include <script/standard.h>
@@ -140,7 +141,7 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
         ret.push_back(ToByteVector(pubkey));
         return true;
     }
-    case TX_PAYVOTESLASH: {
+    case TX_COMMIT: {
         CPubKey pubkey = CPubKey(vSolutions[0]);
         if (!CreateSig(creator, sigdata, provider, sig, pubkey, scriptPubKey, sigversion)) return false;
         ret.push_back(std::move(sig));
@@ -229,7 +230,7 @@ static CScript PushAll(const std::vector<valtype>& values)
 static bool CanBeNestedInP2SH(txnouttype type)
 {
     return type != TX_SCRIPTHASH && type != TX_WITNESS_V1_REMOTESTAKE_KEYHASH
-        && type != TX_WITNESS_V2_REMOTESTAKE_SCRIPTHASH && type != TX_PAYVOTESLASH;
+        && type != TX_WITNESS_V2_REMOTESTAKE_SCRIPTHASH && type != TX_COMMIT;
 }
 
 static bool CanBeNestedInP2WSH(txnouttype type)
@@ -286,11 +287,11 @@ bool ProduceSignature(const SigningProvider& provider, const BaseSignatureCreato
     }
 
     //UNIT-E: quite ugly workaround to get the vote data back in the signature.
-    if (solved && whichType == TX_PAYVOTESLASH) {
+    if (solved && whichType == TX_COMMIT) {
 
         if (tx != nullptr) {
-            if (!tx->IsLogout() && !tx->IsWithdraw()) {
-                result.pop_back(); //Remove the vSolutions[0] of the Solver from the results since we don't need it
+            if (!tx->IsWithdraw()) {
+                result.pop_back(); //Since the withdraw is P2PKH we need to keep the pubkey in
             }
             if (tx->IsVote()) {
                 CScript voteScript = tx->vin[0].scriptSig;
@@ -583,6 +584,22 @@ bool IsSolvable(const SigningProvider& provider, const CScript& script)
         return true;
     }
     return false;
+}
+
+bool CreateVoteSignature(CKeyStore *keystore, const esperanza::Vote &vote,
+                           std::vector<unsigned char> &vote_sig_out) {
+
+  CKey priv_key;
+  if (!keystore->GetKey(CKeyID(vote.m_validator_address), priv_key)) {
+    return false;
+  }
+
+  return priv_key.Sign(vote.GetHash(), vote_sig_out);
+}
+
+bool CheckVoteSignature(const CPubKey &pubkey, const esperanza::Vote &vote,
+                          std::vector<unsigned char> &vote_sig) {
+  return pubkey.Verify(vote.GetHash(), vote_sig);
 }
 
 PartiallySignedTransaction::PartiallySignedTransaction(const CTransaction& tx) : tx(tx)

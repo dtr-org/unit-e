@@ -130,7 +130,7 @@ class WalletExtension : public staking::StakingWallet {
 
   //! \brief Creates a deposit transaction for the given address and amount.
   //!
-  //! \param[in] keyID the destination pubkey
+  //! \param[in] keyID the destination address
   //! \param[in] amount
   //! \param[out] wtxOut the transaction created
   //! \returns true if the operation was successful, false otherwise.

@@ -44,9 +44,7 @@ class BlockBuilder {
 
   virtual ~BlockBuilder() = default;
 
-  static std::unique_ptr<BlockBuilder> New(
-      Dependency<blockchain::Behavior>,
-      Dependency<Settings>);
+  static std::unique_ptr<BlockBuilder> New(Dependency<Settings>);
 };
 
 }  // namespace proposer

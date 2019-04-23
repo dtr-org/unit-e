@@ -62,7 +62,8 @@ void VoteRecorder::SaveVoteToDB(const VoteRecord &record) {
 
 void VoteRecorder::RecordVote(const esperanza::Vote &vote,
                               const std::vector<unsigned char> &voteSig,
-                              const FinalizationState &fin_state) {
+                              const FinalizationState &fin_state,
+                              const bool log_errors) {
 
   LOCK(cs_recorder);
 
@@ -91,7 +92,7 @@ void VoteRecorder::RecordVote(const esperanza::Vote &vote,
   }
 
   if (offendingVote) {
-    esperanza::Result res = fin_state.IsSlashable(vote, offendingVote.get().vote);
+    esperanza::Result res = fin_state.IsSlashable(vote, offendingVote.get().vote, log_errors);
     if (res == +esperanza::Result::SUCCESS) {
       GetMainSignals().SlashingConditionDetected(VoteRecord{vote, voteSig},
                                                  offendingVote.get());
@@ -183,7 +184,8 @@ CScript VoteRecord::GetScript() const { return CScript::EncodeVote(vote, sig); }
 
 bool RecordVote(const CTransaction &tx,
                 CValidationState &err_state,
-                const FinalizationState &fin_state) {
+                const FinalizationState &fin_state,
+                const bool log_errors) {
   assert(tx.IsVote());
 
   esperanza::Vote vote;
@@ -192,7 +194,7 @@ bool RecordVote(const CTransaction &tx,
   if (!CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, vote, voteSig)) {
     return err_state.DoS(10, false, REJECT_INVALID, "bad-vote-data-format");
   }
-  const esperanza::Result res = fin_state.ValidateVote(vote);
+  const esperanza::Result res = fin_state.ValidateVote(vote, log_errors);
 
   if (res != +esperanza::Result::ADMIN_BLACKLISTED &&
       res != +esperanza::Result::VOTE_NOT_BY_VALIDATOR) {

@@ -195,8 +195,6 @@ bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, const C
 
 size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey, const CScriptWitness* witness, unsigned int flags, TxType type);
 
-bool IsPayVoteSlashScript(const CScript &script);
-
 int FindAndDelete(CScript& script, const CScript& b);
 
 #endif // UNITE_SCRIPT_INTERPRETER_H

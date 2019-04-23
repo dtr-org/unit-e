@@ -30,6 +30,8 @@ class Behavior {
  private:
   const Parameters m_parameters;
 
+  void CheckConsistency() const;
+
  public:
   explicit Behavior(const Parameters &) noexcept;
 
