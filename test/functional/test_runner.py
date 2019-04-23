@@ -304,6 +304,8 @@ def main():
 
     logging.debug("Temporary test directory at %s" % tmpdir)
 
+    enable_wallet = config["components"].getboolean("ENABLE_WALLET")
+    enable_utils = config["components"].getboolean("ENABLE_UTILS")
     enable_unit_e = config["components"].getboolean("ENABLE_UNIT_E")
     enable_usbdevice = config["components"].getboolean("ENABLE_USBDEVICE")
 
@@ -313,9 +315,9 @@ def main():
         print("Tests currently disabled on Windows by default. Use --force option to enable")
         sys.exit(0)
 
-    if not enable_unit_e:
-        print("No functional tests to run.")
-        print("Rerun ./configure with --with-daemon and then make")
+    if not (enable_wallet and enable_unit_e and enable_utils):
+        print("No functional tests to run. Wallet, utils, and unit-e must all be enabled")
+        print("Rerun ./configure with --enable-wallet, --with-utils and --with-daemon and then make")
         sys.exit(0)
 
     # Build list of tests
