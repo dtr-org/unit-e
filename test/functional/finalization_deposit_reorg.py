@@ -34,9 +34,9 @@ class EsperanzaDepositReorgTest(UnitETestFramework):
         #         -> node[2]
         #         -> node[3]
         self.setup_nodes()
-        connect_nodes(self.nodes[0], self.nodes[1].index)
-        connect_nodes(self.nodes[0], self.nodes[2].index)
-        connect_nodes(self.nodes[0], self.nodes[3].index)
+        connect_nodes(self.nodes[0], 1)
+        connect_nodes(self.nodes[0], 2)
+        connect_nodes(self.nodes[0], 3)
 
     def run_test(self):
         node0 = self.nodes[0]
