@@ -17,33 +17,31 @@
 namespace esperanza {
 
 // clang-format off
-// All phases are ordered in a way how they can progress.
-// Every phase changes either one step up and down (if re-org happens).
-// Every phase has sparse index because if we want to introduce
-// a new one, we can include it in between without breaking
-// a layout on disk
+//! All phases are ordered in a way how they can progress.
+//! Every phase has sparse index because if we want to introduce
+//! a new one, we can include it in between without breaking
+//! a layout on disk
 BETTER_ENUM(
     _Phase,
     uint8_t,
 
-    // finalizer didn't send deposit
+    //! finalizer didn't send deposit
     NOT_VALIDATING = 10,
 
-    // deposit is in the mempool/wallet but is not included in a block
+    //! deposit is in the mempool/wallet but is not included in a block
     WAITING_DEPOSIT_CONFIRMATION = 20,
 
-    // deposit is included in a block but an epoch of this block
-    // is not finalized yet
+    //! deposit is included in a block but start_dynasty hasn't begun
     WAITING_DEPOSIT_FINALIZATION = 30,
 
-    // finalizer is able to vote. Starts from Validator.m_start_dynasty
-    // and until logout delay passes
+    //! finalizer is able to vote. Starts from Validator.m_start_dynasty
+    //! and until logout delay passes
     IS_VALIDATING = 40,
 
-    // logout delay passed and we are in withdraw delay
+    //! logout delay passed and we are in withdraw delay
     WAITING_FOR_WITHDRAW_DELAY = 50,
 
-    // withdraw delay passed but finalizer hasn't withdrawn yet
+    //! withdraw delay passed but finalizer hasn't withdrawn yet
     WAITING_TO_WITHDRAW = 60
 )
 // clang-format on

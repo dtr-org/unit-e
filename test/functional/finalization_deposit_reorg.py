@@ -2,7 +2,10 @@
 # Copyright (c) 2019 The Unit-e developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-
+"""
+EsperanzaDepositReorgTest checks how the state of finalizer
+is progressing during re-orgs
+"""
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     connect_nodes,
