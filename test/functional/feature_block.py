@@ -614,7 +614,7 @@ class FullBlockTest(ComparisonTestFramework):
         # CHECKMULTISIGVERIFY
         tip(31)
         lots_of_multisigs = CScript([OP_CHECKMULTISIGVERIFY] * ((MAX_BLOCK_SIGOPS - 1) // 20) + [OP_CHECKSIG] * 18)
-        block(33, get_staking_coin(), spend=out[9], script=lots_of_multisigs)
+        b33 = block(33, get_staking_coin(), spend=out[9], script=lots_of_multisigs)
         yield accepted()
         save_spendable_output()
         comp_snapshot_hash(33)
@@ -900,7 +900,7 @@ class FullBlockTest(ComparisonTestFramework):
 
         # invalid timestamp (b35 is 5 blocks back, so its time is MedianTimePast)
         b54 = block(54, get_staking_coin(), spend=out[15])
-        b54.nTime = b35.nTime - 1
+        b54.nTime = b33.nTime - 1
         b54.solve()
         yield rejected(RejectResult(16, b'time-too-old'))
         comp_snapshot_hash(44)
