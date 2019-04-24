@@ -80,6 +80,7 @@ def bctest(testDir, testObj, buildenv):
     execprog = os.path.join(buildenv["BUILDDIR"], "src", testObj["exec"] + buildenv["EXEEXT"])
     execargs = testObj['args']
     execrun = [execprog] + execargs
+    print(execrun)
 
     # Read the input data (if there is any)
     stdinCfg = None
