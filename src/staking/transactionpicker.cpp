@@ -49,7 +49,6 @@ class BlockAssemblerAdapter final : public TransactionPicker {
       std::unique_ptr<CBlockTemplate> block_template =
           block_assembler.PickTransactions();
 
-
       result.transactions.swap(block_template->block.vtx);
       result.fees.swap(block_template->vTxFees);
     } catch (const std::runtime_error &err) {
