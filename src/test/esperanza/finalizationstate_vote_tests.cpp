@@ -21,7 +21,8 @@ BOOST_FIXTURE_TEST_SUITE(finalizationstate_vote_tests, TestingSetup)
 
 BOOST_AUTO_TEST_CASE(validate_vote_tx_no_deposit) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
   Vote vote{};
 
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_NOT_BY_VALIDATOR);
@@ -29,7 +30,8 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_no_deposit) {
 
 BOOST_AUTO_TEST_CASE(validate_vote_tx_too_early) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
 
   // For simplicity we keep the targetHash constant since it does not
   // affect the state.
@@ -97,7 +99,8 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_too_early) {
 
 BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_already_voted) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
 
   // For simplicity we keep the targetHash constant since it does not
   // affect the state.
@@ -119,7 +122,8 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_already_voted) {
 
 BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_epoch) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
@@ -141,7 +145,8 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_epoch) {
 
 BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_hash) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
@@ -159,7 +164,8 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_hash) {
 }
 
 BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_source_epoch_not_justified) {
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
@@ -178,7 +184,8 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_source_epoch_not_justified) {
 
 BOOST_AUTO_TEST_CASE(process_vote_tx_success) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
@@ -197,7 +204,8 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success) {
 
 BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_reward_no_consensus) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
   uint160 validatorAddress_1 = RandValidatorAddr();
   uint160 validatorAddress_2 = RandValidatorAddr();
   CAmount depositSize_1 = spy.MinDepositSize();
@@ -234,7 +242,8 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_reward_no_consensus) {
 
 BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_finalization) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
   uint160 validatorAddress_1 = RandValidatorAddr();
   uint160 validatorAddress_2 = RandValidatorAddr();
   CAmount depositSize_1 = spy.MinDepositSize();

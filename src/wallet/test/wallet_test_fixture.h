@@ -20,11 +20,13 @@ struct WalletTestingSetup : public TestingSetup {
   std::unique_ptr<CWallet> pwalletMain;
 
   explicit WalletTestingSetup(
-      const std::string &chainName = CBaseChainParams::TESTNET);
+      const std::string &chainName = CBaseChainParams::TESTNET,
+      UnitEInjectorConfiguration config = UnitEInjectorConfiguration());
 
   explicit WalletTestingSetup(
       std::function<void(Settings&)> f,
-      const std::string &chainName = CBaseChainParams::TESTNET);
+      const std::string &chainName = CBaseChainParams::TESTNET,
+      UnitEInjectorConfiguration config = UnitEInjectorConfiguration());
 
   ~WalletTestingSetup();
 };
@@ -34,7 +36,7 @@ struct WalletTestingSetup : public TestingSetup {
 // 100-block REGTEST-mode block chain
 //
 struct TestChain100Setup : public WalletTestingSetup {
-  TestChain100Setup();
+  TestChain100Setup(UnitEInjectorConfiguration config = UnitEInjectorConfiguration());
 
   // Create a new block with just given transactions, coinbase paying to
   // scriptPubKey, and try to add it to the current chain.

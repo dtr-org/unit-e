@@ -8,7 +8,8 @@ BOOST_FIXTURE_TEST_SUITE(finalizationstate_slash_tests, TestingSetup)
 
 BOOST_AUTO_TEST_CASE(is_slashable_not_a_validator) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
   Vote v1 = {validatorAddress, uint256S("5"), 3, 5};
@@ -29,7 +30,8 @@ BOOST_AUTO_TEST_CASE(is_slashable_not_a_validator) {
 
 BOOST_AUTO_TEST_CASE(is_slashable_not_the_same_validator) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
   uint160 validatorAddress_1 = RandValidatorAddr();
   uint160 validatorAddress_2 = RandValidatorAddr();
   CAmount depositSize_1 = spy.MinDepositSize();
@@ -49,7 +51,8 @@ BOOST_AUTO_TEST_CASE(is_slashable_not_the_same_validator) {
 
 BOOST_AUTO_TEST_CASE(is_slashable_too_early) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
@@ -65,7 +68,8 @@ BOOST_AUTO_TEST_CASE(is_slashable_too_early) {
 
 BOOST_AUTO_TEST_CASE(is_slashable_same_vote) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
   Vote v1 = {validatorAddress, uint256S("5"), 3, 5};
@@ -92,7 +96,8 @@ BOOST_AUTO_TEST_CASE(is_slashable_same_vote) {
 
 BOOST_AUTO_TEST_CASE(is_slashable_already_slashed) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
@@ -128,7 +133,8 @@ BOOST_AUTO_TEST_CASE(is_slashable_already_slashed) {
 
 BOOST_AUTO_TEST_CASE(process_slash_duplicate_vote) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
@@ -163,7 +169,8 @@ BOOST_AUTO_TEST_CASE(process_slash_duplicate_vote) {
 
 BOOST_AUTO_TEST_CASE(process_slash_surrounding_vote) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 

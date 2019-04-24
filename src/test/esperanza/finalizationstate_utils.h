@@ -6,24 +6,18 @@
 #define UNIT_E_TESTS_FINALIZATIONSTATE_UTILS_H
 
 #include <esperanza/finalizationstate.h>
+#include <finalization/params.h>
 #include <random.h>
 #include <test/test_unite.h>
+
 #include <boost/test/unit_test.hpp>
 #include <boost/test/unit_test_log.hpp>
 
 using namespace esperanza;
 
 class FinalizationStateSpy : public FinalizationState {
- private:
-  const FinalizationParams params = CreateChainParams(CBaseChainParams::TESTNET)->GetFinalization();
-
  public:
-  FinalizationStateSpy(const FinalizationParams &_params,
-                       const AdminParams &adminParams) : FinalizationState(_params, adminParams),
-                                                         params(_params) {}
-  FinalizationStateSpy() : FinalizationState(params, AdminParams()) {}
-  FinalizationStateSpy(const FinalizationParams &_params) : FinalizationState(_params, AdminParams()),
-                                                            params(_params) {}
+  FinalizationStateSpy(const finalization::Params &params) : FinalizationState(params) {}
   FinalizationStateSpy(const FinalizationStateSpy &parent) : FinalizationState(parent) {}
 
   CAmount *CurDynDeposits() { return &m_cur_dyn_deposits; }

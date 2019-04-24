@@ -38,7 +38,9 @@ public:
 
 class RepoMock : public finalization::StateRepository {
 public:
-  RepoMock(const esperanza::FinalizationParams &params) : m_params(params), state(m_params) { }
+  RepoMock(const finalization::Params &params)
+    : m_finalization_params(params),
+      state(m_finalization_params) { }
 
   CCriticalSection &GetLock() override { return cs; }
   FinalizationState *GetTipState() override { return &state; }
@@ -48,15 +50,10 @@ public:
   bool RestoreFromDisk(Dependency<finalization::StateProcessor>) override { return false; }
   bool SaveToDisk() override { return false; }
   bool Restoring() const override { return false; }
-  void ResetToTip(const CBlockIndex &) override { }
   void TrimUntilHeight(const blockchain::Height) override { }
-  const esperanza::FinalizationParams &GetFinalizationParams() const override { return m_params; }
-  const esperanza::AdminParams &GetAdminParams() const override { return m_admin_params; }
-  void Reset(const esperanza::FinalizationParams &, const esperanza::AdminParams &) override { }
 
 private:
-  esperanza::FinalizationParams m_params;
-  esperanza::AdminParams m_admin_params;
+  finalization::Params m_finalization_params;
   CCriticalSection cs;
 
 public:
@@ -67,8 +64,8 @@ class Fixture {
  public:
   static constexpr blockchain::Height epoch_length = 5;
 
-  static const esperanza::FinalizationParams GetFinalizationParams() {
-    auto params = Params().GetFinalization();
+  static finalization::Params GetFinalizationParams() {
+    finalization::Params params;
     params.epoch_length = epoch_length;
     return params;
   }

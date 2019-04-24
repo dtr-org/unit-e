@@ -17,7 +17,20 @@
 #include <esperanza/finalizationstate.h>
 #include <wallet/test/wallet_test_fixture.h>
 
-BOOST_FIXTURE_TEST_SUITE(validation_block_tests, TestChain100Setup)
+namespace {
+UnitEInjectorConfiguration MakeConfig() {
+  UnitEInjectorConfiguration config;
+  config.disable_finalization = true;
+  return config;
+}
+}
+
+class TestChain100NoFinalizationSetup : public TestChain100Setup {
+public:
+  TestChain100NoFinalizationSetup() : TestChain100Setup(MakeConfig()) {}
+};
+
+BOOST_FIXTURE_TEST_SUITE(validation_block_tests, TestChain100NoFinalizationSetup)
 
 struct TestSubscriber : public CValidationInterface {
     uint256 m_expected_tip;
@@ -140,12 +153,6 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
 {
     // build a large-ish chain that's likely to have some forks
     std::vector<std::shared_ptr<const CBlock>> blocks;
-
-    CChainParams params = Params();
-    esperanza::FinalizationParams fin_params = params.GetFinalization();
-    fin_params.epoch_length = 999999;
-    GetComponent<finalization::StateRepository>()->Reset(fin_params, params.GetAdminParams());
-    GetComponent<finalization::StateRepository>()->ResetToTip(*chainActive.Tip());
 
     BlockData genesisData;
     {

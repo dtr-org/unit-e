@@ -79,10 +79,12 @@ ReducedTestingSetup::~ReducedTestingSetup()
   snapshot::DestroySecp256k1Context();
 }
 
-BasicTestingSetup::BasicTestingSetup(const std::string& chainName) : ReducedTestingSetup(chainName)
+BasicTestingSetup::BasicTestingSetup(
+    const std::string& chainName,
+    UnitEInjectorConfiguration config)
+    : ReducedTestingSetup(chainName)
 {
         blockchain::Behavior::SetGlobal(blockchain::Behavior::NewForNetwork(blockchain::Network::_from_string(chainName.c_str())));
-        UnitEInjectorConfiguration config;
         config.use_in_memory_databases = true;
         UnitEInjector::Init(config);
         SelectParams(GetComponent<blockchain::Behavior>(), chainName);
@@ -101,7 +103,8 @@ BasicTestingSetup::~BasicTestingSetup()
         UnitEInjector::Destroy();
 }
 
-TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(chainName)
+TestingSetup::TestingSetup(const std::string& chainName, UnitEInjectorConfiguration config)
+    : BasicTestingSetup(chainName, config)
 {
     const CChainParams& chainparams = Params();
         // Ideally we'd move all the RPC tests to the functional testing framework
@@ -117,10 +120,6 @@ TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(cha
         // from blocking due to queue overrun.
         threadGroup.create_thread(boost::bind(&CScheduler::serviceQueue, &scheduler));
         GetMainSignals().RegisterBackgroundSignalScheduler(scheduler);
-
-        auto state_repository = GetComponent<finalization::StateRepository>();
-        state_repository->Reset(chainparams.GetFinalization(),
-                                chainparams.GetAdminParams());
 
         finalization::VoteRecorder::DBParams params;
         params.inmemory = true;

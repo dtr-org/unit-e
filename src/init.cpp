@@ -17,7 +17,6 @@
 #include <consensus/validation.h>
 #include <finalization/vote_recorder.h>
 #include <esperanza/finalizationstate.h>
-#include <esperanza/finalizationparams.h>
 #include <esperanza/init.h>
 #include <fs.h>
 #include <httpserver.h>
@@ -1320,21 +1319,6 @@ bool AppInitMain()
     }
 
     const CChainParams& chainparams = Params();
-
-    // Set Esperanza parameters
-    if (gArgs.IsArgSet("-esperanzaconfig")) {
-        esperanza::FinalizationParams params;
-        if (esperanza::ParseFinalizationParams(gArgs.GetArg("-esperanzaconfig", ""), params)) {
-            UpdateFinalizationParams(params);
-        } else {
-            LogPrintf("Can't parse -esperanzaconfig. See previous logs for details.\n");
-            return false;
-        }
-    }
-
-    auto state_repository = GetComponent<finalization::StateRepository>();
-    state_repository->Reset(chainparams.GetFinalization(),
-                            chainparams.GetAdminParams());
 
     // ********************************************************* Step 4a: application initialization
 #ifndef WIN32

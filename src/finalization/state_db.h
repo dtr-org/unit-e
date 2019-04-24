@@ -26,6 +26,7 @@ struct UnitEInjectorConfiguration;
 namespace finalization {
 
 using FinalizationState = esperanza::FinalizationState;
+struct Params;
 
 struct StateDBParams {
   size_t cache_size = 0;
@@ -40,20 +41,14 @@ class StateDB {
   virtual bool Save(const std::map<const CBlockIndex *, FinalizationState> &states) = 0;
 
   //! \brief Loads all the states.
-  virtual bool Load(const esperanza::FinalizationParams &fin_params,
-                    const esperanza::AdminParams &admin_params,
-                    std::map<const CBlockIndex *, FinalizationState> *states) = 0;
+  virtual bool Load(std::map<const CBlockIndex *, FinalizationState> *states) = 0;
 
   //! \brief Loads specific state.
   virtual bool Load(const CBlockIndex &index,
-                    const esperanza::FinalizationParams &fin_params,
-                    const esperanza::AdminParams &admin_params,
                     std::map<const CBlockIndex *, FinalizationState> *states) const = 0;
 
   //! \brief Returns last finalized epoch accoring to active chain's tip.
-  virtual boost::optional<uint32_t> FindLastFinalizedEpoch(
-      const esperanza::FinalizationParams &fin_params,
-      const esperanza::AdminParams &admin_params) const = 0;
+  virtual boost::optional<uint32_t> FindLastFinalizedEpoch() const = 0;
 
   //! \brief Load most actual states.
   //!
@@ -62,8 +57,6 @@ class StateDB {
   //! * index is a fork and it's origin is higher than `height`.
   virtual void LoadStatesHigherThan(
       blockchain::Height height,
-      const esperanza::FinalizationParams &fin_params,
-      const esperanza::AdminParams &admin_params,
       std::map<const CBlockIndex *, FinalizationState> *states) const = 0;
 
   virtual ~StateDB() = default;
@@ -71,6 +64,7 @@ class StateDB {
   static std::unique_ptr<StateDB> New(
       Dependency<UnitEInjectorConfiguration>,
       Dependency<Settings>,
+      Dependency<finalization::Params>,
       Dependency<staking::BlockIndexMap>,
       Dependency<staking::ActiveChain>,
       Dependency<ArgsManager>);
@@ -78,6 +72,7 @@ class StateDB {
   static std::unique_ptr<StateDB> NewFromParams(
       const StateDBParams &,
       Dependency<Settings>,
+      Dependency<finalization::Params>,
       Dependency<staking::BlockIndexMap>,
       Dependency<staking::ActiveChain>);
 };

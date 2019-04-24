@@ -7,8 +7,8 @@
 
 #include <better-enums/enum.h>
 #include <esperanza/admincommand.h>
-#include <esperanza/finalizationparams.h>
 #include <esperanza/finalizationstate_data.h>
+#include <finalization/params.h>
 
 class CChainParams;
 
@@ -64,8 +64,7 @@ class FinalizationState : public FinalizationStateData {
     COMPLETED = 2,
   };
 
-  FinalizationState(const esperanza::FinalizationParams &params,
-                    const esperanza::AdminParams &adminParams);
+  FinalizationState(const finalization::Params &params);
   FinalizationState(const FinalizationState &parent, InitStatus status = NEW);
   FinalizationState(FinalizationState &&parent);
   bool operator==(const FinalizationState &other) const;
@@ -230,7 +229,7 @@ class FinalizationState : public FinalizationStateData {
   mutable CCriticalSection cs_esperanza;
 
  protected:
-  const FinalizationParams &m_settings;
+  const finalization::Params &m_settings;
   InitStatus m_status = NEW;
 
  public:

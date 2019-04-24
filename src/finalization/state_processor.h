@@ -41,6 +41,7 @@ class ActiveChain;
 
 namespace finalization {
 
+struct Params;
 class StateRepository;
 
 class StateProcessor {
@@ -77,8 +78,10 @@ class StateProcessor {
   virtual bool ProcessNewTip(const CBlockIndex &block_index, const CBlock &block) = 0;
 
   virtual ~StateProcessor() = default;
-  static std::unique_ptr<StateProcessor> New(Dependency<finalization::StateRepository> repo,
-                                             Dependency<staking::ActiveChain> active_chain);
+  static std::unique_ptr<StateProcessor> New(
+      Dependency<finalization::Params> finalization_params,
+      Dependency<finalization::StateRepository> repo,
+      Dependency<staking::ActiveChain> active_chain);
 };
 
 }  // namespace finalization

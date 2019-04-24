@@ -9,6 +9,7 @@
 #include <chainparams.h>
 #include <chainparamsbase.h>
 #include <fs.h>
+#include <injector_config.h>
 #include <key.h>
 #include <pubkey.h>
 #include <random.h>
@@ -65,7 +66,9 @@ struct ReducedTestingSetup {
 struct BasicTestingSetup : public ReducedTestingSetup {
     ECCVerifyHandle globalVerifyHandle;
 
-    explicit BasicTestingSetup(const std::string& chainName = CBaseChainParams::TESTNET);
+    explicit BasicTestingSetup(
+        const std::string& chainName = CBaseChainParams::TESTNET,
+        UnitEInjectorConfiguration config = UnitEInjectorConfiguration());
     ~BasicTestingSetup();
 
   // todo: remove after merging https://github.com/bitcoin/bitcoin/commit/d3dae3ddf9fa95d652dfdf44bb496617513644a2
@@ -91,7 +94,9 @@ struct TestingSetup: public BasicTestingSetup {
     CScheduler scheduler;
     std::unique_ptr<PeerLogicValidation> peerLogic;
 
-    explicit TestingSetup(const std::string& chainName = CBaseChainParams::TESTNET);
+    explicit TestingSetup(
+        const std::string& chainName = CBaseChainParams::TESTNET,
+        UnitEInjectorConfiguration config = UnitEInjectorConfiguration());
     ~TestingSetup();
 };
 

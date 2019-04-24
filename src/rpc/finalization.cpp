@@ -71,7 +71,7 @@ UniValue getfinalizationconfig(const JSONRPCRequest &request) {
 
   ObserveSafeMode();
 
-  const esperanza::FinalizationParams params = Params().GetFinalization();
+  const finalization::Params &params = *GetComponent<finalization::Params>();
   UniValue obj(UniValue::VOBJ);
 
   obj.pushKV("epochLength", ToUniValue(params.epoch_length));

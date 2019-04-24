@@ -40,7 +40,8 @@ BOOST_AUTO_TEST_CASE(singleton) {
 
 BOOST_AUTO_TEST_CASE(record_votes) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params = finalization::Params::TestNet();
+  FinalizationStateSpy spy(params);
   SlashListener listener;
   RegisterValidationInterface(&listener);
   auto recorder = VoteRecorder::GetVoteRecorder();
@@ -93,7 +94,8 @@ BOOST_AUTO_TEST_CASE(record_votes) {
 
 BOOST_AUTO_TEST_CASE(record_double_vote) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params = finalization::Params::TestNet();
+  FinalizationStateSpy spy(params);
   SlashListener listener;
   RegisterValidationInterface(&listener);
   auto recorder = VoteRecorder::GetVoteRecorder();
@@ -126,7 +128,8 @@ BOOST_AUTO_TEST_CASE(record_double_vote) {
 
 BOOST_AUTO_TEST_CASE(record_surrounding_vote_inner_passed) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params = finalization::Params::TestNet();
+  FinalizationStateSpy spy(params);
   SlashListener listener;
   RegisterValidationInterface(&listener);
   auto recorder = VoteRecorder::GetVoteRecorder();
@@ -158,7 +161,8 @@ BOOST_AUTO_TEST_CASE(record_surrounding_vote_inner_passed) {
 
 BOOST_AUTO_TEST_CASE(record_surrounding_vote_outer_passed) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params = finalization::Params::TestNet();
+  FinalizationStateSpy spy(params);
 
   SlashListener listener;
   RegisterValidationInterface(&listener);
