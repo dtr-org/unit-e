@@ -27,6 +27,7 @@ from .util import (
     PortSeed,
     assert_equal,
     check_json_precision,
+    cleanup_datadir,
     connect_nodes_bi,
     disconnect_nodes,
     get_datadir_path,
@@ -383,9 +384,12 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
             # Wait for nodes to stop
             node.wait_until_stopped()
 
-    def restart_node(self, i, extra_args=None):
+    def restart_node(self, i, extra_args=None, cleanup=False):
         """Stop and start a test node"""
         self.stop_node(i)
+        if cleanup:
+            cleanup_datadir(self.options.tmpdir, i)
+            initialize_datadir(self.options.tmpdir, i)
         self.start_node(i, extra_args)
 
     def wait_for_node_exit(self, i, timeout):
