@@ -776,14 +776,13 @@ UniValue filtertransactions(const JSONRPCRequest &request) {
 
       // Get the transaction finalization state
       const CBlockIndex *block_index = nullptr;
+      bool finalized = false;
       if (pwtx->GetDepthInMainChain(block_index) > 0) {
         const finalization::FinalizationState *tip_fin_state = fin_repo->GetTipState();
-
-        if (tip_fin_state != nullptr) {
-          bool finalized = tip_fin_state->GetLastFinalizedEpoch() >= tip_fin_state->GetEpoch(*block_index);
-          entry.pushKV("finalized", UniValue(finalized));
-        }
+        assert(tip_fin_state != nullptr);
+        finalized = tip_fin_state->GetLastFinalizedEpoch() >= tip_fin_state->GetEpoch(*block_index);
       }
+      entry.pushKV("finalized", UniValue(finalized));
 
       transactions.push_back(entry);
     }
