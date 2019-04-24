@@ -159,6 +159,10 @@ public:
       const CScript& scriptPubKeyIn, CWallet *pwallet=nullptr
     );
 
+    //! Construct a new block template with transactions excluding coinbase
+    //! transaction and without filling the block header.
+    std::unique_ptr<CBlockTemplate> PickTransactions();
+
 private:
     // utility functions
     /** Clear the block's state and prepare for assembling a new block */
