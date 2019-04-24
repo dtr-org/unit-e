@@ -103,7 +103,6 @@ class P2PFingerprintTest(UnitETestFramework):
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         unspent_outputs = get_unspent_coins(self.nodes[0], 5, lock=True)
         block_hashes += self.nodes[0].generate(nblocks=2)
-        unspent_outputs = get_unspent_coins(self.nodes[0], 5)
 
         # Create longer chain starting 2 blocks before current tip
         height = len(block_hashes) - 2
