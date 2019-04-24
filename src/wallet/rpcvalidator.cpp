@@ -142,7 +142,7 @@ UniValue withdraw(const JSONRPCRequest &request)
       case esperanza::ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION:
         throw JSONRPCError(RPC_VERIFY_ERROR, "Deposit is not finalized. Can't withdraw.");
       case esperanza::ValidatorState::Phase::IS_VALIDATING:
-        if (validator->m_end_dynasty == esperanza::DEFAULT_END_DYNASTY) {
+        if (validator->m_end_dynasty == esperanza::MAX_END_DYNASTY) {
           throw JSONRPCError(RPC_VERIFY_ERROR, "The node is validating, logout first.");
         } else {
           throw JSONRPCError(RPC_VERIFY_ERROR, "Logout delay hasn't passed yet. Can't withdraw.");

@@ -54,16 +54,16 @@ class ValidatorState {
 
   uint160 m_validator_address = uint160S("0");
 
-  // store votes by target_epoch
+  //! store votes by target_epoch
   std::map<uint32_t, Vote> m_vote_map;
 
-  // is used to prevent creating double-deposits for the same wallet.
-  // once deposit is included in the block, global FinalizationState
-  // knows about this finalizer and we don't need this field anymore.
+  //! is used to prevent creating double-deposits for the same wallet.
+  //! once deposit is included in the block, current FinalizationState
+  //! knows about this finalizer and we don't need this field anymore.
   uint256 m_last_deposit_tx;
 
-  // m_last_source_epoch and m_last_target_epoch are used to detect
-  // double or surrounded votes and skip voting for that epoch.
+  //! m_last_source_epoch and m_last_target_epoch are used to detect
+  //! double or surrounded votes and skip voting for that epoch.
   uint32_t m_last_source_epoch = 0;
   uint32_t m_last_target_epoch = 0;
 

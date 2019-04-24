@@ -563,22 +563,31 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address, CWalletTx &wtx
   return true;
 }
 
-void WalletExtension::VoteIfNeeded(const FinalizationState &state, const blockchain::Height height) {
-  AssertLockHeld(m_enclosing_wallet.cs_wallet);
+void WalletExtension::VoteIfNeeded() {
+  LOCK2(cs_main, m_enclosing_wallet.cs_wallet);
+
+  LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
+  const CBlockIndex *tip_block_index = m_dependencies.GetActiveChain().GetTip();
+  const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().Find(*tip_block_index);
+  assert(fin_state);
+
+  if (GetFinalizerPhase(*fin_state) != +ValidatorState::Phase::IS_VALIDATING) {
+    return;
+  }
 
   assert(validatorState);
 
   ValidatorStateWatchWriter validator_writer(*this);
-  const esperanza::Validator *validator = state.GetValidator(validatorState->m_validator_address);
+  const esperanza::Validator *validator = fin_state->GetValidator(validatorState->m_validator_address);
   assert(validator);
 
-  const uint32_t block_number = height % state.GetEpochLength();
+  const uint32_t block_number = tip_block_index->nHeight % fin_state->GetEpochLength();
   if (block_number < m_dependencies.GetSettings().finalizer_vote_from_epoch_block_number) {
     return;
   }
 
-  const uint32_t target_epoch = state.GetRecommendedTargetEpoch();
-  if (state.GetCurrentEpoch() != target_epoch + 1) {
+  const uint32_t target_epoch = fin_state->GetRecommendedTargetEpoch();
+  if (fin_state->GetCurrentEpoch() != target_epoch + 1) {
     // not the right time to vote
     return;
   }
@@ -590,9 +599,9 @@ void WalletExtension::VoteIfNeeded(const FinalizationState &state, const blockch
 
   LogPrint(BCLog::FINALIZATION,
            "%s: Validator voting for epoch %d and dynasty %d.\n", __func__,
-           target_epoch, state.GetCurrentDynasty());
+           target_epoch, fin_state->GetCurrentDynasty());
 
-  Vote vote = state.GetRecommendedVote(validatorState->m_validator_address);
+  Vote vote = fin_state->GetRecommendedVote(validatorState->m_validator_address);
   assert(vote.m_target_epoch == target_epoch);
 
   // Check for surrounding votes
@@ -778,17 +787,7 @@ void WalletExtension::BlockConnected(
     return;
   }
 
-  LOCK2(cs_main, m_enclosing_wallet.cs_wallet);
-  assert(validatorState);
-
-  LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
-  const CBlockIndex *tip_block_index = m_dependencies.GetActiveChain().GetTip();
-  const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().Find(*tip_block_index);
-  assert(fin_state);
-
-  if (GetFinalizerPhase(*fin_state) == +ValidatorState::Phase::IS_VALIDATING) {
-    VoteIfNeeded(*fin_state, tip_block_index->nHeight);
-  }
+  VoteIfNeeded();
 }
 
 bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
@@ -827,7 +826,7 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
       uint160 finalizer_address;
       if (!esperanza::ExtractValidatorAddress(tx, finalizer_address)) {
         LogPrint(BCLog::FINALIZATION,
-                 "ERROR: %s: Cannot extract validator index.\n",
+                 "ERROR: %s: Cannot extract validator address.\n",
                  __func__);
         return false;
       }

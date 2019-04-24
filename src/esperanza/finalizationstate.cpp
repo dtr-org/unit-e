@@ -297,7 +297,7 @@ CAmount FinalizationState::ProcessReward(const uint160 &validatorAddress, uint64
     m_prev_dyn_deposits += reward;
   }
 
-  if (endDynasty < DEFAULT_END_DYNASTY) {
+  if (endDynasty < MAX_END_DYNASTY) {
     m_dynasty_deltas[endDynasty] = GetDynastyDelta(endDynasty) - reward;
   }
 
@@ -830,7 +830,7 @@ void FinalizationState::ProcessSlash(const Vote &vote1, const Vote &vote2) {
 
     // if validator was already staged for logout at end_dynasty,
     // ensure that we don't doubly remove from total
-    if (endDynasty < DEFAULT_END_DYNASTY) {
+    if (endDynasty < MAX_END_DYNASTY) {
       m_dynasty_deltas[endDynasty] = GetDynastyDelta(endDynasty) + deposit;
     } else {
       // if no previously logged out, remember the total deposits at logout
@@ -1113,17 +1113,17 @@ bool FinalizationState::IsFinalizerVoting(const Validator &finalizer) const {
 uint32_t FinalizationState::CalculateWithdrawEpoch(const Validator &finalizer) const {
 
   // m_end_dynasty is not set
-  if (finalizer.m_end_dynasty == DEFAULT_END_DYNASTY) {
-    return std::numeric_limits<uint32_t>::max();
+  if (finalizer.m_end_dynasty == MAX_END_DYNASTY) {
+    return MAX_END_DYNASTY;
   }
 
   if (m_current_dynasty <= finalizer.m_end_dynasty) {
-    return std::numeric_limits<uint32_t>::max();
+    return MAX_END_DYNASTY;
   }
 
   const auto it = m_dynasty_start_epoch.find(finalizer.m_end_dynasty + 1);
   assert(it != m_dynasty_start_epoch.end() && "incorrect m_dynasty_start_epoch mapping");
-  const uint32_t &end_epoch = it->second;
+  const uint32_t end_epoch = it->second;
   const uint32_t withdraw_epoch = end_epoch + m_settings.withdrawal_epoch_delay;
   return withdraw_epoch;
 }

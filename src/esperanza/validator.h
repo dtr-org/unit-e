@@ -10,7 +10,7 @@
 
 namespace esperanza {
 
-static const uint32_t DEFAULT_END_DYNASTY =
+static const uint32_t MAX_END_DYNASTY =
     std::numeric_limits<uint32_t>::max();
 
 class Validator {
@@ -22,14 +22,11 @@ class Validator {
   uint160 m_validator_address;
   uint64_t m_deposit;
 
-  // At which dynasty finalizer can start voting.
+  //! At which dynasty finalizer can start voting.
   uint32_t m_start_dynasty;
 
-  // At which dynasty finalizer stops voting. However, finalizer will actually
-  // stop at m_end_dynasty + 1 because it allowed to vote when it is active
-  // in current_dynasty or current_dynasty - 1. When m_end_dynasty starts,
-  // the first rule will be false but current_dynasty - 1 is still true.
-  // See FinalizationState::IsFinalizerVoting
+  //! After which dynasty finalizer stops voting.
+  //! See FinalizationState::IsFinalizerVoting
   uint32_t m_end_dynasty;
 
   bool m_is_slashed;
