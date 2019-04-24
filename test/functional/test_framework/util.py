@@ -780,5 +780,5 @@ def make_vote_tx(finalizer, finalizer_address, target_hash, source_epoch, target
         'source_epoch': source_epoch
     }
     vtx = finalizer.createvotetransaction(vote, input_tx_id)
-    vtx = finalizer.signrawtransaction(vtx)
+    vtx = finalizer.signrawtransactionwithwallet(vtx)
     return vtx['hex']
