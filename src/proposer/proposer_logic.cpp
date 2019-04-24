@@ -60,16 +60,23 @@ class LogicImpl final : public Logic {
 
     for (const staking::Coin &coin : eligible_coins) {
       const uint256 kernel_hash = m_stake_validator->ComputeKernelHash(current_tip, coin, target_time);
-      if (m_stake_validator->CheckKernel(coin.GetAmount(), kernel_hash, target_difficulty)) {
-        const CAmount reward = m_blockchain_behavior->CalculateBlockReward(
-            target_height);
-        return {{coin,
-                 kernel_hash,
-                 reward,
-                 target_height,
-                 target_time,
-                 target_difficulty}};
+
+      if (!m_stake_validator->CheckKernel(coin.GetAmount(), kernel_hash, target_difficulty)) {
+        if (m_blockchain_behavior->GetParameters().mine_blocks_on_demand) {
+          LogPrint(BCLog::VALIDATION, "Letting artificial block generation succeed nevertheless (mine_blocks_on_demand=true)\n");
+        } else {
+          continue;
+        }
       }
+
+      const CAmount reward = m_blockchain_behavior->CalculateBlockReward(
+          target_height);
+      return {{coin,
+               kernel_hash,
+               reward,
+               target_height,
+               target_time,
+               target_difficulty}};
     }
     return boost::none;
   }

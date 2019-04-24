@@ -50,7 +50,8 @@ class BlockAssemblerAdapter final : public TransactionPicker {
           block_assembler.PickTransactions();
 
       result.transactions.swap(block_template->block.vtx);
-      result.fees.swap(block_template->vTxFees);
+        result.fees.swap(block_template->vTxFees);
+      }
     } catch (const std::runtime_error &err) {
       result.error = err.what();
     }

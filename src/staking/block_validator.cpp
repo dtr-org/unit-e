@@ -156,10 +156,19 @@ class BlockValidatorImpl : public AbstractBlockValidator {
     if (block_header.hashPrevBlock != *previous_block.phashBlock) {
       result.AddError(Error::PREVIOUS_BLOCK_DOESNT_MATCH);
     }
-    if (block_header.GetBlockTime() <= previous_block.GetMedianTimePast()) {
+
+    const int64_t block_time = block_header.GetBlockTime();
+
+    if (block_time < previous_block.GetMedianTimePast()) {
       result.AddError(Error::BLOCKTIME_TOO_EARLY);
     }
-    if (block_header.GetBlockTime() > adjusted_time + m_blockchain_behavior->GetParameters().max_future_block_time_seconds) {
+
+    const bool on_demand = m_blockchain_behavior->GetParameters().mine_blocks_on_demand;
+    if (!on_demand && block_time == previous_block.GetMedianTimePast()) {
+      result.AddError(Error::BLOCKTIME_TOO_EARLY);
+    }
+
+    if (block_time > adjusted_time + m_blockchain_behavior->GetParameters().max_future_block_time_seconds) {
       result.AddError(Error::BLOCKTIME_TOO_FAR_INTO_FUTURE);
     }
   }
