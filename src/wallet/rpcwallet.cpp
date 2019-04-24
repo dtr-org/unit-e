@@ -3460,16 +3460,17 @@ UniValue GenerateBlocks(CWallet *const wallet,
         std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(
               coinbase_script->reserveScript, wallet
         ));
-        if (!pblocktemplate.get())
-            throw JSONRPCError(RPC_INTERNAL_ERROR, "Couldn't create new block");
-        CBlock *pblock = &pblocktemplate->block;
-        {
-            LOCK(cs_main);
-            IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
+        if (!pblocktemplate.get()) {
+          throw JSONRPCError(RPC_INTERNAL_ERROR, "Couldn't create new block");
         }
+
+        CBlock *pblock = &pblocktemplate->block;
+        pblock->ComputeMerkleTrees();
+
         std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
-        if (!ProcessNewBlock(Params(), shared_pblock, /* fForceProcessing= */ true, nullptr))
-            throw JSONRPCError(RPC_INTERNAL_ERROR, "ProcessNewBlock, block not accepted");
+        if (!ProcessNewBlock(Params(), shared_pblock, /* fForceProcessing= */ true, nullptr)) {
+          throw JSONRPCError(RPC_INTERNAL_ERROR, "ProcessNewBlock, block not accepted");
+        }
 
         ++height;
         blockHashes.push_back(pblock->GetHash().GetHex());
