@@ -755,3 +755,30 @@ def bytes_to_base58(bytes):
         string = char_map[idx] + string
 
     return string
+
+
+def make_vote_tx(finalizer, finalizer_address, target_hash, source_epoch, target_epoch, input_tx_id):
+    """
+    Make and sign a vote transaction.
+
+    Args:
+        finalizer (AuthServiceProxy): the node which signs vote and vote transaction.
+        finalizer_address (string): the finalizer's address in legacy Base58Check format.
+        target_hash (string): the target hash.
+        source_epoch (int): the source epoch.
+        target_epoch (int): the target epoch
+        input_tx_id (string): the hash of the previous commit transaction. Used as an input to the generated vote.
+
+    Returns:
+        Raw vote transaction as a hex string.
+    """
+    finalizer_address = bytes_to_hex_str(base58check_to_bytes(finalizer_address)[::-1])
+    vote = {
+        'validator_address': finalizer_address,
+        'target_hash': target_hash,
+        'target_epoch': target_epoch,
+        'source_epoch': source_epoch
+    }
+    vtx = finalizer.createvotetransaction(vote, input_tx_id)
+    vtx = finalizer.signrawtransaction(vtx)
+    return vtx['hex']
