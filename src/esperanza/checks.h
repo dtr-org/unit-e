@@ -74,25 +74,6 @@ bool CheckAdminTx(const CTransaction &tx, CValidationState &err_state,
 bool ContextualCheckAdminTx(const CTransaction &tx, CValidationState &err_state,
                             const FinalizationState &fin_state);
 
-//! \brief Extracts the validator address from the transaction if applicable.
-//!
-//! The function supports only LOGOUT, DEPOSIT and WITHDRAW, anything else
-//! will return false.
-//! \param tx
-//! \param validatorAddressOut
-//! \return true if successful, false otherwise.
-bool ExtractValidatorAddress(const CTransaction &tx,
-                             uint160 &validatorAddressOut);
-
-//! \brief Extracts the validator pubkey from the transaction if applicable.
-//!
-//! The function supports only VOTE as tx type, anything else will return false.
-//! \param tx
-//! \param pubkeyOut
-//! \return true if successful, false otherwise.
-bool ExtractValidatorPubkey(const CTransaction &tx,
-                            CPubKey &pubkeyOut);
-
 }  // namespace esperanza
 
 #endif  // UNITE_ESPERANZA_CHECKS_H

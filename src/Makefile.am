@@ -120,6 +120,7 @@ UNITE_CORE_H = \
   esperanza/finalizationstate.h \
   esperanza/finalizationstate_data.h \
   esperanza/init.h \
+  esperanza/script.h \
   esperanza/validator.h \
   esperanza/validatorstate.h \
   esperanza/vote.h \
@@ -312,6 +313,7 @@ libunite_server_a_SOURCES = \
   esperanza/checks.cpp \
   esperanza/finalizationstate.cpp \
   esperanza/finalizationstate_data.cpp \
+  esperanza/script.cpp \
   esperanza/validator.cpp \
   finalization/state_db.cpp \
   finalization/state_processor.cpp \
