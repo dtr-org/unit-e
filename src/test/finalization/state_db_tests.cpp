@@ -33,18 +33,16 @@ BOOST_AUTO_TEST_CASE(leveldb_rand) {
   finalization::StateDBParams params;
   params.inmemory = true;
 
-  esperanza::FinalizationParams finalization_params;
-  esperanza::AdminParams admin_params;
-
-  std::unique_ptr<finalization::StateDB> db =
-      finalization::StateDB::NewFromParams(params, &settings, &block_index_map, &active_chain);
+  finalization::Params finalization_params;
+  std::unique_ptr<finalization::StateDB> db = finalization::StateDB::NewFromParams(
+      params, &settings, &finalization_params, &block_index_map, &active_chain);
 
   LOCK(block_index_map.GetLock());
 
   std::map<const CBlockIndex *, esperanza::FinalizationState> original;
   for (size_t i = 0; i < 100; ++i) {
     CBlockIndex *block_index = block_index_map.Insert(GetRandHash());
-    FinalizationStateSpy state;
+    FinalizationStateSpy state(finalization_params);
     state.shuffle();
     original.emplace(block_index, std::move(state));
   }
@@ -53,7 +51,7 @@ BOOST_AUTO_TEST_CASE(leveldb_rand) {
   db->Save(original);
 
   std::map<const CBlockIndex *, esperanza::FinalizationState> restored;
-  bool const result = db->Load(finalization_params, admin_params, &restored);
+  bool const result = db->Load(&restored);
 
   BOOST_CHECK(result);
   BOOST_CHECK_EQUAL(restored, original);
@@ -83,12 +81,10 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
   Settings settings;
   finalization::StateDBParams params;
   params.inmemory = true;
+  finalization::Params finalization_params;
 
-  esperanza::FinalizationParams finalization_params;
-  esperanza::AdminParams admin_params;
-
-  std::unique_ptr<finalization::StateDB> db =
-      finalization::StateDB::NewFromParams(params, &settings, &block_index_map, &active_chain);
+  std::unique_ptr<finalization::StateDB> db = finalization::StateDB::NewFromParams(
+      params, &settings, &finalization_params, &block_index_map, &active_chain);
 
   LOCK(block_index_map.GetLock());
   LOCK(active_chain.GetLock());
@@ -108,7 +104,7 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
   std::map<const CBlockIndex *, esperanza::FinalizationState> original;
   for (size_t i = 0; i < 100; ++i) {
     CBlockIndex *block_index = generate(active_chain.tip, true);
-    FinalizationStateSpy state;
+    FinalizationStateSpy state(finalization_params);
     state.shuffle();
     original.emplace(block_index, std::move(state));
   }
@@ -120,7 +116,7 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
     CBlockIndex *index = active_chain.stub_AtHeight(50);
     for (size_t i = 0; i < 100; ++i) {
       index = generate(index, false);
-      FinalizationStateSpy state;
+      FinalizationStateSpy state(finalization_params);
       state.shuffle();
       original.emplace(index, std::move(state));
     }
@@ -133,7 +129,7 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
     CBlockIndex *index = active_chain.stub_AtHeight(80);
     for (size_t i = 0; i < 100; ++i) {
       index = generate(index, false);
-      FinalizationStateSpy state;
+      FinalizationStateSpy state(finalization_params);
       state.shuffle();
       original.emplace(index, std::move(state));
     }
@@ -149,7 +145,7 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
 
   // Find last finalized epoch
   {
-    boost::optional<uint32_t> last_finalized_epoch = db->FindLastFinalizedEpoch(finalization_params, admin_params);
+    boost::optional<uint32_t> last_finalized_epoch = db->FindLastFinalizedEpoch();
     BOOST_CHECK(static_cast<bool>(last_finalized_epoch));
     BOOST_CHECK_EQUAL(*last_finalized_epoch, expected_last_finalized_epoch);
   }
@@ -164,7 +160,7 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
 
   // Check that db can find last finalized epoch
   {
-    boost::optional<uint32_t> last_finalized_epoch = db->FindLastFinalizedEpoch(finalization_params, admin_params);
+    boost::optional<uint32_t> last_finalized_epoch = db->FindLastFinalizedEpoch();
     BOOST_CHECK(static_cast<bool>(last_finalized_epoch));
     BOOST_CHECK_EQUAL(*last_finalized_epoch, expected_last_finalized_epoch);
   }
@@ -175,7 +171,7 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
   // States for fork 1 must be ignored.
   {
     std::map<const CBlockIndex *, esperanza::FinalizationState> restored;
-    db->LoadStatesHigherThan(59, finalization_params, admin_params, &restored);
+    db->LoadStatesHigherThan(59, &restored);
     BOOST_CHECK_EQUAL(restored.size(), 140);
 
     for (auto it = restored.begin(); it != restored.end(); ++it) {

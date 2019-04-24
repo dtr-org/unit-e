@@ -70,7 +70,6 @@ UNITE_TESTS =\
   test/esperanza/admincommand_tests.cpp \
   test/esperanza/adminstate_tests.cpp \
   test/esperanza/checks_tests.cpp \
-  test/esperanza/finalizationparams_tests.cpp \
   test/esperanza/finalizationstate_tests.cpp \
   test/esperanza/finalizationstate_deposit_tests.cpp \
   test/esperanza/finalizationstate_vote_tests.cpp \

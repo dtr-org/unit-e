@@ -14,11 +14,14 @@
 #include <consensus/merkle.h>
 #include <test/test_unite_mocks.h>
 
-WalletTestingSetup::WalletTestingSetup(const std::string& chainName)
-    : WalletTestingSetup([](Settings& s){}, chainName) {}
+WalletTestingSetup::WalletTestingSetup(const std::string& chainName, UnitEInjectorConfiguration config)
+    : WalletTestingSetup([](Settings& s){}, chainName, config) {}
 
-WalletTestingSetup::WalletTestingSetup(std::function<void(Settings&)> f, const std::string& chainName)
-    : TestingSetup(chainName)
+WalletTestingSetup::WalletTestingSetup(
+    std::function<void(Settings&)> f,
+    const std::string& chainName,
+    UnitEInjectorConfiguration config)
+    : TestingSetup(chainName, config)
 {
     bool fFirstRun;
 
@@ -41,7 +44,8 @@ WalletTestingSetup::~WalletTestingSetup()
     UnregisterValidationInterface(m_wallet.get());
 }
 
-TestChain100Setup::TestChain100Setup() : WalletTestingSetup(CBaseChainParams::REGTEST)
+TestChain100Setup::TestChain100Setup(UnitEInjectorConfiguration config)
+    : WalletTestingSetup(CBaseChainParams::REGTEST, config)
 {
   coinbaseKey = DecodeSecret("cQTjnbHifWGuMhm9cRgQ23ip5KntTMfj3zwo6iQyxMVxSfJyptqL");
   assert(coinbaseKey.IsValid());

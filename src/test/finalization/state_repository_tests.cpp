@@ -52,9 +52,7 @@ class StateDBMock : public finalization::StateDB {
     return true;
   }
 
-  bool Load(const esperanza::FinalizationParams &fin_params,
-            const esperanza::AdminParams &admin_params,
-            std::map<const CBlockIndex *, FinalizationState> *states) override {
+  bool Load(std::map<const CBlockIndex *, FinalizationState> *states) override {
     for (const auto &s : m_states) {
       states->emplace(s.first, finalization::FinalizationState(s.second, s.second.GetInitStatus()));
     }
@@ -62,8 +60,6 @@ class StateDBMock : public finalization::StateDB {
   }
 
   bool Load(const CBlockIndex &index,
-            const esperanza::FinalizationParams &fin_params,
-            const esperanza::AdminParams &admin_params,
             std::map<const CBlockIndex *, FinalizationState> *states) const override {
     const auto it = m_states.find(&index);
     if (it == m_states.end()) {
@@ -73,16 +69,12 @@ class StateDBMock : public finalization::StateDB {
     return true;
   }
 
-  boost::optional<uint32_t> FindLastFinalizedEpoch(
-      const esperanza::FinalizationParams &fin_params,
-      const esperanza::AdminParams &admin_params) const override {
+  boost::optional<uint32_t> FindLastFinalizedEpoch() const override {
     return m_last_finalized_epoch;
   }
 
   void LoadStatesHigherThan(
       blockchain::Height height,
-      const esperanza::FinalizationParams &fin_params,
-      const esperanza::AdminParams &admin_params,
       std::map<const CBlockIndex *, FinalizationState> *states) const override {}
 
   FinalizationState &Get(const CBlockIndex &index) {
@@ -105,13 +97,8 @@ class Fixture {
   }
 
   std::unique_ptr<finalization::StateRepository> NewRepo() {
-    auto repo = finalization::StateRepository::New(&m_block_indexes, &m_chain, &m_state_db, &m_block_db);
-    repo->Reset(Params().GetFinalization(), Params().GetAdminParams());
-    return repo;
-  }
-
-  void Reset() {
-    m_repo->Reset(Params().GetFinalization(), Params().GetAdminParams());
+    return finalization::StateRepository::New(
+        &m_finalization_params, &m_block_indexes, &m_chain, &m_state_db, &m_block_db);
   }
 
   CBlockIndex &CreateBlockIndex() {
@@ -126,6 +113,7 @@ class Fixture {
     return index;
   }
 
+  finalization::Params m_finalization_params;
   std::unique_ptr<finalization::StateRepository> m_repo;
   mocks::ActiveChainMock m_chain;
   StateDBMock m_state_db;
@@ -221,19 +209,6 @@ BOOST_AUTO_TEST_CASE(basic_checks) {
 
   // Btw, now we processed states til the chain's tip. Check it.
   BOOST_CHECK(repo.GetTipState() == state4);
-
-  // Reset repo completely.
-  fixture.Reset();
-  BOOST_CHECK(repo.Find(b0) != nullptr);  // genesis
-  BOOST_CHECK(repo.Find(b3) == nullptr);
-  BOOST_CHECK(repo.Find(b4) == nullptr);
-
-  // Reset  repo to the tip.
-  repo.ResetToTip(b4);
-  BOOST_CHECK(repo.Find(b3) == nullptr);
-  state4 = repo.Find(b4);
-  BOOST_REQUIRE(state4 != nullptr);
-  BOOST_CHECK(state4->GetInitStatus() == S::COMPLETED);
 }
 
 BOOST_AUTO_TEST_CASE(recovering) {
@@ -280,7 +255,8 @@ BOOST_AUTO_TEST_CASE(recovering) {
   // Check normal scenario
   {
     auto restored_repo = fixture.NewRepo();
-    auto proc = finalization::StateProcessor::New(restored_repo.get(), &fixture.m_chain);
+    auto proc = finalization::StateProcessor::New(
+        &fixture.m_finalization_params, restored_repo.get(), &fixture.m_chain);
     restored_repo->RestoreFromDisk(proc.get());
     LOCK(restored_repo->GetLock());
     check_restored(*restored_repo);
@@ -292,7 +268,8 @@ BOOST_AUTO_TEST_CASE(recovering) {
     fixture.m_block_db.blocks.clear();
     fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)] = {};
     auto restored_repo = fixture.NewRepo();
-    auto proc = finalization::StateProcessor::New(restored_repo.get(), &fixture.m_chain);
+    auto proc = finalization::StateProcessor::New(
+        &fixture.m_finalization_params, restored_repo.get(), &fixture.m_chain);
     restored_repo->RestoreFromDisk(proc.get());
     BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)].read_requests, 1);
     LOCK(restored_repo->GetLock());
@@ -307,7 +284,8 @@ BOOST_AUTO_TEST_CASE(recovering) {
     fixture.m_block_db.blocks[fixture.m_chain.AtHeight(4)] = {};
     fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)] = {};
     auto restored_repo = fixture.NewRepo();
-    auto proc = finalization::StateProcessor::New(restored_repo.get(), &fixture.m_chain);
+    auto proc = finalization::StateProcessor::New(
+        &fixture.m_finalization_params, restored_repo.get(), &fixture.m_chain);
     restored_repo->RestoreFromDisk(proc.get());
     BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(4)].read_requests, 1);
     BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)].read_requests, 1);
@@ -325,7 +303,8 @@ BOOST_AUTO_TEST_CASE(recovering) {
     fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)] = {};
     fixture.m_block_db.blocks[fixture.m_chain.AtHeight(9)] = {};
     auto restored_repo = fixture.NewRepo();
-    auto proc = finalization::StateProcessor::New(restored_repo.get(), &fixture.m_chain);
+    auto proc = finalization::StateProcessor::New(
+        &fixture.m_finalization_params, restored_repo.get(), &fixture.m_chain);
     restored_repo->RestoreFromDisk(proc.get());
     BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(4)].read_requests, 1);
     BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)].read_requests, 1);
@@ -345,7 +324,8 @@ BOOST_AUTO_TEST_CASE(recovering) {
     fixture.m_block_db.blocks[fixture.m_chain.AtHeight(9)] = {};
     fixture.m_block_indexes.reverse = true;
     auto restored_repo = fixture.NewRepo();
-    auto proc = finalization::StateProcessor::New(restored_repo.get(), &fixture.m_chain);
+    auto proc = finalization::StateProcessor::New(
+        &fixture.m_finalization_params, restored_repo.get(), &fixture.m_chain);
     restored_repo->RestoreFromDisk(proc.get());
     BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(4)].read_requests, 1);
     BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)].read_requests, 1);
@@ -363,7 +343,8 @@ BOOST_AUTO_TEST_CASE(recovering) {
     fixture.m_block_db.blocks[fixture.m_chain.AtHeight(4)] = {};
     fixture.m_block_db.blocks[fixture.m_chain.AtHeight(9)] = {};
     auto restored_repo = fixture.NewRepo();
-    auto proc = finalization::StateProcessor::New(restored_repo.get(), &fixture.m_chain);
+    auto proc = finalization::StateProcessor::New(
+        &fixture.m_finalization_params, restored_repo.get(), &fixture.m_chain);
     try {
       restored_repo->RestoreFromDisk(proc.get());
     } catch (finalization::MissedBlockError &e) {
@@ -378,7 +359,8 @@ BOOST_AUTO_TEST_CASE(recovering) {
     remove_from_db(5);
     fixture.m_block_db.blocks.clear();
     auto restored_repo = fixture.NewRepo();
-    auto proc = finalization::StateProcessor::New(restored_repo.get(), &fixture.m_chain);
+    auto proc = finalization::StateProcessor::New(
+        &fixture.m_finalization_params, restored_repo.get(), &fixture.m_chain);
     std::vector<CTransactionRef> commits;
     fixture.m_chain.stub_AtHeight(5)->commits = commits;
     restored_repo->RestoreFromDisk(proc.get());
@@ -393,7 +375,8 @@ BOOST_AUTO_TEST_CASE(recovering) {
     CBlockIndex &index = fixture.CreateBlockIndex();
     index.nStatus &= ~BLOCK_HAVE_DATA;
     auto restored_repo = fixture.NewRepo();
-    auto proc = finalization::StateProcessor::New(restored_repo.get(), &fixture.m_chain);
+    auto proc = finalization::StateProcessor::New(
+        &fixture.m_finalization_params, restored_repo.get(), &fixture.m_chain);
     BOOST_CHECK_THROW(restored_repo->RestoreFromDisk(proc.get()), std::runtime_error);
   }
 
@@ -403,7 +386,8 @@ BOOST_AUTO_TEST_CASE(recovering) {
     CBlockIndex *tip = fixture.m_chain.tip;
     fixture.m_chain.tip = tip->pprev;
     auto restored_repo = fixture.NewRepo();
-    auto proc = finalization::StateProcessor::New(restored_repo.get(), &fixture.m_chain);
+    auto proc = finalization::StateProcessor::New(
+        &fixture.m_finalization_params, restored_repo.get(), &fixture.m_chain);
     restored_repo->RestoreFromDisk(proc.get());
     check_restored(*restored_repo);
   }

@@ -133,7 +133,6 @@ UNITE_CORE_H = \
   esperanza/adminstate.h \
   esperanza/checkpoint.h \
   esperanza/checks.h \
-  esperanza/finalizationparams.h \
   esperanza/finalizationstate.h \
   esperanza/finalizationstate_data.h \
   esperanza/init.h \
@@ -144,6 +143,7 @@ UNITE_CORE_H = \
   esperanza/walletextension_deps.h \
   esperanza/walletstate.h \
   extkey.h \
+  finalization/params.h \
   finalization/state_db.h \
   finalization/state_processor.h \
   finalization/state_repository.h \
@@ -593,7 +593,7 @@ libunite_common_a_SOURCES = \
   compressor.cpp \
   core_read.cpp \
   core_write.cpp \
-  esperanza/finalizationparams.cpp \
+  finalization/params.cpp \
   key.cpp \
   key_io.cpp \
   keystore.cpp \

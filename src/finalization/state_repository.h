@@ -92,31 +92,13 @@ class StateRepository {
   //! \brief Resturns whether node is reconstructing the repository.
   virtual bool Restoring() const = 0;
 
-  //! \brief Reset the repository.
-  //! This function must be called during initialization of the node.
-  //! TODO: encapsulate finalization params in dependency.
-  virtual void Reset(const esperanza::FinalizationParams &params,
-                     const esperanza::AdminParams &admin_params) = 0;
-
-  //! \brief Reset the repo and initialize empty and COMPLETE state for the tip.
-  //!
-  //! It's a workaround for prune mode. We will get rid of it by restoring finalization
-  //! state from disk.
-  //! This function will gone after merging commits full sync (wip PR #525)
-  virtual void ResetToTip(const CBlockIndex &block_index) = 0;
-
   //! \brief Destroy states for indexes with heights less than `height`
   virtual void TrimUntilHeight(blockchain::Height height) = 0;
-
-  //! Return the finalization params
-  virtual const esperanza::FinalizationParams &GetFinalizationParams() const = 0;
-
-  //! Return the admin params
-  virtual const esperanza::AdminParams &GetAdminParams() const = 0;
 
   virtual ~StateRepository() = default;
 
   static std::unique_ptr<StateRepository> New(
+      Dependency<finalization::Params>,
       Dependency<staking::BlockIndexMap>,
       Dependency<staking::ActiveChain>,
       Dependency<finalization::StateDB>,

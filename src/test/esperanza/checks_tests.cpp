@@ -4,6 +4,7 @@
 
 #include <esperanza/checks.h>
 #include <esperanza/finalizationstate.h>
+#include <finalization/params.h>
 #include <keystore.h>
 #include <random.h>
 #include <script/script.h>
@@ -63,8 +64,8 @@ CTransaction CreateSlashTx(const CPubKey &pub_key, const Vote &vote1, const Vote
   return CTransaction(mtx);
 }
 
-FinalizationParams CreateFinalizationParams() {
-  FinalizationParams params;
+finalization::Params CreateFinalizationParams() {
+  finalization::Params params;
 
   params.epoch_length = 10;
   params.min_deposit_size = 10;
@@ -157,7 +158,8 @@ BOOST_AUTO_TEST_CASE(ContextualCheckAdminTx_test) {
     // Check admin's permissioning
     CTransaction tx = CreateAdminTx(MakeKeySet());
 
-    FinalizationStateSpy spy(FinalizationParams{}, AdminParams{});
+    finalization::Params params;
+    FinalizationStateSpy spy(params);
     CValidationState err_state;
 
     bool ok = ContextualCheckAdminTx(tx, err_state, spy);
@@ -173,10 +175,10 @@ BOOST_AUTO_TEST_CASE(ContextualCheckAdminTx_test) {
     AdminKeySet key_set = MakeKeySet();
     CTransaction tx = CreateAdminTx(key_set);
 
-    AdminParams admin_params;
-    admin_params.admin_keys = key_set;
+    finalization::Params params;
+    params.admin_params.admin_keys = key_set;
 
-    FinalizationStateSpy spy(FinalizationParams{}, admin_params);
+    FinalizationStateSpy spy(params);
     CValidationState err_state;
 
     bool ok = ContextualCheckAdminTx(tx, err_state, spy);
@@ -266,7 +268,8 @@ BOOST_AUTO_TEST_CASE(ContextualCheckDepositTx_test) {
     CTransaction deposit = CreateDepositTx(CTransaction(mtx), key, 10000 * UNIT, 9000 * UNIT);
     CValidationState err_state;
 
-    FinalizationState fin_state(FinalizationParams{}, AdminParams{});
+    finalization::Params params;
+    FinalizationStateSpy fin_state(params);
     bool ok = ContextualCheckDepositTx(deposit, err_state, fin_state);
     BOOST_CHECK(!ok);
     BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-deposit-invalid");
@@ -280,7 +283,8 @@ BOOST_AUTO_TEST_CASE(ContextualCheckDepositTx_test) {
     // duplicate deposit
     CTransaction deposit = CreateDepositTx(CTransaction(mtx), key, 10000 * UNIT);
     CValidationState err_state;
-    FinalizationState fin_state(FinalizationParams{}, AdminParams{});
+    finalization::Params params;
+    FinalizationStateSpy fin_state(params);
 
     bool ok = ContextualCheckDepositTx(deposit, err_state, fin_state);
     BOOST_CHECK(ok);
@@ -391,7 +395,8 @@ BOOST_AUTO_TEST_CASE(ContextualCheckLogoutTx_test) {
   {
     CTransaction tx = CreateLogoutTx(*prev_tx, key, 1);
     CValidationState err_state;
-    FinalizationStateSpy spy(FinalizationParams{}, AdminParams{});
+    finalization::Params params;
+    FinalizationStateSpy spy(params);
 
     bool ok = ContextualCheckLogoutTx(tx, err_state, spy, view);
     BOOST_CHECK(!ok);
@@ -406,7 +411,8 @@ BOOST_AUTO_TEST_CASE(ContextualCheckLogoutTx_test) {
     CTransaction tx = CreateLogoutTx(*prev_tx, key, 1);
     CValidationState err_state;
 
-    FinalizationStateSpy spy;
+    finalization::Params params;
+    FinalizationStateSpy spy(params);
     CAmount deposit_size = spy.MinDepositSize();
 
     uint256 target_hash = GetRandHash();
@@ -435,7 +441,8 @@ BOOST_AUTO_TEST_CASE(ContextualCheckLogoutTx_test) {
 
     CValidationState err_state;
 
-    FinalizationStateSpy spy;
+    finalization::Params params;
+    FinalizationStateSpy spy(params);
     CAmount deposit_size = spy.MinDepositSize();
 
     uint256 target_hash = GetRandHash();
@@ -536,7 +543,8 @@ BOOST_AUTO_TEST_CASE(ContextualCheckSlashTx_test) {
 
     CTransaction tx = CreateSlashTx(pub_key, vote1, vote2);
     CValidationState err_state;
-    FinalizationState fin_state(FinalizationParams{}, AdminParams{});
+    finalization::Params params;
+    FinalizationState fin_state(params);
 
     bool ok = ContextualCheckSlashTx(tx, err_state, fin_state);
     BOOST_CHECK(!ok);
@@ -553,7 +561,8 @@ BOOST_AUTO_TEST_CASE(ContextualCheckSlashTx_test) {
 
     CTransaction tx = CreateSlashTx(pub_key, vote1, vote2);
     CValidationState err_state;
-    FinalizationStateSpy spy;
+    finalization::Params params;
+    FinalizationStateSpy spy(params);
 
     CAmount deposit_size = spy.MinDepositSize();
 
@@ -750,7 +759,8 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
   {
     CTransaction tx = CreateVoteTx(*prev_tx, key, vote_out, vote_sig_out);
     CValidationState err_state;
-    FinalizationStateSpy spy;
+    finalization::Params params;
+    FinalizationStateSpy spy(params);
 
     CAmount deposit_size = spy.MinDepositSize();
 
@@ -776,7 +786,8 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
       mempool.addUnchecked(prev_tx->GetHash(), entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
     }
 
-    FinalizationStateSpy spy;
+    finalization::Params params;
+    FinalizationStateSpy spy(params);
     CAmount deposit_size = spy.MinDepositSize();
 
     CBlockIndex block_index;
@@ -812,7 +823,8 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
       mempool.addUnchecked(prev_tx->GetHash(), entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
     }
 
-    FinalizationStateSpy spy;
+    finalization::Params params;
+    FinalizationStateSpy spy(params);
     CAmount deposit_size = spy.MinDepositSize();
 
     CBlockIndex block_index;
@@ -845,7 +857,8 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
     TestMemPoolEntryHelper entry;
     mempool.addUnchecked(prev_tx->GetHash(), entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
 
-    FinalizationStateSpy spy;
+    finalization::Params params;
+    FinalizationStateSpy spy(params);
     CAmount deposit_size = spy.MinDepositSize();
 
     CBlockIndex block_index;
@@ -954,7 +967,8 @@ BOOST_AUTO_TEST_CASE(ContextualCheckWithdrawTx_test) {
     CBlockIndex block_index;
     block_index.phashBlock = &target_hash;
 
-    FinalizationStateSpy spy;
+    finalization::Params params;
+    FinalizationStateSpy spy(params);
     CAmount deposit_size = spy.MinDepositSize();
     spy.SetRecommendedTarget(block_index);
 
@@ -980,8 +994,8 @@ BOOST_AUTO_TEST_CASE(ContextualCheckWithdrawTx_test) {
     CBlockIndex block_index;
     block_index.phashBlock = &target_hash;
 
-    FinalizationParams fin_params = CreateFinalizationParams();
-    FinalizationStateSpy spy(fin_params, AdminParams{});
+    finalization::Params fin_params = CreateFinalizationParams();
+    FinalizationStateSpy spy(fin_params);
     CAmount deposit_size = spy.MinDepositSize();
     spy.SetRecommendedTarget(block_index);
 
@@ -1004,8 +1018,8 @@ BOOST_AUTO_TEST_CASE(ContextualCheckWithdrawTx_test) {
 
 BOOST_AUTO_TEST_CASE(IsVoteExpired_test) {
 
-  FinalizationStateSpy spy;
-  const auto &params = CreateChainParams(CBaseChainParams::TESTNET)->GetFinalization();
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
   const auto min_deposit = params.min_deposit_size;
 
   CKey k;
@@ -1039,7 +1053,8 @@ BOOST_AUTO_TEST_CASE(CheckVoteTransaction_malformed_vote) {
   Vote vote = Vote{key.GetPubKey().GetID(), GetRandHash(), 0, 2};
   CTransaction tx = CreateVoteTx(vote, key);
   CMutableTransaction mutedTx(tx);
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
 
   // Replace the vote with something meaningless
   mutedTx.vin[0].scriptSig = CScript() << 1337;

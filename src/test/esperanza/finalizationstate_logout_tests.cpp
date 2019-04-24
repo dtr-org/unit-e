@@ -8,7 +8,8 @@ BOOST_FIXTURE_TEST_SUITE(finalizationstate_logout_tests, TestingSetup)
 
 BOOST_AUTO_TEST_CASE(validate_logout_not_a_validator) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
 
   BOOST_CHECK_EQUAL(spy.ValidateLogout(RandValidatorAddr()),
                     +Result::LOGOUT_NOT_A_VALIDATOR);
@@ -16,7 +17,8 @@ BOOST_AUTO_TEST_CASE(validate_logout_not_a_validator) {
 
 BOOST_AUTO_TEST_CASE(validate_logout_before_start_dynasty) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params;
+  FinalizationStateSpy spy(params);
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
@@ -28,7 +30,8 @@ BOOST_AUTO_TEST_CASE(validate_logout_before_start_dynasty) {
 
 BOOST_AUTO_TEST_CASE(validate_logout_already_logged_out) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params = finalization::Params::TestNet();
+  FinalizationStateSpy spy(params);
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
@@ -52,7 +55,8 @@ BOOST_AUTO_TEST_CASE(validate_logout_already_logged_out) {
 
 BOOST_AUTO_TEST_CASE(process_logout_end_dynasty) {
 
-  FinalizationStateSpy spy;
+  finalization::Params params = finalization::Params::TestNet();
+  FinalizationStateSpy spy(params);
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 

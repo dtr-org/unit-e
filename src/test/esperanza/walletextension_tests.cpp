@@ -6,7 +6,6 @@
 #include <blockchain/blockchain_behavior.h>
 #include <chainparams.h>
 #include <consensus/validation.h>
-#include <esperanza/finalizationparams.h>
 #include <esperanza/vote.h>
 #include <esperanza/walletextension.h>
 #include <key.h>

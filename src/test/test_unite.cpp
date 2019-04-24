@@ -79,12 +79,13 @@ ReducedTestingSetup::~ReducedTestingSetup()
     snapshot::DestroySecp256k1Context();
 }
 
-BasicTestingSetup::BasicTestingSetup(const std::string& chainName)
+BasicTestingSetup::BasicTestingSetup(
+    const std::string& chainName,
+    UnitEInjectorConfiguration config)
     : ReducedTestingSetup(chainName),
       m_path_root(fs::temp_directory_path() / "test_unite" / strprintf("%lu_%i", (unsigned long)GetTime(), (int)(InsecureRandRange(1 << 30))))
 {
     blockchain::Behavior::SetGlobal(blockchain::Behavior::NewForNetwork(blockchain::Network::_from_string(chainName.c_str())));
-    UnitEInjectorConfiguration config;
     config.use_in_memory_databases = true;
     UnitEInjector::Init(config);
     SelectParams(GetComponent<blockchain::Behavior>(), chainName);
@@ -103,7 +104,8 @@ BasicTestingSetup::~BasicTestingSetup()
     UnitEInjector::Destroy();
 }
 
-TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(chainName)
+TestingSetup::TestingSetup(const std::string& chainName, UnitEInjectorConfiguration config)
+    : BasicTestingSetup(chainName, config)
 {
     SetDataDir("tempdir");
     const CChainParams& chainparams = Params();
@@ -117,10 +119,6 @@ TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(cha
         // from blocking due to queue overrun.
         threadGroup.create_thread(boost::bind(&CScheduler::serviceQueue, &scheduler));
         GetMainSignals().RegisterBackgroundSignalScheduler(scheduler);
-
-        auto state_repository = GetComponent<finalization::StateRepository>();
-        state_repository->Reset(chainparams.GetFinalization(),
-                                chainparams.GetAdminParams());
 
         finalization::VoteRecorder::DBParams params;
         params.inmemory = true;

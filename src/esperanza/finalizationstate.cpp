@@ -40,10 +40,8 @@ inline Result fail(const Result error,
 
 inline Result success() { return Result::SUCCESS; }
 
-FinalizationState::FinalizationState(
-    const esperanza::FinalizationParams &params,
-    const esperanza::AdminParams &adminParams)
-    : FinalizationStateData(adminParams), m_settings(params) {
+FinalizationState::FinalizationState(const finalization::Params &params)
+    : FinalizationStateData(params.admin_params), m_settings(params) {
   m_deposit_scale_factor[0] = BASE_DEPOSIT_SCALE_FACTOR;
   m_total_slashed[0] = 0;
   m_dynasty_deltas[0] = 0;

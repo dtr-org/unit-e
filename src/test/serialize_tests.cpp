@@ -415,12 +415,13 @@ BOOST_AUTO_TEST_CASE(boost_optional)
 }
 
 BOOST_AUTO_TEST_CASE(finalization_state) {
+  finalization::Params params;
   for (size_t i = 0; i < 10; ++i) {
-    FinalizationStateSpy original;
+    FinalizationStateSpy original(params);
     original.shuffle();
     CDataStream ss(SER_DISK, PROTOCOL_VERSION);
     ss << original;
-    FinalizationStateSpy restored;
+    FinalizationStateSpy restored(params);
     ss >> restored;
     BOOST_CHECK_EQUAL(restored, original);
   }
