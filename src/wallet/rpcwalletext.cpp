@@ -5,6 +5,7 @@
 
 #include <consensus/validation.h>
 #include <core_io.h>
+#include <injector.h>
 #include <net.h>
 #include <policy/policy.h>
 #include <rpc/mining.h>
@@ -478,9 +479,9 @@ static bool OutputsContain(const UniValue &outputs, const std::string &search) {
   return false;
 }
 
-static void TxWithOutputsToJSON(const CWalletTx &wtx, CWallet *const pwallet,
+static bool TxWithOutputsToJSON(const CWalletTx &wtx, CWallet *const pwallet,
                                 const isminefilter &watchonly,
-                                const std::string &search, UniValue &entries) {
+                                const std::string &search, UniValue &result) {
   UniValue entry(UniValue::VOBJ);
 
   // GetAmounts variables
@@ -493,7 +494,7 @@ static void TxWithOutputsToJSON(const CWalletTx &wtx, CWallet *const pwallet,
   wtx.GetAmounts(list_received, list_sent, fee, sent_account, ISMINE_ALL);
 
   if (wtx.IsFromMe(ISMINE_WATCH_ONLY) && !(watchonly & ISMINE_WATCH_ONLY)) {
-    return;
+    return false;
   }
 
   std::vector<std::string> addresses;
@@ -521,7 +522,7 @@ static void TxWithOutputsToJSON(const CWalletTx &wtx, CWallet *const pwallet,
     for (const auto &s : list_sent) {
       UniValue output(UniValue::VOBJ);
       if (!OutputToJSON(output, s, pwallet, wtx, watchonly)) {
-        return;
+        return false;
       }
       amount -= s.amount;
       if (receive_outputs.count(s.vout) == 0) {
@@ -535,7 +536,7 @@ static void TxWithOutputsToJSON(const CWalletTx &wtx, CWallet *const pwallet,
   for (const auto &r : list_received) {
     UniValue output(UniValue::VOBJ);
     if (!OutputToJSON(output, r, pwallet, wtx, watchonly)) {
-      return;
+      return false;
     }
 
     output.pushKV("amount", ValueFromAmount(r.amount));
@@ -567,8 +568,11 @@ static void TxWithOutputsToJSON(const CWalletTx &wtx, CWallet *const pwallet,
   entry.pushKV("amount", ValueFromAmount(amount));
 
   if (search.empty() || OutputsContain(outputs, search)) {
-    entries.push_back(entry);
+    result = std::move(entry);
+    return true;
   }
+
+  return false;
 }
 
 static std::string GetAddress(const UniValue &transaction) {
@@ -746,8 +750,11 @@ UniValue filtertransactions(const JSONRPCRequest &request) {
 
   UniValue transactions(UniValue::VARR);
 
+  finalization::StateRepository *fin_repo = GetComponent<finalization::StateRepository>();
+
   {
     LOCK2(cs_main, pwallet->cs_wallet);
+    LOCK(fin_repo->GetLock());
 
     // transaction processing
     const CWallet::TxItems &txOrdered = pwallet->wtxOrdered;
@@ -757,9 +764,27 @@ UniValue filtertransactions(const JSONRPCRequest &request) {
       if (txTime < timeFrom) {
         break;
       }
+
+      UniValue entry;
+      bool match_filter = false;
       if (txTime <= timeTo) {
-        TxWithOutputsToJSON(*pwtx, pwallet, watchonly, search, transactions);
+        match_filter = TxWithOutputsToJSON(*pwtx, pwallet, watchonly, search, entry);
       }
+      if (!match_filter) {
+        continue;
+      }
+
+      // Get the transaction finalization state
+      const CBlockIndex *block_index = nullptr;
+      bool finalized = false;
+      if (pwtx->GetDepthInMainChain(block_index) > 0) {
+        const finalization::FinalizationState *tip_fin_state = fin_repo->GetTipState();
+        assert(tip_fin_state != nullptr);
+        finalized = tip_fin_state->GetLastFinalizedEpoch() >= tip_fin_state->GetEpoch(*block_index);
+      }
+      entry.pushKV("finalized", UniValue(finalized));
+
+      transactions.push_back(entry);
     }
   }
 

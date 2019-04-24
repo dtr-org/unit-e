@@ -35,6 +35,9 @@ BOOST_FIXTURE_TEST_CASE(genesis_block_coinbase, TestChain100Setup) {
 
   // The returned amount should equal the amount credited to us
   BOOST_CHECK_EQUAL(find_value(genesis_coinbase, "amount").get_real(), 10000);
+
+  // The coinbase should be finalized
+  BOOST_CHECK_EQUAL(find_value(genesis_coinbase, "finalized").get_bool(), true);
 }
 
 BOOST_FIXTURE_TEST_CASE(regular_coinbase, TestChain100Setup) {
@@ -44,6 +47,8 @@ BOOST_FIXTURE_TEST_CASE(regular_coinbase, TestChain100Setup) {
 
   // The amount should equal the block reward
   BOOST_CHECK_EQUAL(find_value(regular_coinbase, "amount").get_real(), 3.75);
+
+  BOOST_CHECK_EQUAL(find_value(regular_coinbase, "finalized").get_bool(), false);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
