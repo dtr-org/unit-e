@@ -17,6 +17,9 @@ class ProposerStakeableBalanceTest(UnitETestFramework):
         ] for i in range(0, self.num_nodes))
         self.setup_clean_chain = True
 
+    def setup_network(self):
+        self.setup_nodes()
+
     def run_test(self):
         num_keys = 4
         nodes = self.nodes
