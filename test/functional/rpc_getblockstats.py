@@ -11,6 +11,7 @@ from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
     hex_str_to_bytes,
+    wait_until,
 )
 from test_framework.mininode import (
     P2PInterface,
@@ -105,6 +106,8 @@ class GetblockstatsTest(UnitETestFramework):
 
         for b in blocks:
             self.nodes[0].p2p.send_data(b'block', hex_str_to_bytes(b))
+
+        wait_until(lambda: self.nodes[0].getblockcount() == len(blocks) - 1)
 
     def run_test(self):
         test_data = os.path.join(TESTSDIR, self.options.test_data)
