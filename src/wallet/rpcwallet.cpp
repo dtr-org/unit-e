@@ -3448,44 +3448,47 @@ UniValue GenerateBlocks(CWallet *const wallet,
         height = active_chain->GetHeight();
         height_end = height + num_generate;
     }
-    unsigned int nExtraNonce = 0;
-    UniValue blockHashes(UniValue::VARR);
+    UniValue block_hashes(UniValue::VARR);
 
     // To pick up to date coins for staking we need to make sure that the wallet is synced to the current chain.
-    if (wallet) {
-      wallet->BlockUntilSyncedToCurrentChain();
-    }
-    while (height < height_end)
-    {
-        std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(
-              coinbase_script->reserveScript, wallet
-        ));
-        if (!pblocktemplate.get()) {
-          throw JSONRPCError(RPC_INTERNAL_ERROR, "Couldn't create new block");
+    wallet->BlockUntilSyncedToCurrentChain();
+
+    esperanza::WalletExtension &wallet_ext = wallet->GetWalletExtension();
+
+    while (height < height_end) {
+
+        std::shared_ptr<const CBlock> block;
+        {
+            LOCK2(cs_main, wallet_ext.GetLock());
+            const staking::CoinSet coins = wallet_ext.GetStakeableCoins();
+            if (coins.empty()) {
+                throw JSONRPCError(RPC_INTERNAL_ERROR,
+                                 "Not proposing, not enough balance.");
+            }
+
+            if (!proposer->GenerateBlock(wallet,
+                                         *active_chain->GetTip(),
+                                         coins,
+                                         block)) {
+                throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to generate a block.");
+            }
         }
 
-        CBlock *pblock = &pblocktemplate->block;
-        pblock->ComputeMerkleTrees();
-
-        std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
-        if (!ProcessNewBlock(Params(), shared_pblock, /* fForceProcessing= */ true, nullptr)) {
-          throw JSONRPCError(RPC_INTERNAL_ERROR, "ProcessNewBlock, block not accepted");
+        if (!ProcessNewBlock(Params(), block, /* fForceProcessing= */ true, nullptr)) {
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "ProcessNewBlock, block not accepted");
         }
 
         ++height;
-        blockHashes.push_back(pblock->GetHash().GetHex());
+        block_hashes.push_back(block->GetHash().GetHex());
 
         //mark script as important because it was used at least for one coinbase output if the script came from the wallet
-        if (keep_script)
-        {
+        if (keep_script) {
             coinbase_script->KeepScript();
         }
 
-        if (wallet) {
-          wallet->BlockUntilSyncedToCurrentChain();
-        }
+        wallet->BlockUntilSyncedToCurrentChain();
     }
-    return blockHashes;
+    return block_hashes;
 }
 
 UniValue generate(const JSONRPCRequest& request)
