@@ -28,7 +28,8 @@ WalletTestingSetup::WalletTestingSetup(
     stake_validator_mock.mock_IsStakeMature.SetResult(true);
 
     f(settings);
-    esperanza::WalletExtensionDeps deps(&settings, &stake_validator_mock);
+    esperanza::WalletExtensionDeps deps(&settings, &stake_validator_mock,
+                                        GetComponent<proposer::FinalizationRewardLogic>());
 
     m_wallet.reset(new CWallet("mock", WalletDatabase::CreateMock(), deps));
     m_wallet->LoadWallet(fFirstRun);

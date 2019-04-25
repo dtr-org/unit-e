@@ -26,23 +26,6 @@
 
 #include <boost/test/unit_test.hpp>
 
-namespace {
-
-class FinalizationRewardLogicStub : public proposer::FinalizationRewardLogic {
- public:
-  std::vector<std::pair<CScript, CAmount>> GetFinalizationRewards(const CBlockIndex &block_index) const override {
-    return {};
-  }
-  std::vector<CAmount> GetFinalizationRewardAmounts(const CBlockIndex &block_index) const override {
-    return {};
-  }
-  size_t GetNumberOfRewardOutputs(blockchain::Height height) const override {
-    return 0;
-  }
-};
-
-}  // namespace
-
 BOOST_AUTO_TEST_SUITE(walletextension_tests)
 
 BOOST_FIXTURE_TEST_CASE(vote_signature, ReducedTestingSetup) {
@@ -96,7 +79,7 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
 
   auto behavior = blockchain::Behavior::NewFromParameters(blockchain::Parameters::TestNet());
   auto active_chain = staking::ActiveChain::New();
-  FinalizationRewardLogicStub finalization_reward_logic;
+  mocks::FinalizationRewardLogicMock finalization_reward_logic;
   auto block_builder = proposer::BlockBuilder::New(&settings, &finalization_reward_logic);
 
   {

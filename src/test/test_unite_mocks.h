@@ -11,6 +11,7 @@
 #include <finalization/state_db.h>
 #include <finalization/state_repository.h>
 #include <proposer/block_builder.h>
+#include <proposer/finalization_reward_logic.h>
 #include <proposer/proposer_logic.h>
 #include <staking/active_chain.h>
 #include <staking/block_index_map.h>
@@ -435,6 +436,19 @@ class StateRepositoryMock : public finalization::StateRepository {
 
  public:
   FinalizationStateSpy state;
+};
+
+class FinalizationRewardLogicMock : public proposer::FinalizationRewardLogic {
+ public:
+  std::vector<std::pair<CScript, CAmount>> GetFinalizationRewards(const CBlockIndex &block_index) const override {
+    return {};
+  }
+  std::vector<CAmount> GetFinalizationRewardAmounts(const CBlockIndex &block_index) const override {
+    return {};
+  }
+  size_t GetNumberOfRewardOutputs(blockchain::Height height) const override {
+    return 0;
+  }
 };
 
 }  // namespace mocks

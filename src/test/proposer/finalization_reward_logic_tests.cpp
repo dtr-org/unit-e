@@ -33,7 +33,7 @@ struct Fixture {
   blockchain::Parameters parameters = [this]() {
     auto p = blockchain::Parameters::TestNet();
     uint32_t period_blocks = fin_params.epoch_length - 1;  // To have different rewards within each epoch
-    p.reward_function  = [period_blocks](const blockchain::Parameters &p, blockchain::Height h) -> CAmount {
+    p.reward_function = [period_blocks](const blockchain::Parameters &p, blockchain::Height h) -> CAmount {
       int halvings = h / period_blocks;
       if (halvings >= 64) {
         return 0;

@@ -41,6 +41,7 @@ struct Fixture {
   std::shared_ptr<CWallet> wallet;
   MultiWalletMock multi_wallet_mock;
   mocks::StakeValidatorMock stake_validator;
+  mocks::FinalizationRewardLogicMock finalization_reward_logic;
 
   Fixture(std::initializer_list<std::string> args)
       : args_manager([&] {
@@ -58,7 +59,7 @@ struct Fixture {
         }()),
         settings(Settings::New(args_manager.get(), behavior.get())),
         wallet(new CWallet("mock", WalletDatabase::CreateMock(), [&] {
-          esperanza::WalletExtensionDeps deps(settings.get(), &stake_validator);
+          esperanza::WalletExtensionDeps deps(settings.get(), &stake_validator, &finalization_reward_logic);
           return deps;
         }())),
         multi_wallet_mock([&] {
