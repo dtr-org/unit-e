@@ -26,11 +26,12 @@ struct Fixture {
   std::unique_ptr<blockchain::Behavior> behavior = blockchain::Behavior::New(args_manager.get());
   std::unique_ptr<::Settings> settings;
   blockchain::Parameters parameters = blockchain::Parameters::TestNet();
+  finalization::Params finalization_params;
   std::unique_ptr<staking::ActiveChain> active_chain = staking::ActiveChain::New();
   std::unique_ptr<BlockDB> block_db = BlockDB::New();
-  mocks::StateRepositoryMock state_repository{Params().GetFinalization()};
+  mocks::StateRepositoryMock state_repository{finalization_params};
   std::unique_ptr<proposer::FinalizationRewardLogic> finalization_reward_logic =
-      proposer::FinalizationRewardLogic::New(behavior.get(), &state_repository, block_db.get());
+      proposer::FinalizationRewardLogic::New(behavior.get(), &finalization_params, &state_repository, block_db.get());
 
   uint256 snapshot_hash = uint256::zero;
 

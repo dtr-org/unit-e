@@ -36,6 +36,7 @@ class FinalizationRewardLogic {
 
   static std::unique_ptr<FinalizationRewardLogic> New(
       Dependency<blockchain::Behavior>,
+      Dependency<finalization::Params> finalization_params,
       Dependency<finalization::StateRepository>,
       Dependency<BlockDB>);
 };

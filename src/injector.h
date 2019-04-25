@@ -110,6 +110,7 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
   COMPONENT(FinalizationRewardLogic, proposer::FinalizationRewardLogic, proposer::FinalizationRewardLogic::New,
             blockchain::Behavior,
+            finalization::Params,
             finalization::StateRepository,
             BlockDB)
 

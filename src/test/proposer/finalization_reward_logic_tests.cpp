@@ -29,12 +29,17 @@ class BlockDBMock : public ::BlockDB {
 };
 
 struct Fixture {
-  esperanza::FinalizationParams fin_params;
-  esperanza::AdminParams admin_params;
+  finalization::Params fin_params;
   blockchain::Parameters parameters = [this]() {
     auto p = blockchain::Parameters::TestNet();
-    p.reward_schedule = {10000, 9000, 8000, 7000, 6000, 5000, 4000, 3000, 2000, 1000};
-    p.period_blocks = fin_params.epoch_length - 1;  // To have different rewards within each epoch
+    uint32_t period_blocks = fin_params.epoch_length - 1;  // To have different rewards within each epoch
+    p.reward_function  = [period_blocks](const blockchain::Parameters &p, blockchain::Height h) -> CAmount {
+      int halvings = h / period_blocks;
+      if (halvings >= 64) {
+        return 0;
+      }
+      return p.reward >> halvings;
+    };
     return p;
   }();
   std::unique_ptr<blockchain::Behavior> behavior = blockchain::Behavior::NewFromParameters(parameters);
@@ -72,7 +77,7 @@ struct Fixture {
   }
 
   std::unique_ptr<proposer::FinalizationRewardLogic> GetFinalizationRewardLogic() {
-    return proposer::FinalizationRewardLogic::New(behavior.get(), &state_repository, &block_db);
+    return proposer::FinalizationRewardLogic::New(behavior.get(), &fin_params, &state_repository, &block_db);
   }
 };
 

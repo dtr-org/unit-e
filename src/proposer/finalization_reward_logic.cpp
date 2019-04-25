@@ -14,6 +14,7 @@ namespace proposer {
 class FinalizationRewardLogicImpl : public FinalizationRewardLogic {
  private:
   const Dependency<blockchain::Behavior> m_blockchain_behavior;
+  const Dependency<finalization::Params> m_finalization_params;
   const Dependency<finalization::StateRepository> m_fin_state_repo;
   const Dependency<BlockDB> m_block_db;
 
@@ -29,54 +30,56 @@ class FinalizationRewardLogicImpl : public FinalizationRewardLogic {
 
  public:
   FinalizationRewardLogicImpl(const Dependency<blockchain::Behavior> blockchain_behavior,
+                              const Dependency<finalization::Params> finalization_params,
                               const Dependency<finalization::StateRepository> repo,
                               const Dependency<BlockDB> block_db)
       : m_blockchain_behavior(blockchain_behavior),
+        m_finalization_params(finalization_params),
         m_fin_state_repo(repo),
         m_block_db(block_db) {
   }
 
   std::vector<std::pair<CScript, CAmount>> GetFinalizationRewards(const CBlockIndex &last_block) const override {
-    if (last_block.nHeight < m_fin_state_repo->GetFinalizationParams().GetEpochCheckpointHeight(1)) {
+    if (last_block.nHeight < m_finalization_params->GetEpochCheckpointHeight(1)) {
       return {};
     }
 
     const auto prev_height = static_cast<blockchain::Height>(last_block.nHeight);
-    if (!m_fin_state_repo->GetFinalizationParams().IsCheckpoint(prev_height)) {
+    if (!m_finalization_params->IsCheckpoint(prev_height)) {
       return {};
     }
 
     std::vector<std::pair<CScript, CAmount>> result;
-    result.reserve(m_fin_state_repo->GetFinalizationParams().epoch_length);
+    result.reserve(m_finalization_params->epoch_length);
     const CBlockIndex *pblock = &last_block;
-    const auto epoch = m_fin_state_repo->GetFinalizationParams().GetEpoch(prev_height);
-    const blockchain::Height epoch_start = m_fin_state_repo->GetFinalizationParams().GetEpochStartHeight(epoch);
+    const auto epoch = m_finalization_params->GetEpoch(prev_height);
+    const blockchain::Height epoch_start = m_finalization_params->GetEpochStartHeight(epoch);
 
     for (auto height = prev_height; height >= epoch_start; --height) {
       assert(pblock && pblock->nHeight == height);
       result.emplace_back(GetRewardScript(*pblock), m_blockchain_behavior->CalculateFinalizationReward(height));
       pblock = pblock->pprev;
     }
-    assert(result.size() == m_fin_state_repo->GetFinalizationParams().epoch_length);
+    assert(result.size() == m_finalization_params->epoch_length);
     std::reverse(result.begin(), result.end());
     return result;
   }
 
   std::vector<CAmount> GetFinalizationRewardAmounts(const CBlockIndex &last_block) const override {
-    if (last_block.nHeight < m_fin_state_repo->GetFinalizationParams().GetEpochCheckpointHeight(1)) {
+    if (last_block.nHeight < m_finalization_params->GetEpochCheckpointHeight(1)) {
       return {};
     }
 
     const auto prev_height = static_cast<blockchain::Height>(last_block.nHeight);
-    if (!m_fin_state_repo->GetFinalizationParams().IsCheckpoint(prev_height)) {
+    if (!m_finalization_params->IsCheckpoint(prev_height)) {
       return {};
     }
 
     std::vector<CAmount> result;
-    result.reserve(m_fin_state_repo->GetFinalizationParams().epoch_length);
+    result.reserve(m_finalization_params->epoch_length);
 
-    const auto epoch = m_fin_state_repo->GetFinalizationParams().GetEpoch(prev_height);
-    const blockchain::Height epoch_start = m_fin_state_repo->GetFinalizationParams().GetEpochStartHeight(epoch);
+    const auto epoch = m_finalization_params->GetEpoch(prev_height);
+    const blockchain::Height epoch_start = m_finalization_params->GetEpochStartHeight(epoch);
     for (auto height = epoch_start; height <= prev_height; ++height) {
       result.push_back(m_blockchain_behavior->CalculateFinalizationReward(height));
     }
@@ -85,19 +88,20 @@ class FinalizationRewardLogicImpl : public FinalizationRewardLogic {
   }
 
   std::size_t GetNumberOfRewardOutputs(const blockchain::Height current_height) const override {
-    if (m_fin_state_repo->GetFinalizationParams().IsEpochStart(current_height) &&
-        m_fin_state_repo->GetFinalizationParams().GetEpoch(current_height) > 1) {
-      return m_fin_state_repo->GetFinalizationParams().epoch_length;
+    if (m_finalization_params->IsEpochStart(current_height) &&
+        m_finalization_params->GetEpoch(current_height) > 1) {
+      return m_finalization_params->epoch_length;
     }
     return 0;
   }
 };
 
 std::unique_ptr<FinalizationRewardLogic> FinalizationRewardLogic::New(
-    const Dependency<blockchain::Behavior> behaviour,
+    const Dependency<blockchain::Behavior> behavior,
+    const Dependency<finalization::Params> finalization_params,
     const Dependency<finalization::StateRepository> repo,
     const Dependency<BlockDB> block_db) {
-  return MakeUnique<FinalizationRewardLogicImpl>(behaviour, repo, block_db);
+  return MakeUnique<FinalizationRewardLogicImpl>(behavior, finalization_params, repo, block_db);
 }
 
 }  // namespace proposer
