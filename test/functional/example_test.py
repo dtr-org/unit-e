@@ -20,7 +20,7 @@ from test_framework.blocktools import (
     get_tip_snapshot_meta,
     update_snapshot_with_tx,
     sign_coinbase,
-)
+    msg_witness_block)
 from test_framework.mininode import (
     CInv,
     P2PInterface,
@@ -188,7 +188,7 @@ class ExampleTest(UnitETestFramework):
             wait_until(lambda: self.nodes[0].getblockcount() == height, timeout=5)
             snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta, height + 1, coinbase)
             block.solve()
-            block_message = msg_block(block)
+            block_message = msg_witness_block(block)
             # Send message is used to send a P2P message to the node over our P2PInterface
             self.nodes[0].p2p.send_message(block_message)
             self.tip = block.sha256
