@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(is_slashable_same_vote) {
   block_index.phashBlock = &targetHash;
   spy.SetRecommendedTarget(block_index);
 
-  for (uint32_t i = 6; i < 8; ++i) {
+  for (uint32_t i = 4; i < 6; ++i) {
     Vote vote{validatorAddress, targetHash, i - 2, i - 1};
     BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
     spy.ProcessVote(vote);
@@ -113,8 +113,8 @@ BOOST_AUTO_TEST_CASE(is_slashable_already_slashed) {
   block_index.phashBlock = &targetHash;
   spy.SetRecommendedTarget(block_index);
 
-  uint32_t i = 6;
-  for (; i < 8; ++i) {
+  uint32_t i = 4;
+  for (; i < 6; ++i) {
     Vote vote{validatorAddress, targetHash, i - 2, i - 1};
 
     BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
@@ -151,7 +151,7 @@ BOOST_AUTO_TEST_CASE(process_slash_duplicate_vote) {
   block_index.phashBlock = &targetHash;
   spy.SetRecommendedTarget(block_index);
 
-  for (uint32_t i = 6; i < 8; ++i) {
+  for (uint32_t i = 4; i < 6; ++i) {
     Vote vote{validatorAddress, targetHash, i - 2, i - 1};
     BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
     spy.ProcessVote(vote);
@@ -187,7 +187,7 @@ BOOST_AUTO_TEST_CASE(process_slash_surrounding_vote) {
   block_index.phashBlock = &targetHash;
   spy.SetRecommendedTarget(block_index);
 
-  for (uint32_t i = 6; i < 8; ++i) {
+  for (uint32_t i = 4; i < 6; ++i) {
     Vote vote{validatorAddress, targetHash, i - 2, i - 1};
     BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
     spy.ProcessVote(vote);

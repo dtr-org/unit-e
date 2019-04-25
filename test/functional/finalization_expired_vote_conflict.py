@@ -79,20 +79,20 @@ class ExpiredVoteConflict(UnitETestFramework):
         self.generate_epochs_without_mempool_sync(6)
         # First few epochs should be insta-finalized, but after that
         # finalization should not happen since validator is detached
-        assert_equal(3, self.last_finalized_epoch)
+        assert_equal(2, self.last_finalized_epoch)
 
         # Validator is back, finalization should now work
         relay.relay_txs = True
         self.generate_epochs(4)
-        assert_equal(9, self.last_finalized_epoch)
+        assert_equal(10, self.last_finalized_epoch)
 
         # Checking behaviour when votes are casted on top of other votes
         relay.relay_txs = False
         self.generate_epochs_without_mempool_sync(4)
-        assert_equal(9, self.last_finalized_epoch)
+        assert_equal(10, self.last_finalized_epoch)
         relay.relay_txs = True
         self.generate_epochs(4)
-        assert_equal(17, self.last_finalized_epoch)
+        assert_equal(18, self.last_finalized_epoch)
 
         # Checking behaviour when votes are casted on top of logout
         logout = validator.logout()
@@ -100,7 +100,7 @@ class ExpiredVoteConflict(UnitETestFramework):
 
         relay.relay_txs = False
         self.generate_epochs_without_mempool_sync(10)
-        assert_equal(17, self.last_finalized_epoch)
+        assert_equal(18, self.last_finalized_epoch)
 
         assert_log_does_not_contain(validator, "error")
 

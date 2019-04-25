@@ -78,12 +78,12 @@ class LogoutTest(UnitETestFramework):
         disconnect_nodes(finalizer2, proposer.index)
 
         # Generate enough blocks to advance 3 dynasties and have active finalizers
-        proposer.generate(5 * 10)
-        assert_equal(proposer.getblockcount(), 51)
-        assert_finalizationstate(proposer, {'currentEpoch': 6,
-                                            'currentDynasty': 3,
-                                            'lastJustifiedEpoch': 4,
-                                            'lastFinalizedEpoch': 3,
+        proposer.generate(3 * 10)
+        assert_equal(proposer.getblockcount(), 31)
+        assert_finalizationstate(proposer, {'currentEpoch': 4,
+                                            'currentDynasty': 2,
+                                            'lastJustifiedEpoch': 2,
+                                            'lastFinalizedEpoch': 2,
                                             'validators': 2})
 
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=proposer)
@@ -91,11 +91,11 @@ class LogoutTest(UnitETestFramework):
 
         # Mine the votes to avoid the next logout to conflict with a vote in the mempool
         proposer.generate(1)
-        assert_equal(proposer.getblockcount(), 52)
+        assert_equal(proposer.getblockcount(), 32)
 
-        # Logout included in dynasty=3
-        # At dynasty=3+3=6 finalizer is still voting
-        # At dynasty=7 finalizer doesn't vote
+        # Logout included in dynasty=2
+        # At dynasty=2+3=5 finalizer is still voting
+        # At dynasty=6 doesn't vote
         connect_nodes(finalizer1, proposer.index)
         sync_blocks([finalizer1, proposer], timeout=10)
         logout_tx = finalizer1.logout()
@@ -112,34 +112,34 @@ class LogoutTest(UnitETestFramework):
 
         # Mine votes and move to checkpoint
         proposer.generate(9)
-        assert_equal(proposer.getblockcount(), 70)
-        assert_finalizationstate(proposer, {'currentEpoch': 7,
-                                            'currentDynasty': 4,
-                                            'lastJustifiedEpoch': 6,
-                                            'lastFinalizedEpoch': 5,
+        assert_equal(proposer.getblockcount(), 50)
+        assert_finalizationstate(proposer, {'currentEpoch': 5,
+                                            'currentDynasty': 3,
+                                            'lastJustifiedEpoch': 4,
+                                            'lastFinalizedEpoch': 4,
                                             'validators': 2})
 
-        # Check that the finalizer is still voting up to dynasty=6 (including)
+        # Check that the finalizer is still voting up to dynasty=5 (including)
         for _ in range(2):
             proposer.generate(1)
             self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=proposer)
             self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=proposer)
             proposer.generate(9)
 
-        assert_equal(proposer.getblockcount(), 90)
-        assert_finalizationstate(proposer, {'currentEpoch': 9,
-                                            'currentDynasty': 6,
-                                            'lastJustifiedEpoch': 8,
-                                            'lastFinalizedEpoch': 7,
+        assert_equal(proposer.getblockcount(), 70)
+        assert_finalizationstate(proposer, {'currentEpoch': 7,
+                                            'currentDynasty': 5,
+                                            'lastJustifiedEpoch': 6,
+                                            'lastFinalizedEpoch': 6,
                                             'validators': 2})
 
         # finalizer1 is logged out
         proposer.generate(1)
-        assert_equal(proposer.getblockcount(), 91)
-        assert_finalizationstate(proposer, {'currentEpoch': 10,
-                                            'currentDynasty': 7,
-                                            'lastJustifiedEpoch': 8,
-                                            'lastFinalizedEpoch': 7,
+        assert_equal(proposer.getblockcount(), 71)
+        assert_finalizationstate(proposer, {'currentEpoch': 8,
+                                            'currentDynasty': 6,
+                                            'lastJustifiedEpoch': 6,
+                                            'lastFinalizedEpoch': 6,
                                             'validators': 1})
 
         # finalizer1 is not validating so we can keep it connected
@@ -152,17 +152,18 @@ class LogoutTest(UnitETestFramework):
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=proposer)
         proposer.generate(9)
         sync_blocks([proposer, finalizer1], timeout=20)
-        assert_equal(proposer.getblockcount(), 100)
-        assert_finalizationstate(proposer, {'currentEpoch': 10,
-                                            'currentDynasty': 7,
-                                            'lastJustifiedEpoch': 9,
-                                            'lastFinalizedEpoch': 8,
+        assert_equal(proposer.getblockcount(), 80)
+        assert_finalizationstate(proposer, {'currentEpoch': 8,
+                                            'currentDynasty': 6,
+                                            'lastJustifiedEpoch': 7,
+                                            'lastFinalizedEpoch': 7,
                                             'validators': 1})
 
         # check that we cannot deposit again before we withdraw
         assert_equal(finalizer1.getvalidatorinfo()['validator_status'], 'WAITING_FOR_WITHDRAW_DELAY')
         assert_raises_rpc_error(-25, "Cannot re-deposit while waiting for withdraw.", finalizer1.deposit,
                                 finalizer1.getnewaddress("", "legacy"), 1500)
+
 
 
 if __name__ == '__main__':

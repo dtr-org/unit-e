@@ -47,22 +47,22 @@ class FeatureFinalizerTest(UnitETestFramework):
         self.restart_node(v.index)
 
         self.log.info("Leave insta justification")
-        for _ in range(24):
+        for _ in range(14):
             generate_block(p)
-        assert_equal(p.getblockcount(), 26)
-        assert_finalizationstate(p, {"currentEpoch": 6,
-                                     "lastJustifiedEpoch": 4,
-                                     "lastFinalizedEpoch": 3,
+        assert_equal(p.getblockcount(), 16)
+        assert_finalizationstate(p, {"currentEpoch": 4,
+                                     "lastJustifiedEpoch": 2,
+                                     "lastFinalizedEpoch": 2,
                                      "validators": 1})
 
         self.log.info("Check finalizer votes after restart")
         self.wait_for_vote_and_disconnect(finalizer=v, node=p)
         generate_block(p)
 
-        assert_equal(p.getblockcount(), 27)
-        assert_finalizationstate(p, {"currentEpoch": 6,
-                                     "lastJustifiedEpoch": 5,
-                                     "lastFinalizedEpoch": 4,
+        assert_equal(p.getblockcount(), 17)
+        assert_finalizationstate(p, {"currentEpoch": 4,
+                                     "lastJustifiedEpoch": 3,
+                                     "lastFinalizedEpoch": 3,
                                      "validators": 1})
 
 

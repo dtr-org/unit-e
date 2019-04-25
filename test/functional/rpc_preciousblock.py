@@ -6,7 +6,7 @@
 
 from io import BytesIO
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, DISABLE_FINALIZATION
 from test_framework.util import (
     assert_equal,
     connect_nodes_bi,
@@ -49,6 +49,11 @@ class PreciousTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
+        self.extra_args = [
+            [DISABLE_FINALIZATION],
+            [DISABLE_FINALIZATION],
+            [DISABLE_FINALIZATION],
+        ]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()

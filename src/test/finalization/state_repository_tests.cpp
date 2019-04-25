@@ -237,7 +237,7 @@ BOOST_AUTO_TEST_CASE(recovering) {
     BOOST_REQUIRE(fixture.m_state_db.m_states.count(index) == 0);
   };
 
-  for (size_t i = 0; i < 10; ++i) {
+  for (size_t i = 0; i < 5; ++i) {
     const CBlockIndex &index = fixture.CreateBlockIndex();
     finalization::FinalizationState *state = fixture.m_repo->FindOrCreate(index, S::NEW);
     BOOST_REQUIRE(state != nullptr);
@@ -264,91 +264,91 @@ BOOST_AUTO_TEST_CASE(recovering) {
 
   // Remove one state from DB and check how it's restored.
   {
-    remove_from_db(5);
+    remove_from_db(2);
     fixture.m_block_db.blocks.clear();
-    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)] = {};
+    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(2)] = {};
     auto restored_repo = fixture.NewRepo();
     auto proc = finalization::StateProcessor::New(
         &fixture.m_finalization_params, restored_repo.get(), &fixture.m_chain);
     restored_repo->RestoreFromDisk(proc.get());
-    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)].read_requests, 1);
+    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(2)].read_requests, 1);
     LOCK(restored_repo->GetLock());
-    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(5)) != nullptr);
+    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(2)) != nullptr);
     check_restored(*restored_repo);
   }
 
   // Remove second state from DB and check how it's restored.
   {
-    remove_from_db(4);
+    remove_from_db(3);
     fixture.m_block_db.blocks.clear();
-    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(4)] = {};
-    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)] = {};
+    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(2)] = {};
+    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(3)] = {};
     auto restored_repo = fixture.NewRepo();
     auto proc = finalization::StateProcessor::New(
         &fixture.m_finalization_params, restored_repo.get(), &fixture.m_chain);
     restored_repo->RestoreFromDisk(proc.get());
-    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(4)].read_requests, 1);
-    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)].read_requests, 1);
+    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(2)].read_requests, 1);
+    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(3)].read_requests, 1);
     LOCK(restored_repo->GetLock());
-    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(4)) != nullptr);
-    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(5)) != nullptr);
+    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(2)) != nullptr);
+    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(3)) != nullptr);
     check_restored(*restored_repo);
   }
 
   // Remove tip's state from DB and check how it's restored.
   {
-    remove_from_db(9);
+    remove_from_db(4);
     fixture.m_block_db.blocks.clear();
+    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(2)] = {};
+    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(3)] = {};
     fixture.m_block_db.blocks[fixture.m_chain.AtHeight(4)] = {};
-    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)] = {};
-    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(9)] = {};
     auto restored_repo = fixture.NewRepo();
     auto proc = finalization::StateProcessor::New(
         &fixture.m_finalization_params, restored_repo.get(), &fixture.m_chain);
     restored_repo->RestoreFromDisk(proc.get());
+    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(2)].read_requests, 1);
+    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(3)].read_requests, 1);
     BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(4)].read_requests, 1);
-    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)].read_requests, 1);
-    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(9)].read_requests, 1);
     LOCK(restored_repo->GetLock());
+    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(2)) != nullptr);
+    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(3)) != nullptr);
     BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(4)) != nullptr);
-    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(5)) != nullptr);
-    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(9)) != nullptr);
     check_restored(*restored_repo);
   }
 
   // Remove tip's state from DB and check how it's restored (backward ordering in BlockIndexMap.ForEach).
   {
     fixture.m_block_db.blocks.clear();
+    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(2)] = {};
+    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(3)] = {};
     fixture.m_block_db.blocks[fixture.m_chain.AtHeight(4)] = {};
-    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)] = {};
-    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(9)] = {};
     fixture.m_block_indexes.reverse = true;
     auto restored_repo = fixture.NewRepo();
     auto proc = finalization::StateProcessor::New(
         &fixture.m_finalization_params, restored_repo.get(), &fixture.m_chain);
     restored_repo->RestoreFromDisk(proc.get());
+    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(2)].read_requests, 1);
+    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(3)].read_requests, 1);
     BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(4)].read_requests, 1);
-    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)].read_requests, 1);
-    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(9)].read_requests, 1);
     LOCK(restored_repo->GetLock());
+    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(2)) != nullptr);
+    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(3)) != nullptr);
     BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(4)) != nullptr);
-    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(5)) != nullptr);
-    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(9)) != nullptr);
     check_restored(*restored_repo);
   }
 
-  // Remove block 5 from the disk!
+  // Remove block 3 from the disk!
   {
     fixture.m_block_db.blocks.clear();
+    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(2)] = {};
     fixture.m_block_db.blocks[fixture.m_chain.AtHeight(4)] = {};
-    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(9)] = {};
     auto restored_repo = fixture.NewRepo();
     auto proc = finalization::StateProcessor::New(
         &fixture.m_finalization_params, restored_repo.get(), &fixture.m_chain);
     try {
       restored_repo->RestoreFromDisk(proc.get());
     } catch (finalization::MissedBlockError &e) {
-      BOOST_CHECK(&e.missed_index == fixture.m_chain.AtHeight(5));
+      BOOST_CHECK(&e.missed_index == fixture.m_chain.AtHeight(3));
       return;
     }
     BOOST_REQUIRE(not("unreachable"));
@@ -356,7 +356,7 @@ BOOST_AUTO_TEST_CASE(recovering) {
 
   // Remove one state from DB and check how it's restored from CBlockIndex
   {
-    remove_from_db(5);
+    remove_from_db(4);
     fixture.m_block_db.blocks.clear();
     auto restored_repo = fixture.NewRepo();
     auto proc = finalization::StateProcessor::New(
@@ -366,7 +366,7 @@ BOOST_AUTO_TEST_CASE(recovering) {
     restored_repo->RestoreFromDisk(proc.get());
     BOOST_CHECK(fixture.m_block_db.blocks.empty());
     LOCK(restored_repo->GetLock());
-    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(5)) != nullptr);
+    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(4)) != nullptr);
     check_restored(*restored_repo);
   }
 

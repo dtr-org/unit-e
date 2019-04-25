@@ -383,9 +383,9 @@ class P2PSnapshotTest(UnitETestFramework):
 
         self.setup_stake_coins(snap_node)
 
-        # generate 2 epochs + 1 block to create the first finalized snapshot
-        generate_block(snap_node, count=5 + 5 + 1)
-        assert_equal(snap_node.getblockcount(), 11)
+        # generate 1 epoch + 1 block to create the first finalized snapshot
+        snap_node.generatetoaddress(5 + 1, snap_node.getnewaddress('', 'bech32'))
+        assert_equal(snap_node.getblockcount(), 6)
         wait_until(lambda: has_valid_snapshot(snap_node, 4), timeout=10)
 
         # configure p2p to have snapshot header and parent block
@@ -476,19 +476,20 @@ class P2PSnapshotTest(UnitETestFramework):
 
         self.setup_stake_coins(snap_node)
 
-        # generate 2 epochs + 1 block to create the first finalized snapshot
+        # generate 1 epoch + 1 block to create the first finalized snapshot
         # and store it in valid_p2p
-        generate_block(snap_node, count=5 + 5 + 1)
-        assert_equal(snap_node.getblockcount(), 11)
+        generate_block(snap_node, count=5 + 1)
+        assert_equal(snap_node.getblockcount(), 6)
         wait_until(lambda: has_valid_snapshot(snap_node, 4), timeout=10)
 
         valid_p2p = WaitNode()
         valid_p2p.update_snapshot_from(snap_node)
 
         # create the second snapshot and store it in broken_p2p
-        generate_block(snap_node, count=5)
-        assert_equal(snap_node.getblockcount(), 16)
+        generate_block(snap_node, count=9)
+        assert_equal(snap_node.getblockcount(), 15)
         wait_until(lambda: has_valid_snapshot(snap_node, 9), timeout=10)
+        wait_until(lambda: has_valid_snapshot(snap_node, 14), timeout=10)
 
         broken_p2p = WaitNode()
         broken_p2p.update_snapshot_from(snap_node)
@@ -543,7 +544,7 @@ class P2PSnapshotTest(UnitETestFramework):
         assert_equal(not_finalized_p2p.snapshot_chunk1_requested, False)
 
         # node requests parent block and finishes ISD
-        wait_until(lambda: node.getblockcount() == 16, timeout=20)
+        wait_until(lambda: node.getblockcount() == 15, timeout=20)
         node.disconnect_p2ps()
         assert_chainstate_equal(snap_node, node)
 

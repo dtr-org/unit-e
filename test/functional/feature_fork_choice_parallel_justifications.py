@@ -105,18 +105,18 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         self.wait_for_transaction(deptx)
 
         # leave insta justification
-        #                             -  fork1
-        # F    F    F    F    J       |
-        # e0 - e1 - e2 - e3 - e4 - e5 -  node
-        #                             |
-        #                             -  fork2
-        generate_block(node, count=24)
-        assert_equal(node.getblockcount(), 25)
+        #                   -  fork1
+        # F    F    F       |
+        # e0 - e1 - e2 - e3 -  node
+        #                   |
+        #                   -  fork2
+        generate_block(node, count=14)
+        assert_equal(node.getblockcount(), 15)
         sync_blocks([node, finalizer])
-        assert_finalizationstate(node, {'currentDynasty': 2,
-                                        'currentEpoch': 5,
-                                        'lastJustifiedEpoch': 4,
-                                        'lastFinalizedEpoch': 3,
+        assert_finalizationstate(node, {'currentDynasty': 1,
+                                        'currentEpoch': 3,
+                                        'lastJustifiedEpoch': 2,
+                                        'lastFinalizedEpoch': 2,
                                         'validators': 0})
         sync_blocks(self.nodes)
         disconnect_nodes(node, fork1.index)
@@ -124,105 +124,104 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         disconnect_nodes(node, finalizer.index)
 
         # create first justified epoch on fork1
-        #                                J
-        #                             - e6 - e7 - e8 fork1 node
-        # F    F    F    F    J       |
-        # e0 - e1 - e2 - e3 - e4 - e5 -
-        #                             |
-        #                             -  fork2
+        #                     J
+        #                   - e4 - e5 - e6 fork1 node
+        # F    F    F       |
+        # e0 - e1 - e2 - e3 -
+        #                   |
+        #                   -  fork2
 
         generate_block(fork1, count=5)
         vtx1 = generate_epoch_and_vote(fork1, finalizer, finalizer_address, deptx)
         generate_block(fork1, count=5)
-        assert_equal(fork1.getblockcount(), 40)
-        assert_finalizationstate(fork1, {'currentDynasty': 3,
-                                         'currentEpoch': 8,
-                                         'lastJustifiedEpoch': 6,
-                                         'lastFinalizedEpoch': 3,
+        assert_equal(fork1.getblockcount(), 30)
+        assert_finalizationstate(fork1, {'currentDynasty': 2,
+                                         'currentEpoch': 6,
+                                         'lastJustifiedEpoch': 4,
+                                         'lastFinalizedEpoch': 2,
                                          'validators': 1})
 
         sync_node_to_fork(node, fork1)
 
-        assert_finalizationstate(node, {'currentDynasty': 3,
-                                        'currentEpoch': 8,
-                                        'lastJustifiedEpoch': 6,
-                                        'lastFinalizedEpoch': 3,
+        assert_finalizationstate(node, {'currentDynasty': 2,
+                                        'currentEpoch': 6,
+                                        'lastJustifiedEpoch': 4,
+                                        'lastFinalizedEpoch': 2,
                                         'validators': 1})
 
         self.log.info('node successfully switched to the justified fork')
 
         # create longer justified epoch on fork2
         # node must switch ("zig") to this fork
-        #                                J
-        #                             - e6 - e7 - e8 fork1
-        # F    F    F    F    J       |
-        # e0 - e1 - e2 - e3 - e4 - e5 -
-        #                             |       J
-        #                             - e6 - e7 - e8 fork2 node
+        #                     J
+        #                   - e4 - e5 - e6 fork1
+        # F    F    F       |
+        # e0 - e1 - e2 - e3 -
+        #                   |      J
+        #                   - e4 - e5 - e6 fork2 node
 
         generate_block(fork2, count=10)
         vtx2 = generate_epoch_and_vote(fork2, finalizer, finalizer_address, deptx)
-        assert_equal(fork2.getblockcount(), 40)
-        assert_finalizationstate(fork2, {'currentDynasty': 3,
-                                         'currentEpoch': 8,
-                                         'lastJustifiedEpoch': 7,
-                                         'lastFinalizedEpoch': 3,
+        assert_equal(fork2.getblockcount(), 30)
+        assert_finalizationstate(fork2, {'currentDynasty': 2,
+                                         'currentEpoch': 6,
+                                         'lastJustifiedEpoch': 5,
+                                         'lastFinalizedEpoch': 2,
                                          'validators': 1})
 
         sync_node_to_fork(node, fork2)
 
-        assert_finalizationstate(node, {'currentDynasty': 3,
-                                        'currentEpoch': 8,
-                                        'lastJustifiedEpoch': 7,
-                                        'lastFinalizedEpoch': 3,
+        assert_finalizationstate(node, {'currentDynasty': 2,
+                                        'currentEpoch': 6,
+                                        'lastJustifiedEpoch': 5,
+                                        'lastFinalizedEpoch': 2,
                                         'validators': 1})
 
         self.log.info('node successfully switched to the longest justified fork')
 
         # create longer justified epoch on the previous fork1
         # node must switch ("zag") to this fork
-        #                                J              J
-        #                             - e6 - e7 - e8 - e9 - e10 fork1 node
-        # F    F    F    F    J       |
-        # e0 - e1 - e2 - e3 - e4 - e5 -
-        #                             |       J
-        #                             - e6 - e7 - e8 fork2
+        #                     J              J
+        #                   - e4 - e5 - e6 - e7 - e8 fork1 node
+        # F    F    F       |
+        # e0 - e1 - e2 - e3 -
+        #                   |      J
+        #                   - e4 - e5 - e6 fork2
         generate_block(fork1, count=5)
         sync_node_to_fork(finalizer, fork1)
         vtx1 = generate_epoch_and_vote(fork1, finalizer, finalizer_address, vtx1)
-        assert_equal(fork1.getblockcount(), 50)
-        assert_finalizationstate(fork1, {'currentDynasty': 3,
-                                         'currentEpoch': 10,
-                                         'lastJustifiedEpoch': 9,
-                                         'lastFinalizedEpoch': 3,
+        assert_equal(fork1.getblockcount(), 40)
+        assert_finalizationstate(fork1, {'currentDynasty': 2,
+                                         'currentEpoch': 8,
+                                         'lastJustifiedEpoch': 7,
+                                         'lastFinalizedEpoch': 2,
                                          'validators': 1})
 
         assert_not_equal(fork1.getbestblockhash(), fork2.getbestblockhash())
         sync_node_to_fork(node, fork1)
-        assert_finalizationstate(node, {'currentDynasty': 3,
-                                        'currentEpoch': 10,
-                                        'lastJustifiedEpoch': 9,
-                                        'lastFinalizedEpoch': 3,
+        assert_finalizationstate(node, {'currentDynasty': 2,
+                                        'currentEpoch': 8,
+                                        'lastJustifiedEpoch': 7,
+                                        'lastFinalizedEpoch': 2,
                                         'validators': 1})
 
         self.log.info('node successfully switched back to the longest justified fork')
 
         # UNIT-E TODO: node must follow longest finalized chain
         # node follows longest finalization
-        #                                J              J
-        #                             - e6 - e7 - e8 - e9 - e10 fork1 node
-        # F    F    F    F    J       |
-        # e0 - e1 - e2 - e3 - e4 - e5 -
-        #                             |       F    J
-        #                             - e6 - e7 - e8 - e9 fork2
-
+        #                     J              J
+        #                   - e4 - e5 - e6 - e7 - e8 fork1 node
+        # F    F    F       |
+        # e0 - e1 - e2 - e3 -
+        #                   |      J    F
+        #                   - e4 - e5 - e6 - e7 fork2
         sync_node_to_fork(finalizer, fork2, force=True)
         vtx2 = generate_epoch_and_vote(fork2, finalizer, finalizer_address, vtx2)
-        assert_equal(fork2.getblockcount(), 45)
-        assert_finalizationstate(fork2, {'currentDynasty': 3,
-                                         'currentEpoch': 9,
-                                         'lastJustifiedEpoch': 8,
-                                         'lastFinalizedEpoch': 7,
+        assert_equal(fork2.getblockcount(), 35)
+        assert_finalizationstate(fork2, {'currentDynasty': 2,
+                                         'currentEpoch': 7,
+                                         'lastJustifiedEpoch': 6,
+                                         'lastFinalizedEpoch': 6,
                                          'validators': 1})
 
         # UNIT-E TODO: fix here

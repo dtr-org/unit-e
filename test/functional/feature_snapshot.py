@@ -125,7 +125,7 @@ class SnapshotTest(UnitETestFramework):
         generate_block(full_node)
         assert_equal(full_node.getblockcount(), 11)
         wait_until(lambda: has_finalized_snapshot(full_node, height=4), timeout=5)
-        wait_until(lambda: has_snapshot(full_node, height=9), timeout=5)
+        wait_until(lambda: has_finalized_snapshot(full_node, height=9), timeout=5)
         assert_equal(len(full_node.listsnapshots()), 2)
         connect_nodes(blank_node, full_node.index)
         sync_blocks([blank_node, full_node])
@@ -139,16 +139,15 @@ class SnapshotTest(UnitETestFramework):
         connect_nodes(isd_node, blank_node.index)
         connect_nodes(isd_node, full_node.index)
         sync_blocks([full_node, isd_node])
-        wait_until(lambda: has_finalized_snapshot(isd_node, height=4), timeout=5)
         wait_until(lambda: has_snapshot(isd_node, height=9), timeout=5)
-        assert_equal(full_node.listsnapshots(), isd_node.listsnapshots())
+        assert_equal(len(isd_node.listsnapshots()), 1)
         chain = isd_node.getblockchaininfo()
         assert_equal(chain['headers'], 11)
         assert_equal(chain['blocks'], 11)
         assert_equal(chain['initialblockdownload'], False)
         assert_equal(chain['initialsnapshotdownload'], False)
         assert_equal(chain['pruned'], True)
-        assert_equal(chain['pruneheight'], 5)
+        assert_equal(chain['pruneheight'], 10)
         assert_equal(full_node.gettxoutsetinfo(), isd_node.gettxoutsetinfo())
 
         # test that isd_node can be restarted
@@ -182,9 +181,9 @@ class SnapshotTest(UnitETestFramework):
 
         # test that reorg one epoch after finalization is possible
         #               s0      s1
-        # G------------(h=3)...(h=8)-(h=9)-(h=10) full_node, blank_node
-        #                              \
-        #                                -------------------(h=15) rework_node, isd_node
+        # G------------(h=3)...(h=8)-(h=9)-(h=10)-(h=11) full_node, blank_node
+        #                                    \
+        #                                     ---------------(h=15) rework_node, isd_node
         connect_nodes(isd_node, rework_node.index)
         sync_blocks([isd_node, rework_node])
         assert_equal(isd_node.getblockcount(), 15)

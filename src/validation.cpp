@@ -4475,7 +4475,7 @@ bool IsForkingBeforeLastFinalization(const CBlockIndex &block_index) {
         return false;
     }
 
-    const uint32_t checkpoint_height = tip_state->GetCheckpointHeightAfterFinalizedEpoch();
+    const uint32_t checkpoint_height = tip_state->GetEpochCheckpointHeight(tip_state->GetLastFinalizedEpoch());
     const CBlockIndex *checkpoint = chainActive[checkpoint_height];
     assert(checkpoint);
 
@@ -4487,26 +4487,6 @@ bool IsForkingBeforeLastFinalization(const CBlockIndex &block_index) {
         return true;
     }
 
-    // we know that we have finalized epoch on this fork and
-    // it is at least justified. We need to check that it is also finalized
-    uint32_t justified_epoch = tip_state->GetLastFinalizedEpoch() + 1;
-    uint32_t next_checkpoint_height = tip_state->GetEpochCheckpointHeight(justified_epoch + 1);
-
-    // this block must have votes to justify the epoch
-    // which follows after the finalized one on chainActive
-    uint32_t height = std::min(next_checkpoint_height, static_cast<uint32_t>(block_index.nHeight));
-    const CBlockIndex *cp_fork = block_index.GetAncestor(height);
-    assert(cp_fork);
-    esperanza::FinalizationState *cp_fork_state = state_repo->Find(*cp_fork);
-    assert(cp_fork_state);
-
-    if (cp_fork_state->GetLastJustifiedEpoch() != justified_epoch) {
-        // this fork doesn't justify the expected epoch
-        return true;
-    }
-
-    // sanity check
-    assert(cp_fork_state->GetLastFinalizedEpoch() == tip_state->GetLastFinalizedEpoch());
     return false;
 }
 

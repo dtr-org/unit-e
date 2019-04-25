@@ -52,7 +52,6 @@ class FinalizationSlashSelfTest(UnitETestFramework):
         connect_nodes(fork1, finalizer2.index)
 
     def test_double_votes(self):
-
         fork1 = self.nodes[0]
         fork2 = self.nodes[1]
         finalizer1 = self.nodes[2]
@@ -82,13 +81,13 @@ class FinalizationSlashSelfTest(UnitETestFramework):
         disconnect_nodes(fork1, finalizer2.index)
 
         # pass instant finalization
-        # F    F    F    F    J
-        # e0 - e1 - e2 - e3 - e4 - e5 - e[26] fork1, fork2
-        generate_block(fork1, count=3 + 5 + 5 + 5 + 5 + 1)
-        assert_equal(fork1.getblockcount(), 26)
-        assert_finalizationstate(fork1, {'currentEpoch': 6,
-                                         'lastJustifiedEpoch': 4,
-                                         'lastFinalizedEpoch': 3,
+        # F    F    F
+        # e0 - e1 - e2 - e3 - e4[16] fork1, fork2
+        generate_block(fork1, count=3 + 5 + 5 + 1)
+        assert_equal(fork1.getblockcount(), 16)
+        assert_finalizationstate(fork1, {'currentEpoch': 4,
+                                         'lastJustifiedEpoch': 2,
+                                         'lastFinalizedEpoch': 2,
                                          'validators': 1})
 
         # change topology where forks are not connected
@@ -100,31 +99,31 @@ class FinalizationSlashSelfTest(UnitETestFramework):
 
         # Create some blocks and cause finalizer to vote, then take the vote and send it to
         # finalizer2, when finalizer2 will vote it should not slash itself
-        #                                      v1          v2a
-        #                                    - e6 - e7[31, 32, 33] - e8[36] fork1
-        # F    F    F    F    F    F    J   /
-        # e0 - e1 - e2 - e3 - e4 - e5 - e6[26]
-        #                                   \  v1          v2a
-        #                                    - e6 - e7[31, 32] fork2
+        #                            v1          v2a
+        #                          - e5 - e6[26, 27, 28] - e7[31] fork1
+        # F    F    F    F    F   /
+        # e0 - e1 - e2 - e3 - e4[16]
+        #                         \  v1          v2a
+        #                          - e5 - e6[26, 27] fork2
         generate_block(fork1)
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=fork1)
         generate_block(fork1, count=5)
         raw_vote_1 = self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=fork1)
         generate_block(fork1)
-        assert_equal(fork1.getblockcount(), 33)
-        assert_finalizationstate(fork1, {'currentEpoch': 7,
-                                         'lastJustifiedEpoch': 6,
-                                         'lastFinalizedEpoch': 5,
+        assert_equal(fork1.getblockcount(), 23)
+        assert_finalizationstate(fork1, {'currentEpoch': 5,
+                                         'lastJustifiedEpoch': 4,
+                                         'lastFinalizedEpoch': 4,
                                          'validators': 1})
 
         # We'll use a second vote to check if there is slashing when a validator tries to send a double vote after it
         # voted.
         generate_block(fork1, count=3)
         raw_vote_2 = self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=fork1)
-        assert_equal(fork1.getblockcount(), 36)
-        assert_finalizationstate(fork1, {'currentEpoch': 8,
-                                         'lastJustifiedEpoch': 6,
-                                         'lastFinalizedEpoch': 5,
+        assert_equal(fork1.getblockcount(), 26)
+        assert_finalizationstate(fork1, {'currentEpoch': 6,
+                                         'lastJustifiedEpoch': 4,
+                                         'lastFinalizedEpoch': 4,
                                          'validators': 1})
 
         # Send the conflicting vote from the other chain to finalizer2, it should record it and slash it later
@@ -133,10 +132,10 @@ class FinalizationSlashSelfTest(UnitETestFramework):
         generate_block(fork2)
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork2)
         generate_block(fork2, count=5)
-        assert_equal(fork2.getblockcount(), 32)
-        assert_finalizationstate(fork2, {'currentEpoch': 7,
-                                         'lastJustifiedEpoch': 5,
-                                         'lastFinalizedEpoch': 4,
+        assert_equal(fork2.getblockcount(), 22)
+        assert_finalizationstate(fork2, {'currentEpoch': 5,
+                                         'lastJustifiedEpoch': 3,
+                                         'lastFinalizedEpoch': 3,
                                          'validators': 1})
 
         connect_nodes(finalizer2, fork2.index)
@@ -154,10 +153,10 @@ class FinalizationSlashSelfTest(UnitETestFramework):
 
         # check if there is slashing after voting
         fork2.generatetoaddress(3, fork1.getnewaddress('', 'bech32'))
-        assert_equal(fork2.getblockcount(), 36)
-        assert_finalizationstate(fork2, {'currentEpoch': 8,
-                                         'lastJustifiedEpoch': 6,
-                                         'lastFinalizedEpoch': 5,
+        assert_equal(fork2.getblockcount(), 26)
+        assert_finalizationstate(fork2, {'currentEpoch': 6,
+                                         'lastJustifiedEpoch': 4,
+                                         'lastFinalizedEpoch': 4,
                                          'validators': 1})
 
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork2)
@@ -167,7 +166,6 @@ class FinalizationSlashSelfTest(UnitETestFramework):
         # The vote hasn't been replaces by a slash
         vote = finalizer2.decoderawtransaction(finalizer2.getrawtransaction(finalizer2.getrawmempool()[0]))
         assert_equal(vote['txtype'], TxType.VOTE.value)
-
 
     def run_test(self):
         self.test_double_votes()
