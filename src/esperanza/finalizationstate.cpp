@@ -1114,11 +1114,11 @@ uint32_t FinalizationState::CalculateWithdrawEpoch(const Validator &finalizer) c
 
   // m_end_dynasty is not set
   if (finalizer.m_end_dynasty == MAX_END_DYNASTY) {
-    return MAX_END_DYNASTY;
+    return std::numeric_limits<uint32_t>::max();
   }
 
   if (m_current_dynasty <= finalizer.m_end_dynasty) {
-    return MAX_END_DYNASTY;
+    return std::numeric_limits<uint32_t>::max();
   }
 
   const auto it = m_dynasty_start_epoch.find(finalizer.m_end_dynasty + 1);
