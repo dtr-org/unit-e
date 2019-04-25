@@ -433,7 +433,7 @@ class TestNodeCLI():
                 code, message = match.groups()
                 raise JSONRPCException(dict(code=int(code), message=message))
             # Ignore cli_stdout, raise with cli_stderr
-            self.log.error("%unit-e-cli exited with code %d, stderr: %s" % (returncode, cli_stderr))
+            self.log.error("unit-e-cli exited with code %d, stderr: %s" % (returncode, cli_stderr))
             raise subprocess.CalledProcessError(returncode, self.binary, output=cli_stderr)
         try:
             return json.loads(cli_stdout, parse_float=decimal.Decimal)
