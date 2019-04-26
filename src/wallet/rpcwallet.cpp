@@ -3459,14 +3459,14 @@ UniValue GenerateBlocks(CWallet *const wallet,
         std::shared_ptr<const CBlock> block;
         {
             LOCK2(cs_main, wallet_ext.GetLock());
-            staking::CoinSet coins;
             const staking::CoinSet stakeable_coins = wallet_ext.GetStakeableCoins();
-            coins.insert(*stakeable_coins.begin());
 
-            if (coins.empty()) {
+            if (stakeable_coins.empty()) {
                 throw JSONRPCError(RPC_INTERNAL_ERROR,
-                                 "Not proposing, not enough balance.");
+                               "Not proposing, not enough balance.");
             }
+            staking::CoinSet coins;
+            coins.insert(*stakeable_coins.begin());
 
             if (!proposer->GenerateBlock(wallet,
                                          *active_chain->GetTip(),

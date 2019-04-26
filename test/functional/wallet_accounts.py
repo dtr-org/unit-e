@@ -73,7 +73,7 @@ class WalletAccountsTest(UnitETestFramework):
 
         sync_mempools(self.nodes)
         for i in range(10):
-            self.nodes[1].sendtoaddress(self.nodes[0].getnewaddress('', 'legacy'), 50)
+            self.nodes[1].sendtoaddress(self.nodes[0].getnewaddress('', 'bech32'), 50)
             self.nodes[1].generate(1)
         sync_blocks(self.nodes)
 
