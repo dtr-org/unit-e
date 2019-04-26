@@ -10,8 +10,8 @@
 #include <blockchain/blockchain_types.h>
 #include <chainparams.h>
 #include <consensus/validation.h>
-#include <esperanza/checks.h>
 #include <esperanza/finalizationstate.h>
+#include <esperanza/script.h>
 #include <finalization/state_repository.h>
 #include <net.h>
 #include <policy/policy.h>
