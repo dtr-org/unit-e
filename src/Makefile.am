@@ -251,6 +251,7 @@ UNITE_CORE_H = \
   snapshot/state.h \
   staking/active_chain.h \
   staking/block_index_map.h \
+  staking/block_reward_validator.h \
   staking/block_validation_info.h \
   staking/block_validator.h \
   staking/coin.h \
@@ -398,6 +399,7 @@ libunite_server_a_SOURCES = \
   snapshot/state.cpp \
   staking/active_chain.cpp \
   staking/block_index_map.cpp \
+  staking/block_reward_validator.cpp \
   staking/block_validation_info.cpp \
   staking/block_validator.cpp \
   staking/coin.cpp \
