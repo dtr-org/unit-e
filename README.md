@@ -30,8 +30,7 @@ also known as the "Feuerland" client. It's based on the [Bitcoin C++
 client](https://github.com/bitcoin/bitcoin) and introduces major improvements
 and features such as:
 
-* Replace Proof of Work (PoW) with [Esperanza Proof of Stake (PoS)](
-  https://github.com/dtr-org/unit-e-project/blob/master/specs/spec_v1.0.md#block-proposal).
+* Replace Proof of Work (PoW) with Esperanza Proof of Stake (PoS).
   Unlike most blockchain projects, that's a complete rewrite
   of the consensus, leaving no trace of PoW while keeping the UTXO model and
   other areas (blockchain, p2p, wallet) functioning, potentially
@@ -41,8 +40,7 @@ and features such as:
   design best practices. Allowing good testability and being able to do future
   modifications with confidence, including changes in the complex consensus
   layer
-* [Finality](
-  https://github.com/dtr-org/unit-e-project/blob/master/specs/spec_v1.0.md#block-finalization)
+* Finality
   is enabled by finalizer nodes, voting every epoch (currently 50
   blocks), with advanced on-chain lifecycle (deposit, vote, slash, withdraw) on
   top of UTXO, using custom advanced scripts. Security is maintained through
