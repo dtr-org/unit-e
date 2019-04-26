@@ -111,6 +111,11 @@ staking::CoinSet WalletExtension::GetStakeableCoins() const {
     COutPoint out_point(tx->tx->GetHash(), out_index);
     coins.emplace(containing_block, out_point, tx->tx->vout[out_index]);
   });
+
+  std::cout << "stakeable coins are: " << std::endl;
+  for (auto coin : coins) {
+    std::cout << coin.ToString() << std::endl;
+  }
   return coins;
 }
 

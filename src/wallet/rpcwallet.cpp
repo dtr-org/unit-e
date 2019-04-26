@@ -3468,7 +3468,7 @@ UniValue GenerateBlocks(CWallet *const wallet,
 
             if (!proposer->GenerateBlock(wallet,
                                          *active_chain->GetTip(),
-                                         coins,
+                                         staking::CoinSet(),
                                          coinbase_script.get()->reserveScript,
                                          block)) {
                 throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to generate a block.");
