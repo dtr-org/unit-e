@@ -214,6 +214,7 @@ class ExampleTest(UnitETestFramework):
         self.nodes[2].p2p.wait_for_verack()
 
         self.log.info("Wait for node2 reach current tip. Test that it has propagated all the blocks to us")
+        self.nodes[2].waitforblockheight(height)
 
         getdata_request = msg_getdata()
         for block in blocks:
