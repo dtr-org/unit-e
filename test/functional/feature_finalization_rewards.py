@@ -98,7 +98,7 @@ class FinalizationRewardsTest(UnitETestFramework):
                          for x in epoch_first_cb['vout'][1:EPOCH_LENGTH + 1]), [])
         assert_equal(addresses, reward_addresses)
 
-        for i in range(EPOCH_LENGTH - 1):
+        for _ in range(EPOCH_LENGTH - 1):
             node.generatetoaddress(1, proposer_address2)
             reward_addresses.append(proposer_address2)
             assert_equal(len(get_coinbase_of_last_block(node)['vout']), CB_DEFAULT_OUTPUTS)

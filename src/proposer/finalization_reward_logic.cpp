@@ -1,6 +1,6 @@
 // Copyright (c) 2019 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+// file COPYING or https://opensource.org/licenses/MIT.
 
 #include <proposer/finalization_reward_logic.h>
 #include <util.h>
@@ -51,14 +51,13 @@ class FinalizationRewardLogicImpl : public FinalizationRewardLogic {
 
     std::vector<std::pair<CScript, CAmount>> result;
     result.reserve(m_finalization_params->epoch_length);
-    const CBlockIndex *pblock = &last_block;
     const auto epoch = m_finalization_params->GetEpoch(prev_height);
     const blockchain::Height epoch_start = m_finalization_params->GetEpochStartHeight(epoch);
 
-    for (auto height = prev_height; height >= epoch_start; --height) {
-      assert(pblock && pblock->nHeight == height);
-      result.emplace_back(GetRewardScript(*pblock), m_blockchain_behavior->CalculateFinalizationReward(height));
-      pblock = pblock->pprev;
+    for (const CBlockIndex *walk = &last_block; walk != nullptr && walk->nHeight >= epoch_start; walk = walk->pprev) {
+      result.emplace_back(
+          GetRewardScript(*walk),
+          m_blockchain_behavior->CalculateFinalizationReward(static_cast<blockchain::Height>(walk->nHeight)));
     }
     assert(result.size() == m_finalization_params->epoch_length);
     std::reverse(result.begin(), result.end());

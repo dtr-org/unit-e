@@ -325,19 +325,20 @@ bool Consensus::CheckBlockRewards(const CTransaction &coinbase_tx, CValidationSt
         }
     }
 
-    if (coinbase_tx.GetValueOut() - input_amount > block_reward) {
+    CAmount output_amount = coinbase_tx.GetValueOut();
+    if (output_amount - input_amount > block_reward) {
         return state.DoS(100,
                          error("%s: coinbase pays too much (total output=%d total input=%d expected reward=%d )",
-                               __func__, FormatMoney(coinbase_tx.GetValueOut()), FormatMoney(input_amount),
+                               __func__, FormatMoney(output_amount), FormatMoney(input_amount),
                                FormatMoney(block_reward)),
                          REJECT_INVALID, "bad-cb-amount");
     }
 
     // TODO UNIT-E: make the check stricter: if (coinbase_tx.GetValueOut() - input_amount < block_reward)
-    if (coinbase_tx.GetValueOut() < input_amount) {
+    if (output_amount < input_amount) {
         return state.DoS(100,
                          error("%s: coinbase pays too little (total output=%d total input=%d expected reward=%d )",
-                               __func__, FormatMoney(coinbase_tx.GetValueOut()), FormatMoney(input_amount),
+                               __func__, FormatMoney(output_amount), FormatMoney(input_amount),
                                FormatMoney(block_reward)),
                          REJECT_INVALID, "bad-cb-spends-too-little");
     }
