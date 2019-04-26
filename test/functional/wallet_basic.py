@@ -52,7 +52,7 @@ class WalletTest(UnitETestFramework):
         assert_equal(len(self.nodes[1].listunspent()), 0)
         assert_equal(len(self.nodes[2].listunspent()), 0)
 
-        self.log.info("Mining blocks...")
+        self.log.info("Proposing blocks...")
 
         self.setup_stake_coins(*self.nodes[0:3])
         balance0 = self.nodes[0].initial_stake

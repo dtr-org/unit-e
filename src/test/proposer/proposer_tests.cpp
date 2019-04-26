@@ -117,6 +117,7 @@ struct Fixture {
         const proposer::EligibleCoin &,
         const staking::CoinSet &,
         CAmount,
+        boost::optional<CScript>,
         staking::StakingWallet &) const override { return nullptr; };
     std::shared_ptr<const CBlock> BuildBlock(
         const CBlockIndex &,
@@ -125,6 +126,7 @@ struct Fixture {
         const staking::CoinSet &,
         const std::vector<CTransactionRef> &,
         const CAmount,
+        boost::optional<CScript>,
         staking::StakingWallet &) const override { return nullptr; }
   };
 

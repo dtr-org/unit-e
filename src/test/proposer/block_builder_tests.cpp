@@ -137,7 +137,7 @@ BOOST_AUTO_TEST_CASE(build_block_and_validate) {
   CAmount fees(0);
 
   auto block = builder->BuildBlock(
-      current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, f.wallet);
+      current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, boost::none, f.wallet);
   BOOST_REQUIRE(static_cast<bool>(block));
   auto is_valid = validator->CheckBlock(*block, nullptr);
   BOOST_CHECK(is_valid);
@@ -172,7 +172,7 @@ BOOST_AUTO_TEST_CASE(split_amount) {
     CAmount fees(0);
 
     std::shared_ptr<const CBlock> block = builder->BuildBlock(
-        current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, f.wallet);
+        current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, boost::none, f.wallet);
     BOOST_REQUIRE(static_cast<bool>(block));
     const staking::BlockValidationResult is_valid = validator->CheckBlock(*block, nullptr);
     // must have a coinbase transaction
@@ -224,7 +224,7 @@ BOOST_AUTO_TEST_CASE(check_reward_destination) {
   CAmount fees(5);
 
   std::shared_ptr<const CBlock> block = builder->BuildBlock(
-      current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, f.wallet);
+      current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, boost::none, f.wallet);
   BOOST_REQUIRE(static_cast<bool>(block));
   const staking::BlockValidationResult is_valid = validator->CheckBlock(*block, nullptr);
   BOOST_CHECK(static_cast<bool>(is_valid));

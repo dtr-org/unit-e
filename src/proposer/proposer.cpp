@@ -36,6 +36,7 @@ bool GenerateBlock(staking::ActiveChain &active_chain,
                    CWallet *wallet,
                    const CBlockIndex &tip,
                    const staking::CoinSet &coins,
+                   boost::optional<CScript> coinbase_script,
                    std::shared_ptr<const CBlock> &block_out) {
 
   auto &wallet_ext = wallet->GetWalletExtension();
@@ -60,7 +61,7 @@ bool GenerateBlock(staking::ActiveChain &active_chain,
   const uint256 snapshot_hash = active_chain.ComputeSnapshotHash();
 
   block_out = block_builder.BuildBlock(
-      tip, snapshot_hash, coin, coins, result.transactions, fees, wallet_ext);
+      tip, snapshot_hash, coin, coins, result.transactions, fees, coinbase_script, wallet_ext);
 
   return block_out != nullptr;
 }
@@ -89,6 +90,7 @@ class PassiveProposerImpl : public Proposer {
   bool GenerateBlock(CWallet *wallet,
                      const CBlockIndex &tip,
                      const staking::CoinSet &coins,
+                     boost::optional<CScript> coinbase_script,
                      std::shared_ptr<const CBlock> &block_out) override {
 
     return proposer::GenerateBlock(*m_active_chain,
@@ -98,6 +100,7 @@ class PassiveProposerImpl : public Proposer {
                                    wallet,
                                    tip,
                                    coins,
+                                   coinbase_script,
                                    block_out);
   }
 };
@@ -179,7 +182,7 @@ class ActiveProposerImpl : public Proposer {
           }
           wallet_ext.GetProposerState().m_status = Status::IS_PROPOSING;
           wallet_ext.GetProposerState().m_number_of_search_attempts += 1;
-          GenerateBlock(wallet, tip, coins, block);
+          GenerateBlock(wallet, tip, coins, boost::none, block);
         }
         wallet_ext.GetProposerState().m_number_of_searches += 1;
         if (m_interrupted) {
@@ -227,6 +230,7 @@ class ActiveProposerImpl : public Proposer {
   bool GenerateBlock(CWallet *wallet,
                      const CBlockIndex &tip,
                      const staking::CoinSet &coins,
+                     boost::optional<CScript> coinbase_script,
                      std::shared_ptr<const CBlock> &block_out) override {
 
     return proposer::GenerateBlock(*m_active_chain,
@@ -236,6 +240,7 @@ class ActiveProposerImpl : public Proposer {
                                    wallet,
                                    tip,
                                    coins,
+                                   boost::none,
                                    block_out);
   }
 

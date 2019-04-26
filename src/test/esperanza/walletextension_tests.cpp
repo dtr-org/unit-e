@@ -140,7 +140,7 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
 
   // BuildCoinbaseTransaction() will also sign it
   CTransactionRef coinbase_transaction =
-      block_builder->BuildCoinbaseTransaction(uint256(), eligible_coin, coins, 700, pwalletMain->GetWalletExtension());
+      block_builder->BuildCoinbaseTransaction(uint256(), eligible_coin, coins, 700, boost::none, pwalletMain->GetWalletExtension());
 
   // check that a coinbase transaction was built successfully
   BOOST_REQUIRE(static_cast<bool>(coinbase_transaction));
