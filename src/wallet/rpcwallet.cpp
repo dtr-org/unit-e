@@ -3432,9 +3432,8 @@ UniValue bumpfee(const JSONRPCRequest& request)
 }
 
 UniValue GenerateBlocks(CWallet *const wallet,
-                        std::shared_ptr<CReserveScript> coinbase_script,
-                        int num_generate,
-                        bool keep_script) {
+                        boost::optional<CScript> coinbase_script,
+                        int num_generate) {
     assert(wallet);
     blockchain::Height height = 0;
     blockchain::Height height_end = 0;
@@ -3460,7 +3459,10 @@ UniValue GenerateBlocks(CWallet *const wallet,
         std::shared_ptr<const CBlock> block;
         {
             LOCK2(cs_main, wallet_ext.GetLock());
-            const staking::CoinSet coins = wallet_ext.GetStakeableCoins();
+            staking::CoinSet coins;
+            const staking::CoinSet stakeable_coins = wallet_ext.GetStakeableCoins();
+            coins.insert(*stakeable_coins.begin());
+
             if (coins.empty()) {
                 throw JSONRPCError(RPC_INTERNAL_ERROR,
                                  "Not proposing, not enough balance.");
@@ -3468,8 +3470,8 @@ UniValue GenerateBlocks(CWallet *const wallet,
 
             if (!proposer->GenerateBlock(wallet,
                                          *active_chain->GetTip(),
-                                         staking::CoinSet(),
-                                         coinbase_script.get()->reserveScript,
+                                         coins,
+                                         coinbase_script,
                                          block)) {
                 throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to generate a block.");
             }
@@ -3481,11 +3483,6 @@ UniValue GenerateBlocks(CWallet *const wallet,
 
         ++height;
         block_hashes.push_back(block->GetHash().GetHex());
-
-        //mark script as important because it was used at least for one coinbase output if the script came from the wallet
-        if (keep_script) {
-            coinbase_script->KeepScript();
-        }
 
         wallet->BlockUntilSyncedToCurrentChain();
     }
@@ -3526,20 +3523,7 @@ UniValue generate(const JSONRPCRequest& request)
         max_tries = request.params[1].get_int();
     }
 
-    std::shared_ptr<CReserveScript> coinbase_script;
-    pwallet->GetScriptForMining(coinbase_script);
-
-    // If the keypool is exhausted, no script is returned at all.  Catch this.
-    if (!coinbase_script) {
-        throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
-    }
-
-    //throw an error if no script was provided
-    if (coinbase_script->reserveScript.empty()) {
-        throw JSONRPCError(RPC_INTERNAL_ERROR, "No coinbase script available");
-    }
-
-    return GenerateBlocks(pwallet, coinbase_script, num_generate, true);
+    return GenerateBlocks(pwallet, boost::none, num_generate);
 }
 
 UniValue generatetoaddress(const JSONRPCRequest& request)
@@ -3584,7 +3568,7 @@ UniValue generatetoaddress(const JSONRPCRequest& request)
     std::shared_ptr<CReserveScript> coinbaseScript = std::make_shared<CReserveScript>();
     coinbaseScript->reserveScript = GetScriptForDestination(destination);
 
-    return GenerateBlocks(pwallet, coinbaseScript, nGenerate, false);
+    return GenerateBlocks(pwallet, coinbaseScript.get()->reserveScript, nGenerate);
 }
 
 UniValue rescanblockchain(const JSONRPCRequest& request)
