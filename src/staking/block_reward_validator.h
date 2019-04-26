@@ -8,6 +8,7 @@
 #include <amount.h>
 #include <blockchain/blockchain_behavior.h>
 #include <dependency.h>
+#include <proposer/finalization_reward_logic.h>
 
 #include <memory>
 
@@ -29,7 +30,8 @@ class BlockRewardValidator {
   virtual ~BlockRewardValidator() = default;
 
   static std::unique_ptr<BlockRewardValidator> New(
-      Dependency<blockchain::Behavior>);
+      Dependency<blockchain::Behavior>,
+      Dependency<proposer::FinalizationRewardLogic>);
 };
 
 }  // namespace staking

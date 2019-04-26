@@ -1,6 +1,6 @@
 // Copyright (c) 2019 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+// file COPYING or https://opensource.org/licenses/MIT.
 
 #ifndef UNITE_PROPOSER_FINALIZATION_REWARD_LOGIC_H
 #define UNITE_PROPOSER_FINALIZATION_REWARD_LOGIC_H

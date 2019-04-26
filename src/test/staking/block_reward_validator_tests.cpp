@@ -11,6 +11,33 @@
 
 namespace {
 
+class FinalizationRewardLogicMock : public proposer::FinalizationRewardLogic {
+ public:
+  std::vector<std::pair<CScript, CAmount>> rewards;
+  mutable std::uint32_t invocations_GetFinalizationRewards = 0;
+  mutable std::uint32_t invocations_GetFinalizationRewardAmounts = 0;
+  mutable boost::optional<blockchain::Height> arg_GetNumberOfRewardOutputs_height = boost::none;
+
+  std::vector<std::pair<CScript, CAmount>> GetFinalizationRewards(const CBlockIndex &last_block) const override {
+    ++invocations_GetFinalizationRewards;
+    return rewards;
+  }
+
+  std::vector<CAmount> GetFinalizationRewardAmounts(const CBlockIndex &last_block) const override {
+    ++invocations_GetFinalizationRewardAmounts;
+    std::vector<CAmount> result;
+    for (const auto &r : rewards) {
+      result.push_back(r.second);
+    }
+    return result;
+  }
+
+  std::size_t GetNumberOfRewardOutputs(blockchain::Height height) const override {
+    arg_GetNumberOfRewardOutputs_height = height;
+    return rewards.size();
+  }
+};
+
 struct Fixture {
 
   const CAmount total_reward = 10 * UNIT;
@@ -25,9 +52,19 @@ struct Fixture {
   std::unique_ptr<blockchain::Behavior> b =
       blockchain::Behavior::NewFromParameters(parameters);
 
-  CBlockIndex prev_block = []() {
+  FinalizationRewardLogicMock finalization_reward_logic;
+
+  CBlockIndex prev_prev_block = []() {
     CBlockIndex b;
-    b.nHeight = 100;
+    b.nHeight = 99;
+    b.nStatus = BLOCK_HAVE_DATA;
+    return b;
+  }();
+
+  CBlockIndex prev_block = [this]() {
+    CBlockIndex b;
+    b.pprev = &prev_prev_block;
+    b.nHeight = prev_prev_block.nHeight + 1;
     return b;
   }();
 
@@ -53,8 +90,35 @@ struct Fixture {
     return tx;
   }
 
+  CTransaction MakeCoinbaseTx(
+      CAmount block_reward,
+      const std::vector<std::pair<CScript, CAmount>> &finalization_rewards,
+      const std::vector<CAmount> &outputs) {
+    const CTxIn meta_input;
+    const CTxIn staking_input;
+
+    CMutableTransaction tx;
+    tx.SetType(TxType::COINBASE);
+    tx.vin = {meta_input, staking_input};
+    tx.vout.emplace_back(block_reward, CScript());
+    for (const auto &r : finalization_rewards) {
+      tx.vout.emplace_back(r.second, r.first);
+    }
+    for (const auto out : outputs) {
+      tx.vout.emplace_back(out, CScript());
+    }
+    return tx;
+  }
+
+  void InitFinalizationRewards() {
+    for (int i = 0; i < 5; ++i) {
+      const auto script = CScript() << CScriptNum(i);
+      finalization_reward_logic.rewards.emplace_back(script, (i + 1) * UNIT);
+    }
+  }
+
   std::unique_ptr<staking::BlockRewardValidator> GetBlockRewardValidator() {
-    return staking::BlockRewardValidator::New(b.get());
+    return staking::BlockRewardValidator::New(b.get(), &finalization_reward_logic);
   }
 };
 
@@ -144,6 +208,109 @@ BOOST_AUTO_TEST_CASE(non_reward_output_is_too_large) {
 
   CTransaction tx = f.MakeCoinbaseTx({f.immediate_reward, input_amount + fees});
   CheckTransactionIsRejected(tx, "bad-cb-spends-too-much", *validator, f.block, input_amount, fees);
+}
+
+BOOST_AUTO_TEST_CASE(valid_finalization_rewards) {
+  Fixture f;
+  const auto validator = f.GetBlockRewardValidator();
+
+  const CAmount input_amount = 9 * UNIT;
+  const CAmount fees = UNIT / 2;
+
+  f.InitFinalizationRewards();
+  CTransaction tx = f.MakeCoinbaseTx(
+      f.immediate_reward + fees, f.finalization_reward_logic.rewards, {input_amount});
+  CValidationState validation_state;
+
+  const bool result = validator->CheckBlockRewards(tx, validation_state, f.block, input_amount, fees);
+  BOOST_CHECK(result);
+  BOOST_CHECK(validation_state.IsValid());
+  BOOST_CHECK_EQUAL(*f.finalization_reward_logic.arg_GetNumberOfRewardOutputs_height, f.block.nHeight);
+}
+
+BOOST_AUTO_TEST_CASE(too_few_finalization_reward_outputs) {
+  Fixture f;
+  const auto validator = f.GetBlockRewardValidator();
+
+  const CAmount input_amount = 10 * UNIT;
+  const CAmount fees = UNIT / 2;
+
+  f.InitFinalizationRewards();
+  auto rewards = f.finalization_reward_logic.rewards;
+  rewards.pop_back();
+
+  CTransaction tx = f.MakeCoinbaseTx(f.immediate_reward + fees, rewards, {});
+  CValidationState validation_state;
+
+  const bool result = validator->CheckBlockRewards(tx, validation_state, f.block, input_amount, fees);
+  BOOST_CHECK(!result);
+  BOOST_CHECK(!validation_state.IsValid());
+  BOOST_CHECK_EQUAL(validation_state.GetRejectCode(), REJECT_INVALID);
+  BOOST_CHECK_EQUAL(validation_state.GetRejectReason(), "bad-cb-too-few-outputs");
+}
+
+BOOST_AUTO_TEST_CASE(finalization_rewards_wrong_amount) {
+  Fixture f;
+  const auto validator = f.GetBlockRewardValidator();
+
+  const CAmount input_amount = 5 * UNIT;
+  const CAmount fees = UNIT / 2;
+
+  f.InitFinalizationRewards();
+  auto rewards = f.finalization_reward_logic.rewards;
+  std::swap(rewards[0].second, rewards[1].second);
+
+  CTransaction tx = f.MakeCoinbaseTx(f.immediate_reward + fees, rewards, {input_amount});
+  CValidationState validation_state;
+
+  const bool result = validator->CheckBlockRewards(tx, validation_state, f.block, input_amount, fees);
+  BOOST_CHECK(!result);
+  BOOST_CHECK(!validation_state.IsValid());
+  BOOST_CHECK_EQUAL(validation_state.GetRejectCode(), REJECT_INVALID);
+  BOOST_CHECK_EQUAL(validation_state.GetRejectReason(), "bad-cb-finalization-reward");
+}
+
+BOOST_AUTO_TEST_CASE(finalization_rewards_wrong_script) {
+  Fixture f;
+  const auto validator = f.GetBlockRewardValidator();
+
+  const CAmount input_amount = 5 * UNIT;
+  const CAmount fees = UNIT / 2;
+
+  f.InitFinalizationRewards();
+  auto rewards = f.finalization_reward_logic.rewards;
+  std::swap(rewards[0].first, rewards[2].first);
+
+  CTransaction tx = f.MakeCoinbaseTx(f.immediate_reward + fees, rewards, {input_amount});
+  CValidationState validation_state;
+
+  const bool result = validator->CheckBlockRewards(tx, validation_state, f.block, input_amount, fees);
+  BOOST_CHECK(!result);
+  BOOST_CHECK(!validation_state.IsValid());
+  BOOST_CHECK_EQUAL(validation_state.GetRejectCode(), REJECT_INVALID);
+  BOOST_CHECK_EQUAL(validation_state.GetRejectReason(), "bad-cb-finalization-reward");
+}
+
+BOOST_AUTO_TEST_CASE(finalization_rewards_no_block_on_disk) {
+  Fixture f;
+  const auto validator = f.GetBlockRewardValidator();
+  f.prev_prev_block.nStatus = 0;
+
+  const CAmount input_amount = 5 * UNIT;
+  const CAmount fees = UNIT / 2;
+
+  f.InitFinalizationRewards();
+  auto rewards = f.finalization_reward_logic.rewards;
+  std::swap(rewards[0].first, rewards[1].first);  // Scripts cannot be validated because we do not have block data
+
+  CTransaction tx = f.MakeCoinbaseTx(f.immediate_reward + fees, rewards, {input_amount});
+  CValidationState validation_state;
+
+  const bool result = validator->CheckBlockRewards(tx, validation_state, f.block, input_amount, fees);
+  BOOST_CHECK(result);
+  BOOST_CHECK(validation_state.IsValid());
+  BOOST_CHECK_EQUAL(f.finalization_reward_logic.invocations_GetFinalizationRewardAmounts, 1);
+  BOOST_CHECK_EQUAL(f.finalization_reward_logic.invocations_GetFinalizationRewards, 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

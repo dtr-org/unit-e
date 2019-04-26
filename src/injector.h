@@ -75,7 +75,8 @@ class UnitEInjector : public Injector<UnitEInjector> {
             staking::Network)
 
   COMPONENT(BlockRewardValidator, staking::BlockRewardValidator, staking::BlockRewardValidator::New,
-            blockchain::Behavior)
+            blockchain::Behavior,
+            proposer::FinalizationRewardLogic)
 
   COMPONENT(BlockDB, BlockDB, BlockDB::New)
 
