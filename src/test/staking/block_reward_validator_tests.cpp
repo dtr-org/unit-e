@@ -13,12 +13,12 @@ namespace {
 
 class FinalizationRewardLogicMock : public proposer::FinalizationRewardLogic {
  public:
-  std::vector<std::pair<CScript, CAmount>> rewards;
+  std::vector<CTxOut> rewards;
   mutable std::uint32_t invocations_GetFinalizationRewards = 0;
   mutable std::uint32_t invocations_GetFinalizationRewardAmounts = 0;
   mutable boost::optional<blockchain::Height> arg_GetNumberOfRewardOutputs_height = boost::none;
 
-  std::vector<std::pair<CScript, CAmount>> GetFinalizationRewards(const CBlockIndex &last_block) const override {
+  std::vector<CTxOut> GetFinalizationRewards(const CBlockIndex &last_block) const override {
     ++invocations_GetFinalizationRewards;
     return rewards;
   }
@@ -27,7 +27,7 @@ class FinalizationRewardLogicMock : public proposer::FinalizationRewardLogic {
     ++invocations_GetFinalizationRewardAmounts;
     std::vector<CAmount> result;
     for (const auto &r : rewards) {
-      result.push_back(r.second);
+      result.push_back(r.nValue);
     }
     return result;
   }
@@ -92,7 +92,7 @@ struct Fixture {
 
   CTransaction MakeCoinbaseTx(
       CAmount block_reward,
-      const std::vector<std::pair<CScript, CAmount>> &finalization_rewards,
+      const std::vector<CTxOut> &finalization_rewards,
       const std::vector<CAmount> &outputs) {
     const CTxIn meta_input;
     const CTxIn staking_input;
@@ -102,7 +102,7 @@ struct Fixture {
     tx.vin = {meta_input, staking_input};
     tx.vout.emplace_back(block_reward, CScript());
     for (const auto &r : finalization_rewards) {
-      tx.vout.emplace_back(r.second, r.first);
+      tx.vout.push_back(r);
     }
     for (const auto out : outputs) {
       tx.vout.emplace_back(out, CScript());
@@ -113,7 +113,7 @@ struct Fixture {
   void InitFinalizationRewards() {
     for (int i = 0; i < 5; ++i) {
       const auto script = CScript() << CScriptNum(i);
-      finalization_reward_logic.rewards.emplace_back(script, (i + 1) * UNIT);
+      finalization_reward_logic.rewards.emplace_back((i + 1) * UNIT, script);
     }
   }
 
@@ -258,7 +258,7 @@ BOOST_AUTO_TEST_CASE(finalization_rewards_wrong_amount) {
 
   f.InitFinalizationRewards();
   auto rewards = f.finalization_reward_logic.rewards;
-  std::swap(rewards[0].second, rewards[1].second);
+  std::swap(rewards[0].nValue, rewards[1].nValue);
 
   CTransaction tx = f.MakeCoinbaseTx(f.immediate_reward + fees, rewards, {input_amount});
   CValidationState validation_state;
@@ -279,7 +279,7 @@ BOOST_AUTO_TEST_CASE(finalization_rewards_wrong_script) {
 
   f.InitFinalizationRewards();
   auto rewards = f.finalization_reward_logic.rewards;
-  std::swap(rewards[0].first, rewards[2].first);
+  std::swap(rewards[0].scriptPubKey, rewards[2].scriptPubKey);
 
   CTransaction tx = f.MakeCoinbaseTx(f.immediate_reward + fees, rewards, {input_amount});
   CValidationState validation_state;
@@ -294,14 +294,15 @@ BOOST_AUTO_TEST_CASE(finalization_rewards_wrong_script) {
 BOOST_AUTO_TEST_CASE(finalization_rewards_no_block_on_disk) {
   Fixture f;
   const auto validator = f.GetBlockRewardValidator();
-  f.prev_prev_block.nStatus = 0;
+  f.prev_prev_block.nStatus = 0;  // Unset the BLOCK_HAVE_DATA flag
 
   const CAmount input_amount = 5 * UNIT;
   const CAmount fees = UNIT / 2;
 
   f.InitFinalizationRewards();
   auto rewards = f.finalization_reward_logic.rewards;
-  std::swap(rewards[0].first, rewards[1].first);  // Scripts cannot be validated because we do not have block data
+  // Scripts cannot be validated here because we do not have the block data
+  std::swap(rewards[0].scriptPubKey, rewards[1].scriptPubKey);
 
   CTransaction tx = f.MakeCoinbaseTx(f.immediate_reward + fees, rewards, {input_amount});
   CValidationState validation_state;

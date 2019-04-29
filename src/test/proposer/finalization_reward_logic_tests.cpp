@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE(get_finalization_rewards) {
 
   f.BuildChain(f.fin_params.GetEpochCheckpointHeight(2) + 1);
 
-  std::vector<std::pair<CScript, CAmount>> rewards = logic->GetFinalizationRewards(f.BlockIndexAtHeight(0));
+  std::vector<CTxOut> rewards = logic->GetFinalizationRewards(f.BlockIndexAtHeight(0));
   std::vector<CAmount> reward_amounts = logic->GetFinalizationRewardAmounts(f.BlockIndexAtHeight(0));
   BOOST_CHECK_EQUAL(rewards.size(), 0);
   BOOST_CHECK_EQUAL(reward_amounts.size(), 0);
@@ -119,10 +119,10 @@ BOOST_AUTO_TEST_CASE(get_finalization_rewards) {
     for (std::size_t i = 0; i < rewards.size(); ++i) {
       auto h = static_cast<blockchain::Height>(fin_state.GetEpochStartHeight(epoch) + i);
       auto r = static_cast<CAmount>(f.parameters.reward_function(f.parameters, h) * 0.4);
-      BOOST_CHECK_EQUAL(rewards[i].second, r);
+      BOOST_CHECK_EQUAL(rewards[i].nValue, r);
       BOOST_CHECK_EQUAL(reward_amounts[i], r);
       auto s = f.BlockAtHeight(h).vtx[0]->vout[0].scriptPubKey;
-      BOOST_CHECK_EQUAL(HexStr(rewards[i].first), HexStr(s));
+      BOOST_CHECK_EQUAL(HexStr(rewards[i].scriptPubKey), HexStr(s));
     }
   }
 }

@@ -440,7 +440,7 @@ class StateRepositoryMock : public finalization::StateRepository {
 
 class FinalizationRewardLogicMock : public proposer::FinalizationRewardLogic {
  public:
-  std::vector<std::pair<CScript, CAmount>> GetFinalizationRewards(const CBlockIndex &block_index) const override {
+  std::vector<CTxOut> GetFinalizationRewards(const CBlockIndex &block_index) const override {
     return {};
   }
   std::vector<CAmount> GetFinalizationRewardAmounts(const CBlockIndex &block_index) const override {

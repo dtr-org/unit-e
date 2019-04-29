@@ -26,7 +26,7 @@ class MissingBlockError : public std::runtime_error {
 class FinalizationRewardLogic {
 
  public:
-  virtual std::vector<std::pair<CScript, CAmount>> GetFinalizationRewards(const CBlockIndex &) const = 0;
+  virtual std::vector<CTxOut> GetFinalizationRewards(const CBlockIndex &) const = 0;
 
   virtual std::vector<CAmount> GetFinalizationRewardAmounts(const CBlockIndex &) const = 0;
 

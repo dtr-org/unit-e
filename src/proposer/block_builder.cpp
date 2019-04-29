@@ -151,13 +151,13 @@ class BlockBuilderImpl : public BlockBuilder {
 
     tx.vout.emplace_back(reward, reward_script);
 
-    std::vector<std::pair<CScript, CAmount>> finalization_rewards =
+    std::vector<CTxOut> finalization_rewards =
         m_finalization_reward_logic->GetFinalizationRewards(prev_block);
 
     CAmount combined_reward = reward;
     for (const auto &r : finalization_rewards) {
-      tx.vout.emplace_back(r.second, r.first);
-      combined_reward += r.second;
+      tx.vout.push_back(r);
+      combined_reward += r.nValue;
     }
 
     const CAmount threshold = m_settings->stake_split_threshold;

@@ -39,7 +39,7 @@ class FinalizationRewardLogicImpl : public FinalizationRewardLogic {
         m_block_db(block_db) {
   }
 
-  std::vector<std::pair<CScript, CAmount>> GetFinalizationRewards(const CBlockIndex &last_block) const override {
+  std::vector<CTxOut> GetFinalizationRewards(const CBlockIndex &last_block) const override {
     if (last_block.nHeight < m_finalization_params->GetEpochCheckpointHeight(1)) {
       return {};
     }
@@ -49,15 +49,15 @@ class FinalizationRewardLogicImpl : public FinalizationRewardLogic {
       return {};
     }
 
-    std::vector<std::pair<CScript, CAmount>> result;
+    std::vector<CTxOut> result;
     result.reserve(m_finalization_params->epoch_length);
     const auto epoch = m_finalization_params->GetEpoch(prev_height);
     const blockchain::Height epoch_start = m_finalization_params->GetEpochStartHeight(epoch);
 
     for (const CBlockIndex *walk = &last_block; walk != nullptr && walk->nHeight >= epoch_start; walk = walk->pprev) {
       result.emplace_back(
-          GetRewardScript(*walk),
-          m_blockchain_behavior->CalculateFinalizationReward(static_cast<blockchain::Height>(walk->nHeight)));
+          m_blockchain_behavior->CalculateFinalizationReward(static_cast<blockchain::Height>(walk->nHeight)),
+          GetRewardScript(*walk));
     }
     assert(result.size() == m_finalization_params->epoch_length);
     std::reverse(result.begin(), result.end());

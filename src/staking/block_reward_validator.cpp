@@ -55,12 +55,10 @@ class BlockRewardValidatorImpl : public BlockRewardValidator {
         }
       }
     } else if (num_reward_outputs > 1) {
-      std::vector<std::pair<CScript, CAmount>> fin_rewards =
-          m_finalization_reward_logic->GetFinalizationRewards(prev_block);
+      std::vector<CTxOut> fin_rewards = m_finalization_reward_logic->GetFinalizationRewards(prev_block);
       for (std::size_t i = 0; i < fin_rewards.size(); ++i) {
-        total_reward += fin_rewards[i].second;
-        if (coinbase_tx.vout[i + 1].nValue != fin_rewards[i].second ||
-            coinbase_tx.vout[i + 1].scriptPubKey != fin_rewards[i].first) {
+        total_reward += fin_rewards[i].nValue;
+        if (coinbase_tx.vout[i + 1] != fin_rewards[i]) {
           return state.DoS(100, error("%s: incorrect finalization reward", __func__), REJECT_INVALID,
                            "bad-cb-finalization-reward");
         }
