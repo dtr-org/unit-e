@@ -576,7 +576,7 @@ class CompactBlocksTest(UnitETestFramework):
         assert_equal(test_node.last_message["getdata"].inv[0].hash, block.sha256)
 
         # Deliver the block
-        test_node.send_and_ping(msg_witness_block(block))
+        test_node.send_and_ping(msg_block(block))
         assert_equal(int(node.getbestblockhash(), 16), block.sha256)
 
     def test_getblocktxn_handler(self, node, test_node):

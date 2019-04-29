@@ -1212,7 +1212,7 @@ class msg_block():
         self.block.deserialize(f)
 
     def serialize(self):
-        return self.block.serialize(with_witness=False)
+        return self.block.serialize(with_witness=True)
 
     def __repr__(self):
         return "msg_block(block=%s)" % (repr(self.block))
@@ -1229,12 +1229,6 @@ class msg_generic():
 
     def __repr__(self):
         return "msg_generic()"
-
-class msg_witness_block(msg_block):
-
-    def serialize(self):
-        r = self.block.serialize(with_witness=True)
-        return r
 
 class msg_getaddr():
     command = b"getaddr"

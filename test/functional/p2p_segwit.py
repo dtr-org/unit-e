@@ -6,7 +6,7 @@
 
 from test_framework.mininode import *
 from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
-from test_framework.messages import msg_block, msg_witness_block
+from test_framework.messages import msg_block, msg_block
 from test_framework.util import *
 from test_framework.script import *
 from test_framework.blocktools import create_block, create_coinbase, sign_coinbase, get_tip_snapshot_meta
@@ -46,7 +46,7 @@ def test_witness_block(rpc, p2p, block, accepted, with_witness=True):
 
     - Submit the block over the p2p interface
     - use the getbestblockhash rpc to check for acceptance."""
-    p2p.send_message(msg_witness_block(block))
+    p2p.send_message(msg_block(block))
     p2p.sync_with_ping()
 
     if accepted:

@@ -17,7 +17,7 @@ make assumptions about execution order.
 from test_framework.blocktools import send_to_witness
 from test_framework.test_framework import UnitETestFramework
 from test_framework import blocktools
-from test_framework.messages import msg_witness_block
+from test_framework.messages import msg_block
 from test_framework.mininode import (CTransaction, P2PInterface, network_thread_start)
 from test_framework.util import *
 
@@ -312,7 +312,7 @@ def submit_block_with_tx(node, tx):
     block.vtx.append(ctx)
     block.compute_merkle_trees()
     block.solve()
-    node.p2p.send_and_ping(msg_witness_block(block))
+    node.p2p.send_and_ping(msg_block(block))
     assert_equal(node.getbestblockhash(), block.hash)
     return block
 

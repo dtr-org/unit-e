@@ -15,7 +15,7 @@ from test_framework.test_framework import UnitETestFramework
 from test_framework.mininode import (
     P2PInterface,
     network_thread_start,
-    msg_witness_block,
+    msg_block,
 )
 
 from test_framework.util import (
@@ -278,7 +278,7 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         for h in range(known_fork1_height + 1, fork1.getblockcount()):
             block_hash = fork1.getblockhash(h)
             block = FromHex(CBlock(), fork1.getblock(block_hash, 0))
-            attacker.send_message(msg_witness_block(block))
+            attacker.send_message(msg_block(block))
             node_blocks += 1
             wait_until(lambda: node.getblockcount() == node_blocks, timeout=15)
 
@@ -349,7 +349,7 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         block_hash = fork1.getblockhash(fork1.getblockcount())
         block = FromHex(CBlock(), fork1.getblock(block_hash, 0))
         block.calc_sha256()
-        attacker.send_message(msg_witness_block(block))
+        attacker.send_message(msg_block(block))
 
         # node should't re-org to malicious fork
         wait_for_reject(attacker, b'bad-fork-before-last-finalized-epoch', block.sha256)

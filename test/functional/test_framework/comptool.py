@@ -345,7 +345,7 @@ class TestManager():
                                 # Most likely, we delivered a header for this block
                                 # but never had the block to respond to the getdata
                                 if send_witness:
-                                    c.send_message(msg_witness_block(block))
+                                    c.send_message(msg_block(block))
                                 else:
                                     c.send_message(msg_block(block))
                             else:
@@ -360,7 +360,7 @@ class TestManager():
                             self.sync_blocks(block.sha256, 1)
                         else:
                             if send_witness:
-                                [c.send_message(msg_witness_block(block)) for c in self.p2p_connections]
+                                [c.send_message(msg_block(block)) for c in self.p2p_connections]
                             else:
                                 [c.send_message(msg_block(block)) for c in self.p2p_connections]
                             [ n.drain_main_signal_callbacks_pending() for n in self.nodes ]

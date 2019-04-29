@@ -28,7 +28,7 @@ from test_framework.blocktools import (
 from test_framework.mininode import P2PInterface, network_thread_start
 from test_framework.messages import (
     msg_headers,
-    msg_witness_block,
+    msg_block,
     GrapheneBlock,
     CBlockHeader,
     GrapheneIbltEntryDummy,
@@ -90,7 +90,7 @@ class GrapheneActive(UnitETestFramework):
 
         # Can't decode iblt => should request fallback, which we will send
         p2p.wait_for_getdata(block.hash)
-        p2p.send_message(msg_witness_block(block))
+        p2p.send_message(msg_block(block))
 
         self.nodes[0].waitforblockheight(count_before + 1)
 
@@ -121,7 +121,7 @@ class GrapheneActive(UnitETestFramework):
         block = self.create_block()
         node.p2p.send_message(msg_headers([block]))
         node.p2p.wait_for_getgraphene(block.hash)
-        node.p2p.send_message(msg_witness_block(block))
+        node.p2p.send_message(msg_block(block))
         node.waitforblockheight(count_before + 1)
 
     def generate_with_txs(self):
