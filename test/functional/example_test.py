@@ -178,6 +178,8 @@ class ExampleTest(UnitETestFramework):
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         stakes = self.nodes[0].listunspent()
         for stake in stakes:
+            # Wait until the active chain picks up the last block
+            wait_until(lambda: self.nodes[0].getblockcount() == height, timeout=5)
             # Use the mininode and blocktools functionality to manually build a block
             # Calling the generate() rpc is easier, but this allows us to exactly
             # control the blocks and transactions.
@@ -187,8 +189,6 @@ class ExampleTest(UnitETestFramework):
                                 finalization_rewards=get_finalization_rewards(self.nodes[0]))
             )
             block = create_block(self.tip, coinbase, self.block_time)
-            # Wait until the active chain picks up the previous block
-            wait_until(lambda: self.nodes[0].getblockcount() == height, timeout=5)
             snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta, height + 1, coinbase)
             block.solve()
             block_message = msg_block(block)
