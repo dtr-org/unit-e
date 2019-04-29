@@ -16,4 +16,5 @@ src/test/test_unite --list_content 2>&1 | \
   tr -d '*' | \
   awk '{ f = $0 ".log"; print "src/test/test_unite --run_test=" $0 " > \"" f "\" 2>&1 && (echo \"- [x] " $0 "\"; rm \"" f "\"; true) || (echo \"- [ ] " $0 " (see " f ")\"; false)"}' | \
   parallel -j 0 bash -c 2> /dev/null | \
-  sort
+  # Sort test results alphabetically, with the failing ones grouped at the bottom
+  sort -t / -k 1.6 | sort -s -t / -k 1.3,1.5 -r
