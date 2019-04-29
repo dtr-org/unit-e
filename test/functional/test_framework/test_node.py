@@ -235,7 +235,7 @@ class TestNode():
         try:
             self.drain_main_signal_callbacks_pending()
             self.stop(wait=wait)
-        except http.client.CannotSendRequest:
+        except (http.client.CannotSendRequest, subprocess.CalledProcessError):
             self.log.exception("Unable to stop node.")
 
         # Check that stderr is as expected
