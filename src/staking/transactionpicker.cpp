@@ -10,9 +10,9 @@
 
 namespace staking {
 
-//! \brief An adapter to bitcoins CBlockAssembler.
+//! \brief An adapter to bitcoins BlockAssembler.
 //!
-//! The CBlockAssembler comprises the logic for picking transactions.
+//! The BlockAssembler comprises the logic for picking transactions.
 //! In order to maintain compatibility with bitcoin but not rely on
 //! CBlockTemplate and not change existing code this adapter is used
 //! to just extract the transactions to be included when building a new
@@ -38,11 +38,11 @@ class BlockAssemblerAdapter final : public TransactionPicker {
   PickTransactionsResult PickTransactions(
       const PickTransactionsParameters &parameters) override {
 
-    ::BlockAssembler::Options block_assembler_options;
+    BlockAssembler::Options block_assembler_options;
     block_assembler_options.blockMinFeeRate = parameters.min_fees;
     block_assembler_options.nBlockMaxWeight = parameters.max_weight;
 
-    ::BlockAssembler block_assembler(::Params(), block_assembler_options);
+    BlockAssembler block_assembler(::Params(), block_assembler_options);
 
     PickTransactionsResult result;
     try {
