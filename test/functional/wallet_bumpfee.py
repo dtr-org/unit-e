@@ -56,7 +56,7 @@ class BumpFeeTest(UnitETestFramework):
         connect_nodes_bi(self.nodes, 0, 1)
         self.sync_all()
 
-        rbf_node_address = rbf_node.getnewaddress('', 'legacy')
+        rbf_node_address = rbf_node.getnewaddress('', 'bech32')
 
         # fund rbf node with 25 coins of 0.001 btc (100,000 satoshis)
         self.log.info("Mining blocks...")
