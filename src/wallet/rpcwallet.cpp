@@ -3504,7 +3504,6 @@ UniValue generate(const JSONRPCRequest& request)
             "\nNote: this function can only be used on the regtest network.\n"
             "\nArguments:\n"
             "1. nblocks      (numeric, required) How many blocks are generated immediately.\n"
-            "2. maxtries     (numeric, optional) How many iterations to try (default = 1000000).\n"
             "\nResult:\n"
             "[ blockhashes ]     (array) hashes of blocks generated\n"
             "\nExamples:\n"
@@ -3518,10 +3517,6 @@ UniValue generate(const JSONRPCRequest& request)
     }
 
     int num_generate = request.params[0].get_int();
-    uint64_t max_tries = 1000000;
-    if (!request.params[1].isNull()) {
-        max_tries = request.params[1].get_int();
-    }
 
     return GenerateBlocks(pwallet, boost::none, num_generate);
 }
@@ -3542,7 +3537,6 @@ UniValue generatetoaddress(const JSONRPCRequest& request)
             "\nArguments:\n"
             "1. nblocks      (numeric, required) How many blocks are generated immediately.\n"
             "2. address      (string, required) The address to send the newly generated unite to.\n"
-            "3. maxtries     (numeric, optional) How many iterations to try (default = 1000000).\n"
             "\nResult:\n"
             "[ blockhashes ]     (array) hashes of blocks generated\n"
             "\nExamples:\n"
@@ -3555,10 +3549,6 @@ UniValue generatetoaddress(const JSONRPCRequest& request)
     }
 
     int nGenerate = request.params[0].get_int();
-    uint64_t nMaxTries = 1000000;
-    if (!request.params[2].isNull()) {
-        nMaxTries = request.params[2].get_int();
-    }
 
     CTxDestination destination = DecodeDestination(request.params[1].get_str());
     if (!IsValidDestination(destination)) {
