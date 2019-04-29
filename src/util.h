@@ -292,7 +292,7 @@ public:
     /**
      * Check whether we know of this arg
      */
-    bool IsArgKnown(const std::string& key) const;
+    virtual bool IsArgKnown(const std::string& key) const;
 };
 
 extern ArgsManager gArgs;

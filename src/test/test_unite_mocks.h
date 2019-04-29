@@ -40,6 +40,7 @@ class ArgsManagerMock : public ArgsManager {
     ParseParameters(static_cast<int>(i), argv, error);
     delete[] argv;
   }
+  bool IsArgKnown(const std::string& ) const override { return true; }
 };
 
 class NetworkMock : public staking::Network {

@@ -15,6 +15,9 @@ class ProposerStakeableBalanceTest(UnitETestFramework):
             '-maxtipage=1000000000'
         ] for i in range(0, self.num_nodes))
 
+    def setup_network(self):
+        self.setup_nodes()
+
     def run_test(self):
         num_keys = 4
         nodes = self.nodes

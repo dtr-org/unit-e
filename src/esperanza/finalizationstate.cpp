@@ -5,13 +5,12 @@
 #include <esperanza/finalizationstate.h>
 
 #include <chainparams.h>
-#include <esperanza/checks.h>
+#include <esperanza/script.h>
 #include <esperanza/vote.h>
 #include <script/ismine.h>
 #include <tinyformat.h>
 #include <ufp64.h>
 #include <util.h>
-#include <validation.h>
 
 #include <stdint.h>
 #include <algorithm>

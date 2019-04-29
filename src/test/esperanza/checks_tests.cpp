@@ -4,6 +4,7 @@
 
 #include <esperanza/checks.h>
 #include <esperanza/finalizationstate.h>
+#include <esperanza/script.h>
 #include <finalization/params.h>
 #include <keystore.h>
 #include <random.h>

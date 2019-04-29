@@ -148,7 +148,7 @@ class RemoteStakingTest(UnitETestFramework):
         assert_equal(len(alice.listunspent()), 2 +
                      (regtest_mnemonics[0]['balance'] // STAKE_SPLIT_THRESHOLD))
 
-        # Chech that Alice can spend remotely staked coins
+        # Check that Alice can spend remotely staked coins
         inputs = []
         for coin in bob.liststakeablecoins()['stakeable_coins']:
             out_point = coin['coin']['out_point']
