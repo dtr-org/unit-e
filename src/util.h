@@ -172,6 +172,7 @@ protected:
 
 public:
     ArgsManager();
+    virtual ~ArgsManager() = default;
 
     /**
      * Select the network in use
