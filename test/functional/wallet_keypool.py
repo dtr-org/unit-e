@@ -72,7 +72,8 @@ class KeyPoolTest(UnitETestFramework):
         nodes[0].getnewaddress()
         nodes[0].getnewaddress()
         nodes[0].getnewaddress()
-        assert_raises_rpc_error(-12, "Keypool ran out", nodes[0].generate, 1)
+
+        assert_raises_rpc_error(-12, "Keypool ran out", nodes[0].getnewaddress)
 
         nodes[0].walletpassphrase('test', 100)
         nodes[0].keypoolrefill(100)
