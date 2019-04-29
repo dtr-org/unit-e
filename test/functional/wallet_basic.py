@@ -59,7 +59,7 @@ class WalletTest(UnitETestFramework):
         balance1 = self.nodes[1].initial_stake
         balance2 = self.nodes[2].initial_stake
 
-        self.nodes[0].generate(1)
+        self.nodes[0].generatetoaddress(1, self.nodes[0].getnewaddress('', 'bech32'))
 
         walletinfo = self.nodes[0].getwalletinfo()
 
