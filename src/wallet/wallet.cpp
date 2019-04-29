@@ -1136,7 +1136,22 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                 std::pair<TxSpends::const_iterator, TxSpends::const_iterator> range = mapTxSpends.equal_range(txin.prevout);
                 while (range.first != range.second) {
                     if (range.first->second != tx.GetHash()) {
-                        LogPrintf("Transaction %s (in block %s) conflicts with wallet transaction %s (both spend %s:%i)\n", tx.GetHash().ToString(), pIndex->GetBlockHash().ToString(), range.first->second.ToString(), range.first->first.hash.ToString(), range.first->first.n);
+                        if (tx.IsCoinBase() && mapWallet.find(range.first->second)->second.IsCoinBase()) {
+                            // We show different messages depending on whether the transactions are coinbase because
+                            // this case will be more common (& also less problematic, since we have maturity).
+                            LogPrintf(
+                                "After re-org, new coinbase tx %s (in block %s) uses same input (%s:%i) as the old & discarded coinbase tx %s.\n",
+                                tx.GetHash().ToString(), pIndex->GetBlockHash().ToString(), range.first->first.hash.ToString(), range.first->first.n, range.first->second.ToString()
+                            );
+                            // TODO UNIT-E: In case we have transactions depending on the discarded coinbase tx, and we
+                            //              are the emitters of all of them, we could copy them replacing the inputs to
+                            //              decrease the re-org's impact.
+                        } else {
+                            LogPrintf(
+                                "Transaction %s (in block %s) conflicts with wallet transaction %s (both spend %s:%i)\n",
+                                tx.GetHash().ToString(), pIndex->GetBlockHash().ToString(), range.first->second.ToString(), range.first->first.hash.ToString(), range.first->first.n
+                            );
+                        }
                         MarkConflicted(pIndex->GetBlockHash(), range.first->second);
                     }
                     range.first++;
