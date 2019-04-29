@@ -303,11 +303,14 @@ def assert_array_result(object_array, to_match, expected, should_not_find=False)
 
 def assert_finalizationstate(node, expected):
     state = node.getfinalizationstate()
+    errors = []
     for key in expected:
         a = state[key]
         b = expected[key]
         if a != b:
-            raise AssertionError("%s: not(%s == %s)" % (str(key), str(a), str(b)))
+            errors.append("%s: not(%s == %s)" % (str(key), str(a), str(b)))
+    if len(errors) > 0:
+        raise AssertionError('\n\t\t\t\t'.join(errors))
 
 # Utility functions
 ###################

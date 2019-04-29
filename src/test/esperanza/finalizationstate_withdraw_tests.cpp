@@ -60,11 +60,11 @@ BOOST_AUTO_TEST_CASE(process_withdraw_too_early) {
 
   // From epoch end_logout+1 until end_withdraw-1 finalizer can't withdraw.
   // At end_withdraw or later finalizer can withdraw its deposit.
-  uint32_t end_withdraw = end_logout + static_cast<uint32_t>(spy.WithdrawalEpochDelay());
-  BOOST_CHECK_EQUAL(end_withdraw, 21);
+  uint32_t end_withdraw = end_logout + static_cast<uint32_t>(spy.WithdrawalEpochDelay()) + 1;
+  BOOST_CHECK_EQUAL(end_withdraw, 22);
 
   for (uint32_t i = spy.GetCurrentEpoch(); i < end_withdraw; ++i) {
-    if (spy.GetCurrentDynasty() < validator->m_end_dynasty) {
+    if (spy.GetCurrentDynasty() <= validator->m_end_dynasty) {
       Vote vote{validatorAddress, targetHash, i - 2, i - 1};
 
       BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);

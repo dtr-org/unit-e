@@ -45,9 +45,6 @@ class FinalizationStateData {
   // Map of epoch number to checkpoint
   std::map<uint32_t, Checkpoint> m_checkpoints;
 
-  // Map of epoch number to dynasty number
-  std::map<uint32_t, uint32_t> m_epoch_to_dynasty;
-
   // Map of dynasty number to the starting epoch number
   std::map<uint32_t, uint32_t> m_dynasty_start_epoch;
 
@@ -103,7 +100,6 @@ class FinalizationStateData {
   template <typename Stream, typename Operation>
   void SerializationOp(Stream &s, Operation ser_action) {
     READWRITE(m_checkpoints);
-    READWRITE(m_epoch_to_dynasty);
     READWRITE(m_dynasty_start_epoch);
     READWRITE(m_validators);
     READWRITE(m_dynasty_deltas);
