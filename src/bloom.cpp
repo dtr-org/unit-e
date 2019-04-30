@@ -49,10 +49,10 @@ CBloomFilter::CBloomFilter(const size_t nElements, const double nFPRate, const u
 
 // Private constructor used by CRollingBloomFilter
 CBloomFilter::CBloomFilter(const size_t nElements, const double nFPRate, const uint32_t nTweakIn) :
-    vData((size_t)(-1  / LN2SQUARED * nElements * log(nFPRate)) / 8),
+    vData(static_cast<size_t>(-1  / LN2SQUARED * nElements * log(nFPRate)) / 8),
     isFull(false),
     isEmpty(true),
-    nHashFuncs((uint32_t)(vData.size() * 8 / nElements * LN2)),
+    nHashFuncs(static_cast<uint32_t>(vData.size() * 8 / nElements * LN2)),
     nTweak(nTweakIn),
     nFlags(BLOOM_UPDATE_NONE)
 {
