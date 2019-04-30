@@ -11,14 +11,16 @@ from test_framework.blocktools import (
     TxType,
 )
 from test_framework.util import (
-    sync_blocks,
+    assert_finalizationstate,
+    assert_equal,
+    assert_raises_rpc_error,
     connect_nodes,
     disconnect_nodes,
-    assert_finalizationstate,
-    assert_raises_rpc_error,
-    assert_equal,
+    generate_block,
+    sync_blocks,
+    sync_mempools,
     wait_until,
-    sync_mempools)
+)
 
 
 class FinalizationSlashSelfTest(UnitETestFramework):
@@ -62,7 +64,7 @@ class FinalizationSlashSelfTest(UnitETestFramework):
         finalizer2.importmasterkey(finalizer1.mnemonics)
 
         # leave IBD
-        fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
+        generate_block(fork1)
         sync_blocks([fork1, fork2, finalizer1, finalizer2])
 
         disconnect_nodes(fork1, finalizer2.index)
@@ -74,7 +76,7 @@ class FinalizationSlashSelfTest(UnitETestFramework):
         assert_equal(txid1, txid2)
         connect_nodes(fork1, finalizer2.index)
 
-        fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
+        generate_block(fork1)
         sync_blocks([fork1, fork2, finalizer1, finalizer2])
         disconnect_nodes(fork1, finalizer1.index)
         disconnect_nodes(fork1, finalizer2.index)
@@ -82,7 +84,7 @@ class FinalizationSlashSelfTest(UnitETestFramework):
         # pass instant finalization
         # F    F    F    F    J
         # e0 - e1 - e2 - e3 - e4 - e5 - e[26] fork1, fork2
-        fork1.generatetoaddress(3 + 5 + 5 + 5 + 5 + 1, fork1.getnewaddress('', 'bech32'))
+        generate_block(fork1, count=3 + 5 + 5 + 5 + 5 + 1)
         assert_equal(fork1.getblockcount(), 26)
         assert_finalizationstate(fork1, {'currentEpoch': 6,
                                          'lastJustifiedEpoch': 4,
@@ -104,11 +106,11 @@ class FinalizationSlashSelfTest(UnitETestFramework):
         # e0 - e1 - e2 - e3 - e4 - e5 - e6[26]
         #                                   \  v1          v2a
         #                                    - e6 - e7[31, 32] fork2
-        fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
+        generate_block(fork1)
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=fork1)
-        fork1.generatetoaddress(5, fork1.getnewaddress('', 'bech32'))
+        generate_block(fork1, count=5)
         raw_vote_1 = self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=fork1)
-        fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
+        generate_block(fork1)
         assert_equal(fork1.getblockcount(), 33)
         assert_finalizationstate(fork1, {'currentEpoch': 7,
                                          'lastJustifiedEpoch': 6,
@@ -117,7 +119,7 @@ class FinalizationSlashSelfTest(UnitETestFramework):
 
         # We'll use a second vote to check if there is slashing when a validator tries to send a double vote after it
         # voted.
-        fork1.generatetoaddress(3, fork1.getnewaddress('', 'bech32'))
+        generate_block(fork1, count=3)
         raw_vote_2 = self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=fork1)
         assert_equal(fork1.getblockcount(), 36)
         assert_finalizationstate(fork1, {'currentEpoch': 8,
@@ -128,9 +130,9 @@ class FinalizationSlashSelfTest(UnitETestFramework):
         # Send the conflicting vote from the other chain to finalizer2, it should record it and slash it later
         assert_raises_rpc_error(-26, "bad-vote-invalid", finalizer2.sendrawtransaction, raw_vote_1)
 
-        fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))
+        generate_block(fork2)
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork2)
-        fork2.generatetoaddress(5, fork2.getnewaddress('', 'bech32'))
+        generate_block(fork2, count=5)
         assert_equal(fork2.getblockcount(), 32)
         assert_finalizationstate(fork2, {'currentEpoch': 7,
                                          'lastJustifiedEpoch': 5,

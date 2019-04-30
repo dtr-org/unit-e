@@ -8,10 +8,11 @@ is progressing during re-orgs
 """
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
-    connect_nodes,
-    sync_blocks,
     assert_equal,
+    connect_nodes,
     disconnect_nodes,
+    generate_block,
+    sync_blocks,
     wait_until,
 )
 import os
@@ -51,7 +52,7 @@ class EsperanzaDepositReorgTest(UnitETestFramework):
 
         # leave IBD
         # e0 - e1[1] node1, node2, node3, finalizer
-        node0.generatetoaddress(1, node0.getnewaddress('', 'bech32'))
+        generate_block(node0)
         assert_equal(node0.getblockcount(), 1)
         sync_blocks([node0, node1, finalizer], timeout=10)
         assert_equal(finalizer.getvalidatorinfo()['validator_status'], 'NOT_VALIDATING')
@@ -71,7 +72,7 @@ class EsperanzaDepositReorgTest(UnitETestFramework):
         a1 = node2.getnewaddress('', 'bech32')
         t1 = node0.sendtoaddress(a1, 5000)
         assert t1 in node0.getrawmempool()
-        node0.generatetoaddress(1, node0.getnewaddress('', 'bech32'))
+        generate_block(node0)
         assert_equal(node0.getblockcount(), 2)
         sync_blocks([node0, node2, finalizer], timeout=10)
         assert_equal(node2.getbalance(), 5000)
@@ -86,7 +87,7 @@ class EsperanzaDepositReorgTest(UnitETestFramework):
         t2 = node2.sendtoaddress(a2, 2000)
         assert t2 in node2.getrawmempool()
         wait_until(lambda: t2 in node0.getrawmempool(), timeout=150)
-        node0.generatetoaddress(1, node0.getnewaddress('', 'bech32'))
+        generate_block(node0)
         sync_blocks([node0, node2, finalizer], timeout=10)
         assert_equal(node0.getblockcount(), 3)
         assert_equal(finalizer.getbalance(), 2000)
@@ -113,7 +114,7 @@ class EsperanzaDepositReorgTest(UnitETestFramework):
         assert_equal(finalizer.getvalidatorinfo()['validator_status'], 'WAITING_DEPOSIT_CONFIRMATION')
         self.log.info('validator_status is correct after creating deposit')
 
-        node0.generatetoaddress(1, node0.getnewaddress('', 'bech32'))
+        generate_block(node0)
         assert_equal(node0.getblockcount(), 4)
         sync_blocks([node0, finalizer], timeout=10)
         assert_equal(finalizer.getvalidatorinfo()['validator_status'], 'WAITING_DEPOSIT_FINALIZATION')
@@ -125,7 +126,7 @@ class EsperanzaDepositReorgTest(UnitETestFramework):
         #         |     |
         #         |     -- 4, 5] node2, finalizer
         #         - node1
-        node2.generatetoaddress(2, node2.getnewaddress('', 'bech32'))
+        generate_block(node2, count=2)
         assert_equal(node2.getblockcount(), 5)
         disconnect_nodes(node0, finalizer.index)
         connect_nodes(node2, finalizer.index)
@@ -149,7 +150,7 @@ class EsperanzaDepositReorgTest(UnitETestFramework):
         #         |     |
         #         |     -- 4, 5] node2
         #         -- 2, 3, 4, 5, 6] node1, finalizer
-        node1.generatetoaddress(5, node1.getnewaddress('', 'bech32'))
+        generate_block(node1, count=5)
         assert_equal(node1.getblockcount(), 6)
         connect_nodes(node1, finalizer.index)
         sync_blocks([node1, finalizer], timeout=10)
@@ -184,7 +185,7 @@ class EsperanzaDepositReorgTest(UnitETestFramework):
         assert_equal(node1.sendrawtransaction(node0.getrawtransaction(t1)), t1)
         assert_equal(node1.sendrawtransaction(node0.getrawtransaction(t2)), t2)
         assert_equal(node1.sendrawtransaction(node0.getrawtransaction(d1)), d1)
-        node1.generatetoaddress(1, node1.getnewaddress('', 'bech32'))
+        generate_block(node1)
         connect_nodes(node1, finalizer.index)
         sync_blocks([node1, finalizer], timeout=10)
         assert_equal(finalizer.getvalidatorinfo()['validator_status'], 'WAITING_DEPOSIT_FINALIZATION')
@@ -198,11 +199,11 @@ class EsperanzaDepositReorgTest(UnitETestFramework):
         #         |     -- 4, 5] node2
         #         |                 t1 t2 d1
         #         -- 2, 3, 4, 5, 6, 7       ] node1
-        node0.generatetoaddress(6, node0.getnewaddress('', 'bech32'))
+        generate_block(node0, count=6)
         assert_equal(node0.getblockcount(), 10)
         assert_equal(node0.getfinalizationstate()['currentDynasty'], 0)
         for _ in range(4):
-            node0.generatetoaddress(10, node0.getnewaddress('', 'bech32'))
+            generate_block(node0, count=10)
         assert_equal(node0.getblockcount(), 50)
         assert_equal(node0.getfinalizationstate()['currentDynasty'], 2)
 
@@ -210,7 +211,7 @@ class EsperanzaDepositReorgTest(UnitETestFramework):
         sync_blocks([node0, finalizer], timeout=60)
         assert_equal(finalizer.getvalidatorinfo()['validator_status'], 'WAITING_DEPOSIT_FINALIZATION')
 
-        node0.generatetoaddress(1, node0.getnewaddress('', 'bech32'))
+        generate_block(node0)
         assert_equal(node0.getfinalizationstate()['currentDynasty'], 3)
         sync_blocks([node0, finalizer], timeout=10)
         assert_equal(finalizer.getvalidatorinfo()['validator_status'], 'IS_VALIDATING')

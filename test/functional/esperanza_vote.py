@@ -9,10 +9,11 @@ EsperanzaVoteTest checks:
 """
 from test_framework.util import (
     assert_equal,
-    sync_blocks,
+    assert_finalizationstate,
     connect_nodes,
     disconnect_nodes,
-    assert_finalizationstate,
+    generate_block,
+    sync_blocks,
 )
 from test_framework.test_framework import UnitETestFramework
 
@@ -50,7 +51,7 @@ class EsperanzaVoteTest(UnitETestFramework):
         connect_nodes(finalizer3, node0.index)
 
         # leave IBD
-        node0.generatetoaddress(1, node0.getnewaddress('', 'bech32'))
+        generate_block(node0)
         sync_blocks(self.nodes)
 
         # leave instant finalization
@@ -73,7 +74,7 @@ class EsperanzaVoteTest(UnitETestFramework):
 
         # move tip to the height when finalizers are activated
         # complete epoch + 3 epochs + 1 block of new epoch
-        node0.generatetoaddress(4 + 5 + 5 + 5 + 5 + 1, node0.getnewaddress('', 'bech32'))
+        generate_block(node0, count=4 + 5 + 5 + 5 + 5 + 1)
         assert_equal(node0.getblockcount(), 26)
         assert_finalizationstate(node0, {'currentDynasty': 3,
                                          'currentEpoch': 6,
@@ -87,7 +88,7 @@ class EsperanzaVoteTest(UnitETestFramework):
         self.wait_for_vote_and_disconnect(finalizer=finalizer3, node=node0)
         assert_equal(len(node0.getrawmempool()), 3)
 
-        node0.generatetoaddress(4, node0.getnewaddress('', 'bech32'))
+        generate_block(node0, count=4)
         assert_equal(node0.getblockcount(), 30)
         assert_finalizationstate(node0, {'currentDynasty': 3,
                                          'currentEpoch': 6,
@@ -101,7 +102,7 @@ class EsperanzaVoteTest(UnitETestFramework):
         self.restart_node(finalizer2.index, ['-validating=1', '-finalizervotefromepochblocknumber=2'])
         self.restart_node(finalizer3.index, ['-validating=1', '-finalizervotefromepochblocknumber=3'])
 
-        node0.generatetoaddress(1, node0.getnewaddress('', 'bech32'))
+        generate_block(node0)
         assert_equal(node0.getblockcount(), 31)
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node0)
         connect_nodes(finalizer2, node0.index)
@@ -111,7 +112,7 @@ class EsperanzaVoteTest(UnitETestFramework):
         disconnect_nodes(finalizer2, node0.index)
         disconnect_nodes(finalizer3, node0.index)
 
-        node0.generatetoaddress(1, node0.getnewaddress('', 'bech32'))
+        generate_block(node0)
         assert_equal(node0.getblockcount(), 32)
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=node0)
         connect_nodes(finalizer3, node0.index)
@@ -119,10 +120,10 @@ class EsperanzaVoteTest(UnitETestFramework):
         assert_equal(len(node0.getrawmempool()), 1)  # no votes from finalizer3
         disconnect_nodes(finalizer3, node0.index)
 
-        node0.generatetoaddress(1, node0.getnewaddress('', 'bech32'))
+        generate_block(node0)
         assert_equal(node0.getblockcount(), 33)
         self.wait_for_vote_and_disconnect(finalizer=finalizer3, node=node0)
-        node0.generatetoaddress(2, node0.getnewaddress('', 'bech32'))
+        generate_block(node0, count=2)
         assert_equal(node0.getblockcount(), 35)
         assert_finalizationstate(node0, {'currentDynasty': 4,
                                          'currentEpoch': 7,
@@ -132,12 +133,12 @@ class EsperanzaVoteTest(UnitETestFramework):
         self.log.info('Finalizers voted on a configured block number')
 
         # test that finalizers can vote after configured epoch block number
-        node0.generatetoaddress(4, node0.getnewaddress('', 'bech32'))
+        generate_block(node0, count=4)
         assert_equal(node0.getblockcount(), 39)
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node0)
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=node0)
         self.wait_for_vote_and_disconnect(finalizer=finalizer3, node=node0)
-        node0.generatetoaddress(1, node0.getnewaddress('', 'bech32'))
+        generate_block(node0)
         assert_equal(node0.getblockcount(), 40)
         assert_finalizationstate(node0, {'currentDynasty': 5,
                                          'currentEpoch': 8,
@@ -151,7 +152,7 @@ class EsperanzaVoteTest(UnitETestFramework):
         # Once it's resolved, the bellow test must be uncommented
         #
         # # test that finalizers vote after processing checkpoint
-        # node0.generatetoaddress(4, node0.getnewaddress('', 'bech32'))
+        # generate_block(node0, count=4)
         # assert_equal(node0.getblockcount(), 24)
         # assert_equal(len(node0.getrawmempool()), 0)
         # assert_equal(node0.getfinalizationstate()['currentEpoch'], 4)

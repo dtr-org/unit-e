@@ -12,12 +12,13 @@ from test_framework.util import (
     assert_equal,
     assert_finalizationstate,
     connect_nodes,
+    generate_block,
     sync_blocks,
 )
 
 
 def generate_block(node):
-    node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
+    generate_block(node)
 
 
 class FeatureFinalizerTest(UnitETestFramework):
@@ -44,7 +45,7 @@ class FeatureFinalizerTest(UnitETestFramework):
         v.new_address = v.getnewaddress("", "legacy")
         tx = v.deposit(v.new_address, 1500)
         self.wait_for_transaction(tx)
-        p.generatetoaddress(1, p.getnewaddress('', 'bech32'))
+        generate_block(p)
         sync_blocks([p, v])
 
         self.log.info("Restart validator")

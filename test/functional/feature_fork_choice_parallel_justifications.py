@@ -19,10 +19,11 @@ from test_framework.util import (
     assert_equal,
     assert_finalizationstate,
     assert_not_equal,
-    connect_nodes,
     base58check_to_bytes,
     bytes_to_hex_str,
+    connect_nodes,
     disconnect_nodes,
+    generate_block,
     sync_blocks,
     wait_until,
 )

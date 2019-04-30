@@ -11,12 +11,13 @@ asserts it is faster than some threshold
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_equal,
-    sync_mempools,
+    assert_less_than,
     connect_nodes,
     disconnect_nodes,
+    generate_block,
     sync_blocks,
+    sync_mempools,
     wait_until,
-    assert_less_than,
 )
 from test_framework.messages import (
     FromHex,
@@ -82,7 +83,7 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
         def calc_vote_relay_delay(record_to):
             # UNIT-E TODO: node can't vote when it processed the checkpoint
             # so we create one extra block to pass that. See https://github.com/dtr-org/unit-e/issues/643
-            middle.generatetoaddress(1, middle.getnewaddress('', 'bech32'))
+            generate_block(middle)
 
             # ensure all nodes are synced before recording the delay
             sync_blocks([middle, record_to], timeout=10)
@@ -91,7 +92,7 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
 
             # ensure that record_from node receives the block earlier than the vote
             disconnect_nodes(middle, finalizer.index)
-            middle.generatetoaddress(1, middle.getnewaddress('', 'bech32'))
+            generate_block(middle)
             connect_nodes(middle, finalizer.index)
 
             wait_until(lambda: len(new_votes_in_mempool(middle)) > 0, timeout=10)
@@ -115,7 +116,7 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
             return delay
 
         # leave IBD
-        middle.generatetoaddress(1, middle.getnewaddress('', 'bech32'))
+        generate_block(middle)
         sync_blocks(self.nodes, timeout=10)
 
         # disable instant finalization
@@ -123,7 +124,7 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
         txid = finalizer.deposit(payto, 1500)
         self.wait_for_transaction(txid, timeout=10)
 
-        middle.generatetoaddress(8, middle.getnewaddress('', 'bech32'))
+        generate_block(middle, count=8)
         assert_equal(middle.getblockcount(), 9)
         assert_equal(middle.getfinalizationstate()['currentEpoch'], 5)
         sync_blocks(self.nodes, timeout=10)
