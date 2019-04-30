@@ -10,7 +10,7 @@
 
 namespace esperanza {
 
-static const uint32_t DEFAULT_END_DYNASTY =
+static const uint32_t MAX_END_DYNASTY =
     std::numeric_limits<uint32_t>::max();
 
 class Validator {
@@ -21,8 +21,14 @@ class Validator {
 
   uint160 m_validator_address;
   uint64_t m_deposit;
+
+  //! At which dynasty finalizer can start voting.
   uint32_t m_start_dynasty;
+
+  //! After which dynasty finalizer stops voting.
+  //! See FinalizationState::IsFinalizerVoting
   uint32_t m_end_dynasty;
+
   bool m_is_slashed;
   uint64_t m_deposits_at_logout;
   uint256 m_last_transaction_hash;

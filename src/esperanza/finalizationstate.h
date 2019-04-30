@@ -35,7 +35,6 @@ BETTER_ENUM(
   LOGOUT_ALREADY_DONE,
   LOGOUT_NOT_A_VALIDATOR,
   LOGOUT_NOT_YET_A_VALIDATOR,
-  WITHDRAW_BEFORE_END_DYNASTY,
   WITHDRAW_TOO_EARLY,
   WITHDRAW_NOT_A_VALIDATOR,
   WITHDRAW_WRONG_AMOUNT,
@@ -189,6 +188,9 @@ class FinalizationState : public FinalizationStateData {
 
   //! \brief Returns true if finalizer can vote in current dynasty
   bool IsFinalizerVoting(const Validator &finalizer) const;
+
+  //! \brief Calculate the epoch at which finalizer can start withdrawing
+  uint32_t CalculateWithdrawEpoch(const Validator &finalizer) const;
 
  private:
   //!In case there is nobody available to justify we justify automatically.

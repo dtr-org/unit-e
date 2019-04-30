@@ -29,38 +29,6 @@ BOOST_AUTO_TEST_CASE(validate_withdraw_not_a_validator) {
                     +Result::WITHDRAW_NOT_A_VALIDATOR);
 }
 
-BOOST_AUTO_TEST_CASE(process_withdraw_before_end_dynasty) {
-
-  finalization::Params params = finalization::Params::TestNet();
-  FinalizationStateSpy spy(params);
-  CAmount withdrawAmount = 0;
-  uint160 validatorAddress = RandValidatorAddr();
-  CAmount depositSize = spy.MinDepositSize();
-
-  // For simplicity we keep the targetHash constant since it does not
-  // affect the state.
-  uint256 targetHash = GetRandHash();
-  CBlockIndex block_index;
-  block_index.phashBlock = &targetHash;
-  spy.SetRecommendedTarget(block_index);
-
-  spy.CreateAndActivateDeposit(validatorAddress, depositSize);
-
-  BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress), +Result::SUCCESS);
-  spy.ProcessLogout(validatorAddress);
-
-  for (uint32_t i = 6; i < spy.DynastyLogoutDelay() + 1; ++i) {
-    Vote vote{validatorAddress, targetHash, i - 2, i - 1};
-    BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
-    spy.ProcessVote(vote);
-
-    BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + i * spy.EpochLength()), +Result::SUCCESS);
-  }
-
-  BOOST_CHECK_EQUAL(spy.ValidateWithdraw(validatorAddress, withdrawAmount),
-                    +Result::WITHDRAW_BEFORE_END_DYNASTY);
-}
-
 BOOST_AUTO_TEST_CASE(process_withdraw_too_early) {
 
   finalization::Params params = finalization::Params::TestNet();
@@ -103,14 +71,7 @@ BOOST_AUTO_TEST_CASE(process_withdraw_too_early) {
       spy.ProcessVote(vote);
     }
 
-    if (i <= end_logout) {
-      BOOST_CHECK_EQUAL(spy.ValidateWithdraw(validatorAddress, depositSize),
-                        +Result::WITHDRAW_BEFORE_END_DYNASTY);
-    } else {
-      BOOST_CHECK_EQUAL(spy.ValidateWithdraw(validatorAddress, depositSize),
-                        +Result::WITHDRAW_TOO_EARLY);
-    }
-
+    BOOST_CHECK_EQUAL(spy.ValidateWithdraw(validatorAddress, depositSize), +Result::WITHDRAW_TOO_EARLY);
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + i * spy.EpochLength()), +Result::SUCCESS);
   }
 

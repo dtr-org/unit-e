@@ -61,10 +61,7 @@ class WalletExtension : public staking::StakingWallet {
   std::vector<std::pair<finalization::VoteRecord, finalization::VoteRecord>> pendingSlashings;
 
   //! Cast vote if needed
-  //!
-  //! \param state of the latest known tip
-  //! \param height of the state
-  void VoteIfNeeded(const FinalizationState &state, blockchain::Height height);
+  void VoteIfNeeded();
 
   void ManagePendingSlashings();
 
@@ -191,6 +188,8 @@ class WalletExtension : public staking::StakingWallet {
 
   boost::optional<ValidatorState> validatorState = boost::none;
   bool nIsValidatorEnabled = false;
+
+  const ValidatorState::Phase GetFinalizerPhase(const FinalizationState &state) const;
 
   EncryptionState GetEncryptionState() const;
 

@@ -296,7 +296,7 @@ CAmount FinalizationState::ProcessReward(const uint160 &validatorAddress, uint64
     m_prev_dyn_deposits += reward;
   }
 
-  if (endDynasty < DEFAULT_END_DYNASTY) {
+  if (endDynasty < MAX_END_DYNASTY) {
     m_dynasty_deltas[endDynasty] = GetDynastyDelta(endDynasty) - reward;
   }
 
@@ -626,21 +626,8 @@ Result FinalizationState::CalculateWithdrawAmount(const uint160 &validatorAddres
                 validatorAddress.GetHex());
   }
 
-  const auto &validator = it->second;
-
-  uint32_t endDynasty = validator.m_end_dynasty;
-
-  if (m_current_dynasty <= endDynasty) {
-    return fail(Result::WITHDRAW_BEFORE_END_DYNASTY,
-                /*log_errors=*/true,
-                "%s: Too early to withdraw, minimum expected dynasty for "
-                "withdraw is %d.\n",
-                __func__, endDynasty);
-  }
-
-  uint32_t endEpoch = m_dynasty_start_epoch.find(endDynasty + 1)->second;
-  uint32_t withdrawalEpoch = endEpoch + m_settings.withdrawal_epoch_delay;
-
+  const Validator &validator = it->second;
+  const uint32_t withdrawalEpoch = CalculateWithdrawEpoch(validator);
   if (m_current_epoch < withdrawalEpoch) {
     return fail(Result::WITHDRAW_TOO_EARLY,
                 /*log_errors=*/true,
@@ -648,6 +635,8 @@ Result FinalizationState::CalculateWithdrawAmount(const uint160 &validatorAddres
                 "withdraw is %d.\n",
                 __func__, withdrawalEpoch);
   }
+
+  const uint32_t endEpoch = withdrawalEpoch - m_settings.withdrawal_epoch_delay;
 
   if (!validator.m_is_slashed) {
     withdrawAmountOut = ufp64::mul_to_uint(GetDepositScaleFactor(endEpoch),
@@ -676,7 +665,7 @@ Result FinalizationState::CalculateWithdrawAmount(const uint160 &validatorAddres
 
     LogPrint(BCLog::FINALIZATION,
              "%s: Withdraw from validator %s of %d units.\n", __func__,
-             validatorAddress.GetHex(), withdrawAmountOut);
+             validatorAddress.GetHex(), validator.m_end_dynasty, withdrawAmountOut);
   }
 
   return success();
@@ -840,7 +829,7 @@ void FinalizationState::ProcessSlash(const Vote &vote1, const Vote &vote2) {
 
     // if validator was already staged for logout at end_dynasty,
     // ensure that we don't doubly remove from total
-    if (endDynasty < DEFAULT_END_DYNASTY) {
+    if (endDynasty < MAX_END_DYNASTY) {
       m_dynasty_deltas[endDynasty] = GetDynastyDelta(endDynasty) + deposit;
     } else {
       // if no previously logged out, remember the total deposits at logout
@@ -1118,6 +1107,24 @@ bool FinalizationState::IsFinalizerVoting(const uint160 &finalizer_address) cons
 
 bool FinalizationState::IsFinalizerVoting(const Validator &finalizer) const {
   return IsInDynasty(finalizer, m_current_dynasty) || IsInDynasty(finalizer, m_current_dynasty - 1);
+}
+
+uint32_t FinalizationState::CalculateWithdrawEpoch(const Validator &finalizer) const {
+
+  // m_end_dynasty is not set
+  if (finalizer.m_end_dynasty == MAX_END_DYNASTY) {
+    return std::numeric_limits<uint32_t>::max();
+  }
+
+  if (m_current_dynasty <= finalizer.m_end_dynasty) {
+    return std::numeric_limits<uint32_t>::max();
+  }
+
+  const auto it = m_dynasty_start_epoch.find(finalizer.m_end_dynasty + 1);
+  assert(it != m_dynasty_start_epoch.end() && "incorrect m_dynasty_start_epoch mapping");
+  const uint32_t end_epoch = it->second;
+  const uint32_t withdraw_epoch = end_epoch + m_settings.withdrawal_epoch_delay;
+  return withdraw_epoch;
 }
 
 }  // namespace esperanza

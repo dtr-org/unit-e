@@ -279,6 +279,24 @@ bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
                                   CTransactionRef &wtxOut) {
 
   assert(validatorState);
+
+  LOCK2(cs_main, m_enclosing_wallet.cs_wallet);
+
+  LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
+  const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().GetTipState();
+  assert(fin_state);
+
+  const ValidatorState::Phase cur_phase = GetFinalizerPhase(*fin_state);
+  const ValidatorState::Phase exp_phase = ValidatorState::Phase::NOT_VALIDATING;
+  if (cur_phase != exp_phase) {
+    LogPrint(BCLog::FINALIZATION,
+             "ERROR: %s: can't send deposit because finalizer in phase=%s when expected=%s\n",
+             __func__,
+             cur_phase._to_string(),
+             exp_phase._to_string());
+    return false;
+  }
+
   ValidatorState &validator = validatorState.get();
   ValidatorStateWatchWriter validator_writer(*this);
 
@@ -309,7 +327,6 @@ bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
   }
 
   {
-    LOCK2(cs_main, m_enclosing_wallet.cs_wallet);
     CValidationState state;
     if (!m_enclosing_wallet.CommitTransaction(wtxOut, {}, {}, {}, reservekey,
                                               g_connman.get(), state)) {
@@ -325,20 +342,9 @@ bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
       return false;
     }
 
+    validator.m_last_deposit_tx = wtxOut->GetHash();
     LogPrint(BCLog::FINALIZATION, "%s: Created new deposit transaction %s.\n",
              __func__, wtxOut->GetHash().GetHex());
-
-    if (validator.m_phase == +ValidatorState::Phase::NOT_VALIDATING) {
-      LogPrint(BCLog::FINALIZATION,
-               "%s: Validator waiting for deposit confirmation.\n", __func__);
-
-      validator.m_phase = ValidatorState::Phase::WAITING_DEPOSIT_CONFIRMATION;
-    } else {
-      LogPrintf(
-          "ERROR: %s - Wrong state for validator state with deposit %s, %s "
-          "expected.\n",
-          __func__, wtxOut->GetHash().GetHex(), "WAITING_DEPOSIT_CONFIRMATION");
-    }
   }
 
   return true;
@@ -361,14 +367,14 @@ bool WalletExtension::SendLogout(CTransactionRef &wtxNewOut) {
         __func__);
   }
 
+  if (!state->IsFinalizerVoting(*validator)) {
+    return error("%s: Cannot create logouts for non-validators.", __func__);
+  }
+
   CReserveKey reservekey(&m_enclosing_wallet);
 
   CMutableTransaction txNew;
   txNew.SetType(TxType::LOGOUT);
-
-  if (validatorState->m_phase != +ValidatorState::Phase::IS_VALIDATING) {
-    return error("%s: Cannot create logouts for non-validators.", __func__);
-  }
 
   CTransactionRef prevTx;
   {
@@ -424,6 +430,10 @@ bool WalletExtension::SendLogout(CTransactionRef &wtxNewOut) {
     return false;
   }
 
+  // must be forgotten as if we sent logout, deposit can't be reverted
+  // and GetFinalizerPhase() must rely on global FinalizationState
+  validatorState->m_last_deposit_tx.SetNull();
+
   return true;
 }
 
@@ -444,6 +454,17 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address, CTransactionRe
         __func__);
   }
 
+  const ValidatorState::Phase cur_phase = GetFinalizerPhase(*state);
+  const ValidatorState::Phase exp_phase = ValidatorState::Phase::WAITING_TO_WITHDRAW;
+  if (cur_phase != exp_phase) {
+    LogPrint(BCLog::FINALIZATION,
+             "ERROR: %s: can't send withdraw because finalizer in phase=%s when expected=%s\n",
+             __func__,
+             cur_phase._to_string(),
+             exp_phase._to_string());
+    return false;
+  }
+
   CCoinControl coinControl;
   coinControl.m_fee_mode = FeeEstimateMode::CONSERVATIVE;
 
@@ -455,11 +476,6 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address, CTransactionRe
 
   CMutableTransaction txNew;
   txNew.SetType(TxType::WITHDRAW);
-
-  if (validatorState->m_phase == +ValidatorState::Phase::IS_VALIDATING) {
-    return error("%s: Cannot withdraw with an active validator, logout first.",
-                 __func__);
-  }
 
   const std::vector<unsigned char> pkv = ToByteVector(pubKey.GetID());
   const CScript &scriptPubKey = CScript::CreateP2PKHScript(pkv);
@@ -537,32 +553,31 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address, CTransactionRe
   return true;
 }
 
-void WalletExtension::VoteIfNeeded(const FinalizationState &state, const blockchain::Height height) {
-  AssertLockHeld(m_enclosing_wallet.cs_wallet);
+void WalletExtension::VoteIfNeeded() {
+  LOCK2(cs_main, m_enclosing_wallet.cs_wallet);
+
+  LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
+  const CBlockIndex *tip_block_index = m_dependencies.GetActiveChain().GetTip();
+  const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().Find(*tip_block_index);
+  assert(fin_state);
+
+  if (GetFinalizerPhase(*fin_state) != +ValidatorState::Phase::IS_VALIDATING) {
+    return;
+  }
 
   assert(validatorState);
 
   ValidatorStateWatchWriter validator_writer(*this);
-  const esperanza::Validator *validator = state.GetValidator(validatorState->m_validator_address);
+  const esperanza::Validator *validator = fin_state->GetValidator(validatorState->m_validator_address);
   assert(validator);
 
-  const uint32_t block_number = height % state.GetEpochLength();
+  const uint32_t block_number = tip_block_index->nHeight % fin_state->GetEpochLength();
   if (block_number < m_dependencies.GetSettings().finalizer_vote_from_epoch_block_number) {
     return;
   }
 
-  const uint32_t dynasty = state.GetCurrentDynasty();
-
-  if (dynasty > validator->m_end_dynasty) {
-    return;
-  }
-
-  if (dynasty < validator->m_start_dynasty) {
-    return;
-  }
-
-  const uint32_t target_epoch = state.GetRecommendedTargetEpoch();
-  if (state.GetCurrentEpoch() != target_epoch + 1) {
+  const uint32_t target_epoch = fin_state->GetRecommendedTargetEpoch();
+  if (fin_state->GetCurrentEpoch() != target_epoch + 1) {
     // not the right time to vote
     return;
   }
@@ -574,9 +589,9 @@ void WalletExtension::VoteIfNeeded(const FinalizationState &state, const blockch
 
   LogPrint(BCLog::FINALIZATION,
            "%s: Validator voting for epoch %d and dynasty %d.\n", __func__,
-           target_epoch, dynasty);
+           target_epoch, fin_state->GetCurrentDynasty());
 
-  Vote vote = state.GetRecommendedVote(validatorState->m_validator_address);
+  Vote vote = fin_state->GetRecommendedVote(validatorState->m_validator_address);
   assert(vote.m_target_epoch == target_epoch);
 
   // Check for surrounding votes
@@ -617,10 +632,6 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
 
   CMutableTransaction txNew;
   txNew.SetType(TxType::VOTE);
-
-  if (validator.m_phase != +ValidatorState::Phase::IS_VALIDATING) {
-    return error("%s: Cannot create votes for non-validators.", __func__);
-  }
 
   const CScript &scriptPubKey = prevTxRef->vout[0].scriptPubKey;
   const CAmount amount = prevTxRef->vout[0].nValue;
@@ -751,64 +762,18 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
 void WalletExtension::BlockConnected(
     const std::shared_ptr<const CBlock> &pblock, const CBlockIndex &index) {
 
-  LOCK2(cs_main, m_enclosing_wallet.cs_wallet);
-  if (nIsValidatorEnabled) {
-    assert(validatorState);
-
-    LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
-    const CBlockIndex *tip_block_index = m_dependencies.GetActiveChain().GetTip();
-    const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().Find(*tip_block_index);
-    assert(fin_state);
-
-    const esperanza::Validator *validator = fin_state->GetValidator(validatorState->m_validator_address);
-    if (!validator) {
-      // this wallet doesn't have associated finalizer
-      // because no deposit from this wallet was made
-      return;
-    }
-
-    ValidatorStateWatchWriter validator_writer(*this);
-
-    if (fin_state->GetCurrentDynasty() < validator->m_start_dynasty) {
-      return;  // to early to vote
-    }
-
-    // TODO: UNIT-E: review if we need to keep track of the state
-    // as it seems checking against current dynasty is enough
-    if (fin_state->GetCurrentDynasty() <= validator->m_end_dynasty) {
-      if (validatorState->m_phase == +ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION) {
-        validatorState->m_phase = ValidatorState::Phase::IS_VALIDATING;
-        WriteValidatorStateToFile();
-        LogPrint(BCLog::FINALIZATION,
-                 "finalizer=%d phase changed to %s because start_dynasty=%d began\n",
-                 validator->m_validator_address.ToString(),
-                 validatorState->m_phase._to_string(),
-                 validator->m_start_dynasty);
-      }
-      assert(validatorState->m_phase == +ValidatorState::Phase::IS_VALIDATING);
-    } else {
-      if (validatorState->m_phase == +ValidatorState::Phase::IS_VALIDATING) {
-        validatorState->m_phase = ValidatorState::Phase::NOT_VALIDATING;
-        WriteValidatorStateToFile();
-        LogPrint(BCLog::FINALIZATION,
-                 "finalizer=%d phase changed to %s because end_dynasty=%d passed\n",
-                 validator->m_validator_address.ToString(),
-                 validatorState->m_phase._to_string(),
-                 validator->m_end_dynasty);
-      }
-      assert(validatorState->m_phase == +ValidatorState::Phase::NOT_VALIDATING);
-    }
-
-    if (IsInitialBlockDownload()) {
-      // there is no reason to vote as such votes will be outdated
-      // and won't be included in the chain
-      return;
-    }
-
-    if (fin_state->IsFinalizerVoting(*validator)) {
-      VoteIfNeeded(*fin_state, tip_block_index->nHeight);  // responsible to write validator state
-    }
+  if (!nIsValidatorEnabled) {
+    // finalizer is explicitly disabled
+    return;
   }
+
+  if (IsInitialBlockDownload()) {
+    // there is no reason to vote as such votes will be outdated
+    // and won't be included in the chain
+    return;
+  }
+
+  VoteIfNeeded();
 }
 
 bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
@@ -828,64 +793,33 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
   LOCK(m_enclosing_wallet.cs_wallet);
   ValidatorStateWatchWriter validator_writer(*this);
 
+  LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
+  const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().GetTipState();
+  assert(fin_state != nullptr);
+
   switch (tx.GetType()) {
     case TxType::DEPOSIT: {
-      assert(!validatorState->HasDeposit());
-      esperanza::ValidatorState &state = validatorState.get();
-
-      // In case that we are reading from blocks in initial sync we need to
-      // consider the case where we do not initiate our deposit, but we read it
-      // from the blockchain.
-      const auto bootstrap_phase =
-          +esperanza::ValidatorState::Phase::NOT_VALIDATING;
-
-      if (pIndex && state.m_phase == bootstrap_phase) {
-        state.m_phase = +esperanza::ValidatorState::Phase::WAITING_DEPOSIT_CONFIRMATION;
-      }
-
-      const auto expected_phase =
-          +esperanza::ValidatorState::Phase::WAITING_DEPOSIT_CONFIRMATION;
-
-      if (state.m_phase == expected_phase) {
-
-        state.m_phase = esperanza::ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION;
+      const ValidatorState::Phase cur_phase = GetFinalizerPhase(*fin_state);
+      if (cur_phase != +ValidatorState::Phase::NOT_VALIDATING &&                // deposit received via (re-)indexing
+          cur_phase != +ValidatorState::Phase::WAITING_DEPOSIT_CONFIRMATION) {  // deposit was sent explicitly
         LogPrint(BCLog::FINALIZATION,
-                 "%s: Validator waiting for deposit finalization. "
-                 "Deposit hash %s.\n",
-                 __func__, tx.GetHash().GetHex());
-
-        uint160 validatorAddress = uint160();
-
-        if (!esperanza::ExtractValidatorAddress(tx, validatorAddress)) {
-          LogPrint(BCLog::FINALIZATION,
-                   "ERROR: %s: Cannot extract validator index.\n",
-                   __func__);
-          return false;
-        }
-
-        {
-          LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
-          const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().GetTipState();
-          assert(fin_state != nullptr);
-
-          state.m_validator_address = validatorAddress;
-        }
-
-      } else {
-        LogPrint(BCLog::FINALIZATION,
-                 "ERROR: %s - Wrong state for validator state with "
-                 "deposit %s, %s expected but %s found.\n",
-                 __func__, tx.GetHash().GetHex(), expected_phase._to_string(),
-                 state.m_phase._to_string());
+                 "ERROR: %s: finalizer=%s has already created a deposit.\n",
+                 __func__,
+                 validatorState->m_validator_address.ToString());
         return false;
       }
+
+      uint160 finalizer_address;
+      if (!esperanza::ExtractValidatorAddress(tx, finalizer_address)) {
+        LogPrint(BCLog::FINALIZATION,
+                 "ERROR: %s: Cannot extract validator address.\n",
+                 __func__);
+        return false;
+      }
+      validatorState->m_validator_address = finalizer_address;
       break;
     }
     case TxType::LOGOUT: {
-      LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
-      const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().GetTipState();
-      assert(fin_state != nullptr);
-
       const esperanza::Validator *validator = fin_state->GetValidator(validatorState->m_validator_address);
       if (!validator) {
         LogPrint(BCLog::FINALIZATION,
@@ -905,13 +839,13 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
                  validator->m_end_dynasty);
         return false;
       }
+
+      // at this point we don't care about the last deposit as it can't be reverted.
+      // we must reset this field not to misinterpret NOT_VALIDATING as WAITING_DEPOSIT_CONFIRMATION
+      validatorState->m_last_deposit_tx.SetNull();
       break;
     }
     case TxType::VOTE: {
-      LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
-      const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().GetTipState();
-      assert(fin_state != nullptr);
-
       const esperanza::Validator *validator = fin_state->GetValidator(validatorState->m_validator_address);
       if (!validator) {
         LogPrint(BCLog::FINALIZATION,
@@ -934,21 +868,71 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
       break;
     }
     case TxType::WITHDRAW: {
-      const auto expected_phase = +esperanza::ValidatorState::Phase::NOT_VALIDATING;
-      assert(validatorState->m_phase == expected_phase);
+      const ValidatorState::Phase cur_phase = GetFinalizerPhase(*fin_state);
+      if (cur_phase != +ValidatorState::Phase::WAITING_TO_WITHDRAW &&  // __func__ is called before block is processed
+          cur_phase != +ValidatorState::Phase::NOT_VALIDATING) {       // __func__ is called after block is processed
+        LogPrint(BCLog::FINALIZATION,
+                 "ERROR: %s: finalizer=%s can't withdraw as it's still validating.\n",
+                 __func__,
+                 validatorState->m_validator_address.ToString());
+        return false;
+      }
 
       validatorState = ValidatorState();
       break;
     }
-    default: {
-      return true;
-    }
+    case TxType::SLASH:
+    case TxType::ADMIN:
+    case TxType::REGULAR:
+    case TxType::COINBASE:
+      break;
   }
+
   return true;
 }
 
 const proposer::State &WalletExtension::GetProposerState() const {
   return m_proposer_state;
+}
+
+const ValidatorState::Phase WalletExtension::GetFinalizerPhase(const FinalizationState &state) const {
+  if (!nIsValidatorEnabled) {
+    return ValidatorState::Phase::NOT_VALIDATING;
+  }
+
+  if (!validatorState) {
+    return ValidatorState::Phase::NOT_VALIDATING;
+  }
+
+  // check if finalizer created deposit
+  // but it's not included in the chain yet
+  const esperanza::Validator *validator = state.GetValidator(validatorState->m_validator_address);
+  if (!validator) {
+    if (validatorState->m_last_deposit_tx.IsNull()) {
+      return ValidatorState::Phase::NOT_VALIDATING;
+    }
+
+    const CWalletTx *tx = m_enclosing_wallet.GetWalletTx(validatorState->m_last_deposit_tx);
+    if (!tx) {
+      return ValidatorState::Phase::NOT_VALIDATING;
+    }
+
+    return ValidatorState::Phase::WAITING_DEPOSIT_CONFIRMATION;
+  }
+
+  if (state.GetCurrentDynasty() < validator->m_start_dynasty) {
+    return ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION;
+  }
+
+  if (state.IsFinalizerVoting(*validator)) {
+    return ValidatorState::Phase::IS_VALIDATING;
+  }
+
+  if (state.GetCurrentEpoch() < state.CalculateWithdrawEpoch(*validator)) {
+    return ValidatorState::Phase::WAITING_FOR_WITHDRAW_DELAY;
+  }
+
+  return ValidatorState::Phase::WAITING_TO_WITHDRAW;
 }
 
 EncryptionState WalletExtension::GetEncryptionState() const {

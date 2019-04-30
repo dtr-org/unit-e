@@ -12,7 +12,7 @@ Validator::Validator()
     : m_validator_address(),
       m_deposit(0),
       m_start_dynasty(0),
-      m_end_dynasty(DEFAULT_END_DYNASTY),
+      m_end_dynasty(MAX_END_DYNASTY),
       m_is_slashed(false),
       m_deposits_at_logout(0) {}
 
@@ -21,7 +21,7 @@ Validator::Validator(uint64_t deposit, uint32_t startDynasty,
     : m_validator_address(validatorAddress),
       m_deposit(deposit),
       m_start_dynasty(startDynasty),
-      m_end_dynasty(DEFAULT_END_DYNASTY),
+      m_end_dynasty(MAX_END_DYNASTY),
       m_is_slashed(false),
       m_deposits_at_logout(0),
       m_last_transaction_hash(uint256()) {}
