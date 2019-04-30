@@ -1478,7 +1478,7 @@ class msg_blocktxn():
 
     def serialize(self):
         r = b""
-        r += self.block_transactions.serialize(with_witness=False)
+        r += self.block_transactions.serialize(with_witness=True)
         return r
 
     def __repr__(self):
