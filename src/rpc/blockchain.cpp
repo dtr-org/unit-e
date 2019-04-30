@@ -511,6 +511,11 @@ static UniValue getrawmempool(const JSONRPCRequest& request)
     if (!request.params[0].isNull())
         fVerbose = request.params[0].get_bool();
 
+    if (!g_is_mempool_loaded) {
+        // Don't even bother retrieving the entries; return an empty container
+        return fVerbose ? UniValue(UniValue::VOBJ) : UniValue(UniValue::VARR);
+    }
+
     return mempoolToJSON(fVerbose);
 }
 
