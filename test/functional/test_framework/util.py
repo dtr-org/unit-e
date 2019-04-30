@@ -507,6 +507,15 @@ def connect_nodes_bi(nodes, a, b):
     connect_nodes(nodes[a], b)
     connect_nodes(nodes[b], a)
 
+def disconnect_nodes_bi(nodes, a, b):
+    disconnect_nodes(nodes[a], b)
+    disconnect_nodes(nodes[b], a)
+
+def disconnect_all_nodes(nodes):
+    for i in range(0, len(nodes)):
+        if i+1 < len(nodes):
+            disconnect_nodes_bi(nodes, i, i + 1)
+
 def sync_blocks(rpc_connections, *, wait=1, timeout=60, height=None):
     """
     Wait until everybody has the same tip.
