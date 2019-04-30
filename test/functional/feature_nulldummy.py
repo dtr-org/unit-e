@@ -11,7 +11,7 @@ Connect to a single node.
 
 from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.util import *
-from test_framework.messages import msg_witness_block
+from test_framework.messages import msg_block
 from test_framework.mininode import CTransaction, network_thread_start, P2PInterface
 from test_framework.blocktools import create_coinbase, create_block, get_tip_snapshot_meta, sign_coinbase
 from test_framework.script import CScript
@@ -115,7 +115,7 @@ class NULLDUMMYTest(UnitETestFramework):
         block.compute_merkle_trees()
         block.solve()
 
-        node.p2p.send_and_ping(msg_witness_block(block))
+        node.p2p.send_and_ping(msg_block(block))
 
         if (accept):
             assert_equal(node.getbestblockhash(), block.hash)

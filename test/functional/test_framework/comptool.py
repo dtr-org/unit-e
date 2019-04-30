@@ -344,10 +344,7 @@ class TestManager():
                                 # There was a previous request for this block hash
                                 # Most likely, we delivered a header for this block
                                 # but never had the block to respond to the getdata
-                                if send_witness:
-                                    c.send_message(msg_witness_block(block))
-                                else:
-                                    c.send_message(msg_block(block))
+                                c.send_message(msg_block(block))
                             else:
                                 c.block_request_map[block.sha256] = False
                     # Either send inv's to each node and sync, or add
@@ -359,10 +356,7 @@ class TestManager():
                             [ c.send_inv(block) for c in self.p2p_connections ]
                             self.sync_blocks(block.sha256, 1)
                         else:
-                            if send_witness:
-                                [c.send_message(msg_witness_block(block)) for c in self.p2p_connections]
-                            else:
-                                [c.send_message(msg_block(block)) for c in self.p2p_connections]
+                            [ c.send_message(msg_block(block)) for c in self.p2p_connections ]
                             [ n.drain_main_signal_callbacks_pending() for n in self.nodes ]
                             [ c.send_ping(self.ping_counter) for c in self.p2p_connections ]
                             self.wait_for_pings(self.ping_counter)

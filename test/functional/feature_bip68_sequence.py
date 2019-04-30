@@ -336,7 +336,7 @@ class BIP68Test(UnitETestFramework):
             tip_snapshot_meta = update_snapshot_with_tx(self.nodes[0], tip_snapshot_meta, height, coinbase)
 
             height += 1
-            self.nodes[0].p2p.send_and_ping(msg_witness_block(block))
+            self.nodes[0].p2p.send_and_ping(msg_block(block))
             cur_time += 1
 
         # sync as the reorg is happening
@@ -400,7 +400,7 @@ class BIP68Test(UnitETestFramework):
         block.compute_merkle_trees()
         block.solve()
 
-        self.nodes[0].p2p.send_and_ping(msg_witness_block(block))
+        self.nodes[0].p2p.send_and_ping(msg_block(block))
         assert_equal(self.nodes[0].getbestblockhash(), block.hash)
 
     def activateCSV(self):
