@@ -11,12 +11,12 @@
 
 namespace blockchain {
 
-void CheckGenesisBlockSupply(Parameters &p) noexcept {
+bool IsInitialSupplyValid(Parameters &p) noexcept {
   CAmount genesis_supply = 0;
   for (const auto &tx : p.genesis_block.block.vtx) {
     genesis_supply += tx->GetValueOut();
   }
-  assert(genesis_supply == p.initial_supply);
+  return genesis_supply == p.initial_supply;
 }
 
 Parameters Parameters::Base() noexcept {
@@ -115,7 +115,7 @@ Parameters Parameters::Base() noexcept {
   // TODO UNIT-E: Added funds from testnet just to let the supply check pass
   p.genesis_block = GenesisBlock(GenesisBlockBuilder().Add(TestnetFunds()).Build(p));
 
-  CheckGenesisBlockSupply(p);
+  assert(IsInitialSupplyValid(p));
   return p;
 }
 
@@ -147,7 +147,7 @@ Parameters Parameters::TestNet() noexcept {
   p.default_settings.p2p_port = 17182;
   p.data_dir_suffix = "testnet";
 
-  CheckGenesisBlockSupply(p);
+  assert(IsInitialSupplyValid(p));
   return p;
 }
 
@@ -192,7 +192,7 @@ Parameters Parameters::RegTest() noexcept {
 
   p.max_future_block_time_seconds = 2 * 60 * 60;
 
-  CheckGenesisBlockSupply(p);
+  assert(IsInitialSupplyValid(p));
   return p;
 }
 
