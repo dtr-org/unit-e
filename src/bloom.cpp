@@ -24,13 +24,13 @@ size_t CBloomFilter::ComputeEntriesSize(size_t n_elements, double fpr) {
      * The ideal size for a bloom filter with a given number of elements and false positive rate is:
      * - n_elements * log(fpr) / ln(2)^2
      */
-    const auto n_entries = static_cast<unsigned int>(-1 / LN2SQUARED * n_elements * log(fpr));
+    const auto n_entries = static_cast<size_t>(-1 / LN2SQUARED * n_elements * log(fpr));
 
     // Bloom filter packs 8 entries into 1 byte
     return n_entries / 8;
 }
 
-CBloomFilter::CBloomFilter(const unsigned int nElements, const double nFPRate, const unsigned int nTweakIn, unsigned char nFlagsIn, size_t max_filter_size_bytes, size_t max_hash_funcs) :
+CBloomFilter::CBloomFilter(const size_t nElements, const double nFPRate, const uint32_t nTweakIn, const uint8_t nFlagsIn, size_t max_filter_size_bytes, size_t max_hash_funcs) :
 
     // We ignore filter parameters which will create a bloom filter larger than the protocol limits
     vData(std::min(ComputeEntriesSize(nElements, nFPRate), max_filter_size_bytes)),
@@ -48,11 +48,11 @@ CBloomFilter::CBloomFilter(const unsigned int nElements, const double nFPRate, c
 }
 
 // Private constructor used by CRollingBloomFilter
-CBloomFilter::CBloomFilter(const unsigned int nElements, const double nFPRate, const unsigned int nTweakIn) :
-    vData((unsigned int)(-1  / LN2SQUARED * nElements * log(nFPRate)) / 8),
+CBloomFilter::CBloomFilter(const size_t nElements, const double nFPRate, const uint32_t nTweakIn) :
+    vData((size_t)(-1  / LN2SQUARED * nElements * log(nFPRate)) / 8),
     isFull(false),
     isEmpty(true),
-    nHashFuncs((unsigned int)(vData.size() * 8 / nElements * LN2)),
+    nHashFuncs((uint32_t)(vData.size() * 8 / nElements * LN2)),
     nTweak(nTweakIn),
     nFlags(BLOOM_UPDATE_NONE)
 {
