@@ -23,17 +23,19 @@ REJECT_NONSTANDARD = 64
 # <30> <total len> <02> <len R> <R> <02> <len S> <S> <hashtype>
 def unDERify(tx):
     """
-    Make the signature in vin 0 of a tx non-DER-compliant,
+    Make the signature of vin 0 in the witness non-DER-compliant,
     by adding padding after the S-value.
     """
-    scriptSig = CScript(tx.vin[0].scriptSig)
-    newscript = []
-    for i in scriptSig:
-        if (len(newscript) == 0):
-            newscript.append(i[0:-1] + b'\0' + i[-1:])
+    signature = CScript([tx.wit.vtxinwit[-1].scriptWitness.stack[0]])
+    witness_program = tx.wit.vtxinwit[-1].scriptWitness.stack[1]
+    new_signature = []
+    for i in signature:
+        if (len(new_signature) == 0):
+            new_signature.append(i[0:-1] + b'\0' + i[-1:])
         else:
-            newscript.append(i)
-    tx.vin[0].scriptSig = CScript(newscript)
+            new_signature.append(i)
+
+    tx.wit.vtxinwit[-1].scriptWitness.stack = new_signature + [witness_program]
 
 def create_transaction(node, coinbase, to_address, amount):
     from_txid = node.getblock(coinbase)['tx'][0]
