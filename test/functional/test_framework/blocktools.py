@@ -22,7 +22,6 @@ from .messages import (
     TxType,
     UTXO,
     msg_block,
-    msg_witness_block,
     ser_uint256,
     ser_vector,
     sha256,
@@ -152,7 +151,7 @@ def generate(node, n, preserve_utxos=[], send_witness=False):
         snapshot_meta = update_snapshot_with_tx(node, snapshot_meta, height + 1, coinbase)
         block.solve()
         if send_witness:
-            node.p2p.send_message(msg_witness_block(block))
+            node.p2p.send_message(msg_block(block))
         else:
             node.p2p.send_message(msg_block(block))
         tip = block.sha256

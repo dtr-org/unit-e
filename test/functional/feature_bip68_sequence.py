@@ -8,7 +8,7 @@ import time
 import random
 
 from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta, sign_coinbase, sign_transaction, update_snapshot_with_tx
-from test_framework.messages import UNIT, COutPoint, CTransaction, CTxIn, CTxOut, FromHex, ToHex, msg_block, msg_witness_block
+from test_framework.messages import UNIT, COutPoint, CTransaction, CTxIn, CTxOut, FromHex, ToHex, msg_block
 from test_framework.script import CScript
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import assert_equal, assert_greater_than, assert_raises_rpc_error, bytes_to_hex_str, connect_nodes, get_bip9_status, satoshi_round, sync_blocks, wait_until
@@ -340,7 +340,7 @@ class BIP68Test(UnitETestFramework):
             tip_snapshot_meta = update_snapshot_with_tx(self.nodes[0], tip_snapshot_meta, height, coinbase)
 
             height += 1
-            self.nodes[0].p2p.send_and_ping(msg_witness_block(block))
+            self.nodes[0].p2p.send_and_ping(msg_block(block))
             cur_time += 1
 
         # sync as the reorg is happening
@@ -404,7 +404,7 @@ class BIP68Test(UnitETestFramework):
         block.compute_merkle_trees()
         block.solve()
 
-        self.nodes[0].p2p.send_and_ping(msg_witness_block(block))
+        self.nodes[0].p2p.send_and_ping(msg_block(block))
         assert_equal(self.nodes[0].getbestblockhash(), block.hash)
 
     def activateCSV(self):

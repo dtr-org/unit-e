@@ -73,7 +73,6 @@ from test_framework.messages import (
     msg_block,
     msg_headers,
     msg_inv,
-    msg_witness_block,
 )
 from test_framework.mininode import mininode_lock, P2PInterface
 from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY
@@ -203,7 +202,7 @@ class AcceptBlockTest(UnitETestFramework):
         block_h1f = create_block(int("0x" + self.nodes[0].getblockhash(0), 0), coinbase, block_time)
         block_time += 1
         block_h1f.solve()
-        test_node.send_message(msg_witness_block(block_h1f))
+        test_node.send_message(msg_block(block_h1f))
         utxo_manager.process(coinbase, 1)
 
         test_node.sync_with_ping()
@@ -220,7 +219,7 @@ class AcceptBlockTest(UnitETestFramework):
         block_h2f = create_block(block_h1f.sha256, coinbase, block_time)
         block_time += 1
         block_h2f.solve()
-        test_node.send_message(msg_witness_block(block_h2f))
+        test_node.send_message(msg_block(block_h2f))
 
         utxo_manager.process(coinbase, 2)
 
@@ -242,7 +241,7 @@ class AcceptBlockTest(UnitETestFramework):
         coinbase = utxo_manager.get_coinbase(3)
         block_h3 = create_block(block_h2f.sha256, coinbase, block_h2f.nTime+1)
         block_h3.solve()
-        test_node.send_message(msg_witness_block(block_h3))
+        test_node.send_message(msg_block(block_h3))
         utxo_manager.process(coinbase, 3)
 
         test_node.sync_with_ping()
@@ -309,7 +308,7 @@ class AcceptBlockTest(UnitETestFramework):
 
         test_node = self.nodes[0].add_p2p_connection(P2PInterface())
 
-        test_node.send_message(msg_witness_block(block_h1f))
+        test_node.send_message(msg_block(block_h1f))
 
         test_node.sync_with_ping()
         assert_equal(self.nodes[0].getblockcount(), 2)
@@ -332,7 +331,7 @@ class AcceptBlockTest(UnitETestFramework):
         self.log.info("Inv at tip triggered getdata for unprocessed block")
 
         self.log.info("7. Send the missing block for the third time (now it is requested)")
-        test_node.send_message(msg_witness_block(block_h1f))
+        test_node.send_message(msg_block(block_h1f))
 
         test_node.sync_with_ping()
         assert_equal(self.nodes[0].getblockcount(), 290)

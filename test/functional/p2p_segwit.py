@@ -38,7 +38,6 @@ from test_framework.messages import (
     msg_headers,
     msg_inv,
     msg_tx,
-    msg_witness_block,
     msg_witness_tx,
     ser_uint256,
     ser_vector,
@@ -149,7 +148,7 @@ def test_witness_block(rpc, p2p, block, accepted, with_witness=True):
 
     - Submit the block over the p2p interface
     - use the getbestblockhash rpc to check for acceptance."""
-    p2p.send_message(msg_witness_block(block))
+    p2p.send_message(msg_block(block))
     p2p.sync_with_ping()
 
     if accepted:

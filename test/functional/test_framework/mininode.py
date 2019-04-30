@@ -61,7 +61,6 @@ from test_framework.messages import (
     MSG_TYPE_MASK,
     msg_verack,
     msg_version,
-    msg_witness_block,
     MSG_WITNESS_FLAG,
     NODE_NETWORK,
     NODE_WITNESS,
@@ -553,10 +552,7 @@ class P2PDataStore(P2PInterface):
             if (inv.type & MSG_TYPE_MASK) == MSG_TX and inv.hash in self.tx_store.keys():
                 self.send_message(msg_tx(self.tx_store[inv.hash]))
             elif (inv.type & MSG_TYPE_MASK) == MSG_BLOCK and inv.hash in self.block_store.keys():
-                if inv.type & MSG_WITNESS_FLAG:
-                    self.send_message(msg_witness_block(self.block_store[inv.hash]))
-                else:
-                    self.send_message(msg_block(self.block_store[inv.hash]))
+                self.send_message(msg_block(self.block_store[inv.hash]))
             else:
                 logger.debug('getdata message type {} received.'.format(hex(inv.type)))
 

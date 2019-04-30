@@ -9,7 +9,7 @@ from test_framework.blocktools import (
     sign_coinbase,
 )
 from test_framework.mininode import (
-    msg_witness_block,
+    msg_block,
     P2PInterface,
     sha256,
 )
@@ -135,7 +135,7 @@ class RemoteStakingTest(UnitETestFramework):
 
         # Bob generates a new block with remote stake of Alice
         block = build_block_with_remote_stake(bob)
-        bob.p2p.send_and_ping(msg_witness_block(block))
+        bob.p2p.send_and_ping(msg_block(block))
         self.sync_all()
 
         # Reward from the Bob's block comes to remote staking balance of Alice

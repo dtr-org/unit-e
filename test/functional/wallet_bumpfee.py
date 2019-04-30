@@ -23,7 +23,7 @@ from test_framework.blocktools import (
     send_to_witness,
     sign_coinbase,
 )
-from test_framework.messages import BIP125_SEQUENCE_NUMBER, CTransaction, msg_witness_block
+from test_framework.messages import BIP125_SEQUENCE_NUMBER, CTransaction, msg_block
 from test_framework.mininode import P2PInterface
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import assert_equal, assert_greater_than, assert_raises_rpc_error, bytes_to_hex_str, connect_nodes_bi, hex_str_to_bytes, sync_mempools
@@ -326,7 +326,7 @@ def submit_block_with_tx(node, tx):
     block.rehash()
     block.compute_merkle_trees()
     block.solve()
-    node.p2p.send_and_ping(msg_witness_block(block))
+    node.p2p.send_and_ping(msg_block(block))
     assert_equal(node.getbestblockhash(), block.hash)
     return block
 

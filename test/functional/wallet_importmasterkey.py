@@ -25,7 +25,7 @@ class WalletImportmasterkeyTest(UnitETestFramework):
 
     def test_import_consistency(self):
 
-        self.log.info("Test that importing tha same key on different nodes leads to the same results ")
+        self.log.info("Test that importing the same key on different nodes leads to the same results ")
 
         old_backup_count = self.backup_count
 

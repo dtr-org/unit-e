@@ -13,7 +13,7 @@ The following checks are performed:
 
 from test_framework.test_framework import UnitETestFramework
 from test_framework.messages import (
-    msg_witness_block,
+    msg_block,
 )
 from test_framework.util import (
     assert_equal,

@@ -17,7 +17,7 @@ from test_framework.util import (
 )
 from test_framework.mininode import (
     P2PInterface,
-    msg_witness_block,
+    msg_block,
 )
 from test_framework.test_framework import UnitETestFramework
 
@@ -156,7 +156,7 @@ class ProposerStakeMaturityTest(UnitETestFramework):
 
         # Try to send the block with immature stake
         block = build_block_with_immature_stake(self.nodes[1])
-        self.nodes[1].p2p.send_message(msg_witness_block(block))
+        self.nodes[1].p2p.send_message(msg_block(block))
         check_reject(self.nodes[1], b'bad-stake-immature', block.sha256)
 
     def check_node_balance(self, node, balance, stakeable_balance):

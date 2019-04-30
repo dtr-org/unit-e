@@ -39,7 +39,6 @@ from test_framework.blocktools import (
     sign_coinbase,
     update_snapshot_with_tx,
 )
-from test_framework.key import CECKey
 from test_framework.keytools import KeyTool
 from test_framework.messages import (
     COutPoint,
@@ -50,7 +49,6 @@ from test_framework.messages import (
     TxType,
     UTXO,
     msg_block,
-    msg_witness_block,
     msg_headers,
 )
 from test_framework.mininode import (
@@ -78,7 +76,7 @@ class AssumeValidTest(UnitETestFramework):
             if not p2p_conn.is_connected:
                 break
             try:
-                p2p_conn.send_message(msg_witness_block(self.blocks[i]))
+                p2p_conn.send_message(msg_block(self.blocks[i]))
             except IOError as e:
                 assert not p2p_conn.is_connected
                 break
@@ -179,7 +177,6 @@ class AssumeValidTest(UnitETestFramework):
             self.blocks.append(block)
             self.tip = block.sha256
             self.block_time += 1
-            utxo = UTXO(height, TxType.COINBASE, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
             snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta, height, coinbase)
             height += 1
 
@@ -218,7 +215,6 @@ class AssumeValidTest(UnitETestFramework):
             self.blocks.append(block)
             self.tip = block.sha256
             self.block_time += 1
-            utxo = UTXO(height, TxType.COINBASE, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
             snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta, height, coinbase)
             height += 1
 
@@ -245,7 +241,7 @@ class AssumeValidTest(UnitETestFramework):
 
         self.log.info("Send all blocks to node1. All blocks will be accepted.")
         for i in range(2202):
-            p2p1.send_message(msg_witness_block(self.blocks[i]))
+            p2p1.send_message(msg_block(self.blocks[i]))
         # Syncing 2200 blocks can take a while on slow systems. Give it plenty of time to sync.
         p2p1.sync_with_ping(120)
         assert_equal(self.nodes[1].getblock(self.nodes[1].getbestblockhash())['height'], 2203)

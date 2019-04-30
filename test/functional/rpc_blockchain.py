@@ -39,7 +39,7 @@ from test_framework.blocktools import (
     sign_coinbase,
 )
 from test_framework.messages import (
-    msg_witness_block,
+    msg_block,
 )
 from test_framework.mininode import (
     P2PInterface,
@@ -296,7 +296,7 @@ class BlockchainTest(UnitETestFramework):
             stake = get_unspent_coins(node, 1)[0]
             b = create_block(prevhash, sign_coinbase(node, create_coinbase(height, stake, snapshot_hash)), time)
             b.solve()
-            node.p2p.send_message(msg_witness_block(b))
+            node.p2p.send_message(msg_block(b))
             node.p2p.sync_with_ping()
             return b
 

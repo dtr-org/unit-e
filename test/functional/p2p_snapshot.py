@@ -39,7 +39,7 @@ from test_framework.messages import (
     COutPoint,
     msg_commits,
     msg_headers,
-    msg_witness_block,
+    msg_block,
     msg_getsnaphead,
     msg_snaphead,
     msg_getsnapshot,
@@ -71,9 +71,8 @@ SERVICE_FLAGS_WITH_SNAPSHOT = NODE_NETWORK | NODE_WITNESS | NODE_SNAPSHOT
 
 
 class BaseNode(P2PInterface):
-    def __init__(self, name=''):
+    def __init__(self):
         super().__init__()
-        self.name = name
         self.return_snapshot_header = True
         self.snapshot_requested = False
         self.snapshot_header = SnapshotHeader()
@@ -120,7 +119,7 @@ class BaseNode(P2PInterface):
     def on_getdata(self, message):
         for i in message.inv:
             if i.hash in self.parent_blocks:
-                self.send_message(msg_witness_block(self.parent_blocks[i.hash]))
+                self.send_message(msg_block(self.parent_blocks[i.hash]))
 
     def update_snapshot_from(self, node, finalized=True):
         # take the latest finalized
@@ -164,8 +163,8 @@ class BaseNode(P2PInterface):
 
 
 class WaitNode(BaseNode):
-    def __init__(self, name=''):
-        super().__init__(name)
+    def __init__(self):
+        super().__init__()
 
         self.last_getsnapshot_message = None
 
@@ -214,7 +213,7 @@ class WaitNode(BaseNode):
             if i.hash in self.parent_blocks:
                 self.parent_block_requested = True
                 if self.return_parent_block:
-                    self.send_message(msg_witness_block(self.parent_blocks[i.hash]))
+                    self.send_message(msg_block(self.parent_blocks[i.hash]))
 
 
 def uint256_from_hex(v):
