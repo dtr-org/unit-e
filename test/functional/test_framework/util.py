@@ -782,3 +782,6 @@ def make_vote_tx(finalizer, finalizer_address, target_hash, source_epoch, target
     vtx = finalizer.createvotetransaction(vote, input_tx_id)
     vtx = finalizer.signrawtransactionwithwallet(vtx)
     return vtx['hex']
+
+def generate_block(proposer, count=1):
+    return proposer.generatetoaddress(count, proposer.getnewaddress('', 'bech32'))

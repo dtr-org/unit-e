@@ -22,9 +22,6 @@ from test_framework.util import (
 )
 
 
-def generate_block(proposer, count=1):
-    generate_block(proposer, count=count)
-
 def setup_deposit(self, proposer, validators):
     for _, n in enumerate(validators):
         n.new_address = n.getnewaddress("", "legacy")
