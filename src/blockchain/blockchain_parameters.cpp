@@ -11,6 +11,14 @@
 
 namespace blockchain {
 
+void CheckGenesisBlockSupply(Parameters &p) noexcept {
+    CAmount genesis_supply = 0;
+    for (const auto &tx : p.genesis_block.block.vtx) {
+        genesis_supply += tx->GetValueOut();
+    }
+    assert(genesis_supply == p.initial_supply);
+}
+
 Parameters Parameters::Base() noexcept {
   Parameters p{};  // designated initializers would be so nice here
 
@@ -104,6 +112,10 @@ Parameters Parameters::Base() noexcept {
 
   p.default_settings.finalizer_vote_from_epoch_block_number = 35;
 
+  // TODO UNIT-E: Added funds from testnet just to let the supply check pass
+  p.genesis_block = GenesisBlock(GenesisBlockBuilder().Add(TestnetFunds()).Build(p));
+
+  CheckGenesisBlockSupply(p);
   return p;
 }
 
@@ -115,6 +127,7 @@ Parameters Parameters::TestNet() noexcept {
   p.coinbase_maturity = 10;
   p.stake_maturity = 100;
   p.stake_maturity_activation_height = 200;
+  p.initial_supply = 1500000000 * UNIT;  // 1.5 billion UTE
 
   p.message_start_characters[0] = 0xfd;
   p.message_start_characters[1] = 0xfc;
@@ -134,6 +147,7 @@ Parameters Parameters::TestNet() noexcept {
   p.default_settings.p2p_port = 17182;
   p.data_dir_suffix = "testnet";
 
+  CheckGenesisBlockSupply(p);
   return p;
 }
 
@@ -146,6 +160,7 @@ Parameters Parameters::RegTest() noexcept {
   p.stake_maturity = 2;
   p.stake_maturity_activation_height = 1000;
   p.reward = 3750000000;
+  p.initial_supply = 1060000 * UNIT;  // 1.06 million UTE
 
   p.message_start_characters[0] = 0xfa;
   p.message_start_characters[1] = 0xbf;
@@ -177,6 +192,7 @@ Parameters Parameters::RegTest() noexcept {
 
   p.max_future_block_time_seconds = 2 * 60 * 60;
 
+  CheckGenesisBlockSupply(p);
   return p;
 }
 
