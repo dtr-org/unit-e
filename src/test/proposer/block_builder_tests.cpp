@@ -76,6 +76,14 @@ struct Fixture {
     key = ext_key.key;
     pubkey = key.GetPubKey();
     pubkeydata = std::vector<unsigned char>(pubkey.begin(), pubkey.end());
+
+    wallet.key = key;
+    wallet.signfunc = [&](CMutableTransaction &tx) {
+      auto &witness_stack = tx.vin[1].scriptWitness.stack;
+      witness_stack.emplace_back();            // empty signature
+      witness_stack.emplace_back(pubkeydata);  // pubkey
+      return true;
+    };
   }
 
   std::unique_ptr<staking::BlockValidator> MakeBlockValidator() {
@@ -128,14 +136,6 @@ BOOST_AUTO_TEST_CASE(build_block_and_validate) {
   std::vector<CTransactionRef> transactions;
   CAmount fees(0);
 
-  f.wallet.key = f.key;
-  f.wallet.signfunc = [&](CMutableTransaction &tx) {
-    auto &witness_stack = tx.vin[1].scriptWitness.stack;
-    witness_stack.emplace_back();              // empty signature
-    witness_stack.emplace_back(f.pubkeydata);  // pubkey
-    return true;
-  };
-
   auto block = builder->BuildBlock(
       current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, f.wallet);
   BOOST_REQUIRE(static_cast<bool>(block));
@@ -167,27 +167,9 @@ BOOST_AUTO_TEST_CASE(split_amount) {
       return ix;
     }();
 
-    uint256 snapshot_hash;
-    const staking::Coin utxo(&current_tip, {uint256(), 0}, {43, CScript()});
-    const proposer::EligibleCoin eligible_coin{
-        utxo,
-        uint256(),
-        CAmount(50),
-        blockchain::Height(current_tip.nHeight + 1),
-        blockchain::Time(16161616),
-        blockchain::Difficulty(0x20ff00)};
-
     staking::CoinSet coins;  // no other coins
     std::vector<CTransactionRef> transactions;
     CAmount fees(0);
-
-    f.wallet.key = f.key;
-    f.wallet.signfunc = [&](CMutableTransaction &tx) {
-      auto &witness_stack = tx.vin[1].scriptWitness.stack;
-      witness_stack.emplace_back();              // empty signature
-      witness_stack.emplace_back(f.pubkeydata);  // pubkey
-      return true;
-    };
 
     std::shared_ptr<const CBlock> block = builder->BuildBlock(
         current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, f.wallet);
@@ -241,14 +223,6 @@ BOOST_AUTO_TEST_CASE(check_reward_destination) {
   std::vector<CTransactionRef> transactions;
   CAmount fees(5);
 
-  f.wallet.key = f.key;
-  f.wallet.signfunc = [&](CMutableTransaction &tx) {
-    auto &witness_stack = tx.vin[1].scriptWitness.stack;
-    witness_stack.emplace_back();              // empty signature
-    witness_stack.emplace_back(f.pubkeydata);  // pubkey
-    return true;
-  };
-
   std::shared_ptr<const CBlock> block = builder->BuildBlock(
       current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, f.wallet);
   BOOST_REQUIRE(static_cast<bool>(block));
@@ -264,6 +238,131 @@ BOOST_AUTO_TEST_CASE(check_reward_destination) {
   CTxDestination reward_dest;
   ExtractDestination(block->vtx[0]->vout[0].scriptPubKey, reward_dest);
   BOOST_CHECK(expected_reward_dest == reward_dest);
+}
+
+BOOST_AUTO_TEST_CASE(combine_stake) {
+  Fixture f{tfm::format("-stakesplitthreshold=%d", 0),
+            tfm::format("-stakecombinemaximum=%d", 210)};
+  std::unique_ptr<staking::BlockValidator> validator = f.MakeBlockValidator();
+  std::unique_ptr<proposer::BlockBuilder> builder = f.MakeBlockBuilder();
+
+  const uint256 block_hash = uint256::zero;
+  const CBlockIndex current_tip = [&] {
+    CBlockIndex ix;
+    ix.phashBlock = &block_hash;
+    ix.pprev = nullptr;
+    ix.pskip = nullptr;
+    ix.nHeight = 17;
+    return ix;
+  }();
+
+  const staking::Coin coin1(&f.block, {uint256::zero, 1}, {120, CScript()});
+  const staking::Coin coin2(&f.block, {uint256::zero, 2}, {60, CScript()});
+  const staking::Coin coin3(&f.block, {uint256::zero, 3}, {40, CScript()});
+  staking::CoinSet coins{f.eligible_coin.utxo, coin1, coin2, coin3};
+  std::vector<CTransactionRef> transactions;
+  CAmount fees(0);
+
+  std::shared_ptr<const CBlock> block = builder->BuildBlock(
+      current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, f.wallet);
+  BOOST_REQUIRE(static_cast<bool>(block));
+  const staking::BlockValidationResult is_valid = validator->CheckBlock(*block, nullptr);
+  BOOST_CHECK(static_cast<bool>(is_valid));
+  // must have a coinbase transaction
+  BOOST_REQUIRE(!block->vtx.empty());
+
+  const std::vector<CTxIn> &inputs = block->vtx[0]->vin;
+  BOOST_REQUIRE_EQUAL(inputs.size(), 2 + 2);  // meta input + stake + 2 coins to combine with stake
+  BOOST_CHECK(inputs[1].prevout == f.eligible_coin.utxo.GetOutPoint());
+  BOOST_CHECK(
+      (inputs[2].prevout == coin2.GetOutPoint() && inputs[3].prevout == coin3.GetOutPoint()) ||
+      (inputs[3].prevout == coin2.GetOutPoint() && inputs[2].prevout == coin3.GetOutPoint()));
+
+  const std::vector<CTxOut> &outputs = block->vtx[0]->vout;
+  BOOST_CHECK_EQUAL(outputs.size(), 2);
+  BOOST_CHECK_EQUAL(outputs[1].nValue, f.eligible_coin.utxo.GetAmount() + coin2.GetAmount() + coin3.GetAmount());
+}
+
+// TODO UNIT-E: check that combining skipped when staking remote staking outputs
+
+BOOST_AUTO_TEST_CASE(remote_staking) {
+  Fixture f{tfm::format("-stakesplitthreshold=%d", 0),
+            tfm::format("-stakecombinemaximum=%d", 210)};
+  std::unique_ptr<staking::BlockValidator> validator = f.MakeBlockValidator();
+  std::unique_ptr<proposer::BlockBuilder> builder = f.MakeBlockBuilder();
+
+  const uint256 block_hash = uint256::zero;
+  const CBlockIndex current_tip = [&] {
+    CBlockIndex ix;
+    ix.phashBlock = &block_hash;
+    ix.pprev = nullptr;
+    ix.pskip = nullptr;
+    ix.nHeight = 17;
+    return ix;
+  }();
+
+  const auto rsp2wpkh = CScript::CreateRemoteStakingKeyhashScript(std::vector<unsigned char>(20), std::vector<unsigned char>(32));
+
+  const staking::Coin coin1(&f.block, {uint256::zero, 1}, {20, CScript()});
+  const staking::Coin coin2(&f.block, {uint256::zero, 2}, {20, CScript()});
+  std::vector<CTransactionRef> transactions;
+  CAmount fees(0);
+
+  // Do not combine coins when stake is a remote-staking output
+  {
+    const proposer::EligibleCoin eligible_coin{
+        staking::Coin(&f.block, {f.txid, 10}, {100, rsp2wpkh}),
+        uint256::zero,
+        CAmount(50),
+        blockchain::Height(18),
+        f.behavior->CalculateProposingTimestampAfter(4711),
+        blockchain::Difficulty(0x20FF00)};
+
+    staking::CoinSet coins{eligible_coin.utxo, coin1, coin2};
+
+    std::shared_ptr<const CBlock> block = builder->BuildBlock(
+        current_tip, f.snapshot_hash, eligible_coin, coins, transactions, fees, f.wallet);
+    BOOST_REQUIRE(static_cast<bool>(block));
+    const staking::BlockValidationResult is_valid = validator->CheckBlock(*block, nullptr);
+    BOOST_CHECK(static_cast<bool>(is_valid));
+    // must have a coinbase transaction
+    BOOST_REQUIRE(!block->vtx.empty());
+
+    const std::vector<CTxIn> &inputs = block->vtx[0]->vin;
+    BOOST_CHECK_EQUAL(inputs.size(), 2);  // meta input + stake
+    BOOST_CHECK(inputs[1].prevout == eligible_coin.utxo.GetOutPoint());
+
+    const std::vector<CTxOut> &outputs = block->vtx[0]->vout;
+    BOOST_CHECK_EQUAL(outputs.size(), 2);
+    BOOST_CHECK_EQUAL(outputs[1].nValue, eligible_coin.utxo.GetAmount());
+  }
+
+  // Do not combine remote-staking coins
+  {
+    const auto rsp2wsh = CScript::CreateRemoteStakingScripthashScript(std::vector<unsigned char>(20), std::vector<unsigned char>(32));
+    const staking::Coin rs_coin1(&f.block, {uint256::zero, 4}, {25, rsp2wpkh});
+    const staking::Coin rs_coin2(&f.block, {uint256::zero, 5}, {25, rsp2wsh});
+    staking::CoinSet coins{f.eligible_coin.utxo, coin1, coin2, rs_coin1, rs_coin2};
+
+    std::shared_ptr<const CBlock> block = builder->BuildBlock(
+        current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, f.wallet);
+    BOOST_REQUIRE(static_cast<bool>(block));
+    const staking::BlockValidationResult is_valid = validator->CheckBlock(*block, nullptr);
+    BOOST_CHECK(static_cast<bool>(is_valid));
+    // must have a coinbase transaction
+    BOOST_REQUIRE(!block->vtx.empty());
+
+    const std::vector<CTxIn> &inputs = block->vtx[0]->vin;
+    BOOST_REQUIRE_EQUAL(inputs.size(), 2 + 2);  // meta input + stake + 2 coins to combine with stake
+    BOOST_CHECK(inputs[1].prevout == f.eligible_coin.utxo.GetOutPoint());
+    BOOST_CHECK(
+        (inputs[2].prevout == coin1.GetOutPoint() && inputs[3].prevout == coin2.GetOutPoint()) ||
+        (inputs[3].prevout == coin1.GetOutPoint() && inputs[2].prevout == coin2.GetOutPoint()));
+
+    const std::vector<CTxOut> &outputs = block->vtx[0]->vout;
+    BOOST_CHECK_EQUAL(outputs.size(), 2);
+    BOOST_CHECK_EQUAL(outputs[1].nValue, f.eligible_coin.utxo.GetAmount() + coin1.GetAmount() + coin2.GetAmount());
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

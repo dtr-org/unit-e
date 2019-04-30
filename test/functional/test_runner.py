@@ -52,7 +52,7 @@ if os.name == 'posix':
 TEST_EXIT_PASSED = 0
 TEST_EXIT_SKIPPED = 77
 
-BASE_SCRIPTS= [
+BASE_SCRIPTS = [
     # Scripts that are run by the travis build process.
     # Longest test should go first, to favor running tests in parallel
     'feature_block.py',
@@ -165,6 +165,7 @@ BASE_SCRIPTS= [
     'feature_proxy.py',
     'feature_spend_genesis.py',
     'p2p_disconnect_ban.py',
+    'proposer_remote_staking.py',
     'feature_uacomment.py',
     'p2p_node_network_limited.py',
     'rpc_runstringcommand.py',
