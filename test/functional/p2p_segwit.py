@@ -121,8 +121,8 @@ def get_virtual_size(witness_block):
     """Calculate the virtual size of a witness block.
 
     Virtual size is base + witness/4."""
-    base_size = len(witness_block.serialize(with_witness=False))
-    total_size = len(witness_block.serialize(with_witness=True))
+    base_size = len(witness_block.serialize_without_witness())
+    total_size = len(witness_block.serialize())
     # the "+3" is so we round up
     vsize = int((3 * base_size + total_size + 3) / 4)
     return vsize
@@ -364,7 +364,7 @@ class SegWitTest(UnitETestFramework):
         self.update_witness_block_with_transactions(block, [parent_tx, child_tx])
 
         # Calculate exact additional bytes (get_virtual_size would round it)
-        additional_bytes = 1 + (4 * MAX_BLOCK_BASE_SIZE) - (3 * len(block.serialize(with_witness=False)) + len(block.serialize(with_witness=True)))
+        additional_bytes = 1 + (4 * MAX_BLOCK_BASE_SIZE) - (3 * len(block.serialize_without_witness()) + len(block.serialize()))
 
         i = 0
         while additional_bytes > 0:
@@ -376,11 +376,11 @@ class SegWitTest(UnitETestFramework):
 
         block.compute_merkle_trees()
         block.solve()
-        segwit_size = 3 * len(block.serialize(with_witness=False)) + len(block.serialize(with_witness=True))
+        segwit_size = 3 * len(block.serialize_without_witness()) + len(block.serialize())
         assert_equal(segwit_size, (4 * MAX_BLOCK_BASE_SIZE) + 1)
         # Make sure that our test case would exceed the old max-network-message
         # limit
-        assert len(block.serialize(True)) > 2*1024*1024
+        assert len(block.serialize()) > 2*1024*1024
 
         test_witness_block(self.nodes[0].rpc, self.test_node, block, accepted=False)
 
@@ -773,15 +773,15 @@ class SegWitTest(UnitETestFramework):
         rpc_block = self.nodes[0].getblock(block.hash, False)
         non_wit_block = self.test_node.request_block(block.sha256, 2)
         wit_block = self.test_node.request_block(block.sha256, 2|MSG_WITNESS_FLAG)
-        assert_equal(wit_block.serialize(True), hex_str_to_bytes(rpc_block))
-        assert_equal(wit_block.serialize(False), non_wit_block.serialize())
-        assert_equal(wit_block.serialize(True), block.serialize(True))
+        assert_equal(wit_block.serialize(), hex_str_to_bytes(rpc_block))
+        assert_equal(wit_block.serialize_without_witness(), non_wit_block.serialize())
+        assert_equal(wit_block.serialize(), block.serialize())
 
         # Test size, vsize, weight
         rpc_details = self.nodes[0].getblock(block.hash, True)
-        assert_equal(rpc_details["size"], len(block.serialize(True)))
-        assert_equal(rpc_details["strippedsize"], len(block.serialize(False)))
-        weight = 3*len(block.serialize(False)) + len(block.serialize(True))
+        assert_equal(rpc_details["size"], len(block.serialize()))
+        assert_equal(rpc_details["strippedsize"], len(block.serialize_without_witness()))
+        weight = 3*len(block.serialize_without_witness()) + len(block.serialize())
         assert_equal(rpc_details["weight"], weight)
 
     # V0 segwit outputs should be standard

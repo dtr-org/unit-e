@@ -7,7 +7,6 @@
 Version 1 compact blocks are non-segwit and they are not supported
 """
 
-from decimal import Decimal
 import random
 
 from test_framework.blocktools import (
@@ -16,7 +15,39 @@ from test_framework.blocktools import (
     get_tip_snapshot_meta,
     sign_coinbase,
 )
-from test_framework.messages import BlockTransactions, BlockTransactionsRequest, calculate_shortid, CBlock, CBlockHeader, CInv, COutPoint, CTransaction, CTxIn, CTxInWitness, CTxOut, FromHex, HeaderAndShortIDs, msg_block, msg_blocktxn, msg_cmpctblock, msg_getblocktxn, msg_getdata, msg_getheaders, msg_headers, msg_inv, msg_sendcmpct, msg_sendheaders, msg_tx, msg_witness_blocktxn, MSG_WITNESS_FLAG, NODE_NETWORK, NODE_WITNESS, P2PHeaderAndShortIDs, PrefilledTransaction, ser_uint256, ToHex
+from test_framework.messages import (
+    BlockTransactions,
+    BlockTransactionsRequest,
+    calculate_shortid,
+    CBlock,
+    CBlockHeader,
+    CInv,
+    COutPoint,
+    CTransaction,
+    CTxIn,
+    CTxInWitness,
+    CTxOut,
+    FromHex,
+    HeaderAndShortIDs,
+    msg_block,
+    msg_blocktxn,
+    msg_cmpctblock,
+    msg_getblocktxn,
+    msg_getdata,
+    msg_getheaders,
+    msg_headers,
+    msg_inv,
+    msg_sendcmpct,
+    msg_sendheaders,
+    msg_tx,
+    MSG_WITNESS_FLAG,
+    NODE_NETWORK,
+    NODE_WITNESS,
+    P2PHeaderAndShortIDs,
+    PrefilledTransaction,
+    ser_uint256,
+    ToHex
+)
 from test_framework.mininode import mininode_lock, P2PInterface
 from test_framework.script import CScript, OP_TRUE, OP_DROP
 from test_framework.test_framework import UnitETestFramework
@@ -429,7 +460,7 @@ class CompactBlocksTest(UnitETestFramework):
             assert_equal(absolute_indexes, [0])  # should be a coinbase request
 
             # Send the coinbase, and verify that the tip advances.
-            msg = msg_witness_blocktxn()
+            msg = msg_blocktxn()
             msg.block_transactions.blockhash = block.sha256
             msg.block_transactions.transactions = [block.vtx[0]]
             test_node.send_and_ping(msg)
@@ -483,7 +514,7 @@ class CompactBlocksTest(UnitETestFramework):
 
         test_getblocktxn_response(block, comp_block, test_node, block.vtx[1:])
 
-        msg_bt = msg_witness_blocktxn() # serialize with witnesses
+        msg_bt = msg_blocktxn()  # serialize with witnesses
         msg_bt.block_transactions = BlockTransactions(block.sha256, block.vtx[1:])
         test_tip_after_message(node, test_node, msg_bt, block.sha256)
 
@@ -567,7 +598,7 @@ class CompactBlocksTest(UnitETestFramework):
         # different peer provide the block further down, so that we're still
         # verifying that the block isn't marked bad permanently. This is good
         # enough for now.
-        msg = msg_witness_blocktxn()
+        msg = msg_blocktxn()
 
         missing_txs = block.middle_txs[6:] + [block.unspent_tx]
 
