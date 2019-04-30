@@ -14,6 +14,7 @@ namespace {
 struct Fixture {
 
   const CAmount total_reward = 10 * UNIT;
+  const CAmount immediate_reward = 1 * UNIT;
 
   blockchain::Parameters parameters = [this]() {
     blockchain::Parameters p = blockchain::Parameters::TestNet();
@@ -52,26 +53,6 @@ struct Fixture {
     return tx;
   }
 
-  CTransaction MakeCoinbaseTx(
-      CAmount block_reward,
-      const std::vector<std::pair<CScript, CAmount>> &finalization_rewards,
-      const std::vector<CAmount> &outputs) {
-    const CTxIn meta_input;
-    const CTxIn staking_input;
-
-    CMutableTransaction tx;
-    tx.SetType(TxType::COINBASE);
-    tx.vin = {meta_input, staking_input};
-    tx.vout.emplace_back(block_reward, CScript());
-    for (const auto &r : finalization_rewards) {
-      tx.vout.emplace_back(r.second, r.first);
-    }
-    for (const auto out : outputs) {
-      tx.vout.emplace_back(out, CScript());
-    }
-    return tx;
-  }
-
   std::unique_ptr<staking::BlockRewardValidator> GetBlockRewardValidator() {
     return staking::BlockRewardValidator::New(b.get());
   }
@@ -86,7 +67,7 @@ BOOST_AUTO_TEST_CASE(valid_reward) {
   const auto validator = f.GetBlockRewardValidator();
 
   const CAmount input_amount = 10 * UNIT;
-  const CAmount fees = 1 * UNIT;
+  const CAmount fees = UNIT / 2;
 
   auto test_valid_outputs = [&](const std::vector<CAmount> outputs) {
     CTransaction tx = f.MakeCoinbaseTx(outputs);
@@ -96,10 +77,10 @@ BOOST_AUTO_TEST_CASE(valid_reward) {
     BOOST_CHECK(result);
     BOOST_CHECK(validation_state.IsValid());
   };
-  test_valid_outputs({1 * UNIT + fees, input_amount});
-  test_valid_outputs({1 * UNIT + fees, input_amount / 2, input_amount / 2});
-  test_valid_outputs({1 * UNIT + fees + input_amount});
-  test_valid_outputs({input_amount});
+  test_valid_outputs({f.immediate_reward + fees, input_amount});
+  test_valid_outputs({f.immediate_reward + fees, input_amount / 2, input_amount / 2});
+  test_valid_outputs({f.immediate_reward + fees + input_amount});
+  test_valid_outputs({f.immediate_reward + input_amount});
 }
 
 BOOST_AUTO_TEST_CASE(total_output_is_too_large) {
@@ -107,7 +88,7 @@ BOOST_AUTO_TEST_CASE(total_output_is_too_large) {
   const auto validator = f.GetBlockRewardValidator();
 
   const CAmount input_amount = 11 * UNIT;
-  const CAmount fees = 1 * UNIT;
+  const CAmount fees = UNIT / 2;
   auto test_invalid_outputs = [&](const std::vector<CAmount> outputs) {
     CTransaction tx = f.MakeCoinbaseTx(outputs);
     CValidationState validation_state;
@@ -118,8 +99,8 @@ BOOST_AUTO_TEST_CASE(total_output_is_too_large) {
     BOOST_CHECK_EQUAL(validation_state.GetRejectCode(), REJECT_INVALID);
     BOOST_CHECK_EQUAL(validation_state.GetRejectReason(), "bad-cb-amount");
   };
-  test_invalid_outputs({1 * UNIT + fees + 1, input_amount});
-  test_invalid_outputs({1 * UNIT + fees, input_amount + 1});
+  test_invalid_outputs({f.immediate_reward + fees + 1, input_amount});
+  test_invalid_outputs({f.immediate_reward + fees, input_amount + 1});
 }
 
 BOOST_AUTO_TEST_CASE(total_output_is_too_small) {
@@ -127,8 +108,8 @@ BOOST_AUTO_TEST_CASE(total_output_is_too_small) {
   const auto validator = f.GetBlockRewardValidator();
 
   const CAmount input_amount = 11 * UNIT;
-  const CAmount fees = 1 * UNIT;
-  CTransaction tx = f.MakeCoinbaseTx({0, input_amount - 1});
+  const CAmount fees = UNIT / 2;
+  CTransaction tx = f.MakeCoinbaseTx({0, input_amount});
   CValidationState validation_state;
 
   const bool result = validator->CheckBlockRewards(tx, validation_state, f.block, input_amount, fees);
@@ -143,8 +124,8 @@ BOOST_AUTO_TEST_CASE(non_reward_output_is_too_large) {
   const auto validator = f.GetBlockRewardValidator();
 
   const CAmount input_amount = 15 * UNIT;
-  const CAmount fees = 1 * UNIT;
-  CTransaction tx = f.MakeCoinbaseTx({1 * UNIT, input_amount + fees});
+  const CAmount fees = UNIT / 2;
+  CTransaction tx = f.MakeCoinbaseTx({f.immediate_reward, input_amount + fees});
   CValidationState validation_state;
 
   const bool result = validator->CheckBlockRewards(tx, validation_state, f.block, input_amount, fees);

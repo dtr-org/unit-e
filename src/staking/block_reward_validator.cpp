@@ -27,7 +27,7 @@ class BlockRewardValidatorImpl : public BlockRewardValidator {
     assert(MoneyRange(fees));
 
     const CBlockIndex &prev_block = *index.pprev;
-    CAmount total_reward = fees + m_behavior->CalculateBlockReward(prev_block.nHeight);
+    CAmount total_reward = fees + m_behavior->CalculateBlockReward(index.nHeight);
 
     std::size_t num_reward_outputs = 1;
 
@@ -40,8 +40,8 @@ class BlockRewardValidatorImpl : public BlockRewardValidator {
                        REJECT_INVALID, "bad-cb-amount");
     }
 
-    // TODO UNIT-E: make the check stricter: if (coinbase_tx.GetValueOut() - input_amount < block_reward)
-    if (output_amount < input_amount) {
+    // TODO UNIT-E: make the check stricter: if (output_amount - input_amount < total_reward)
+    if (output_amount - input_amount < total_reward - fees) {
       return state.DoS(100,
                        error("%s: coinbase pays too little (total output=%d total input=%d expected reward=%d )",
                              __func__, FormatMoney(output_amount), FormatMoney(input_amount),
