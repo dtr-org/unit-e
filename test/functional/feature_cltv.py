@@ -4,8 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test BIP65 (CHECKLOCKTIMEVERIFY).
 
-Test that the CHECKLOCKTIMEVERIFY soft-fork activates at (regtest) block height
-1351.
+Test that the CHECKLOCKTIMEVERIFY is active.
 """
 
 from test_framework.test_framework import UnitETestFramework
@@ -28,8 +27,13 @@ def cltv_invalidate(tx):
     TODO: test more ways that transactions using CLTV could be invalid (eg
     locktime requirements fail, sequence time requirements fail, etc).
     '''
-    tx.vin[0].scriptSig = CScript([OP_1NEGATE, OP_CHECKLOCKTIMEVERIFY, OP_DROP] +
-                                  list(CScript(tx.vin[0].scriptSig)))
+
+    witness_program = CScript([OP_1NEGATE, OP_CHECKLOCKTIMEVERIFY, OP_DROP] +
+                              list(tx.wit.vtxinwit[-1].scriptWitness.stack))
+
+    tx.wit.vtxinwit = [CTxInWitness()]
+    tx.wit.vtxinwit[-1].scriptWitness.stack = [witness_program]
+
 
 def cltv_validate(node, tx, height):
     '''Modify the signature in vin 0 of the tx to pass CLTV
@@ -43,8 +47,12 @@ def cltv_validate(node, tx, height):
     new_tx = CTransaction()
     new_tx.deserialize(BytesIO(hex_str_to_bytes(signed_result['hex'])))
 
-    new_tx.vin[0].scriptSig = CScript([CScriptNum(height), OP_CHECKLOCKTIMEVERIFY, OP_DROP] +
-                                  list(CScript(new_tx.vin[0].scriptSig)))
+    witness_program = CScript([CScriptNum(height), OP_CHECKLOCKTIMEVERIFY, OP_DROP] +
+                                  list(tx.wit.vtxinwit[-1].scriptWitness.stack))
+
+    tx.wit.vtxinwit = [CTxInWitness()]
+    tx.wit.vtxinwit[-1].scriptWitness.stack = [witness_program]
+
     return new_tx
 
 def create_transaction(node, coinbase, to_address, amount):
