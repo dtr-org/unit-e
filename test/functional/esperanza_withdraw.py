@@ -143,6 +143,10 @@ class EsperanzaWithdrawTest(UnitETestFramework):
             self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=proposer)
             self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=proposer)
             proposer.generatetoaddress(4, proposer.getnewaddress('', 'bech32'))
+            assert_raises_rpc_error(-25,
+                                    "Logout delay hasn't passed yet. Can't withdraw.",
+                                    finalizer1.withdraw,
+                                    finalizer1_address)
 
         assert_equal(proposer.getblockcount(), 45)
         assert_finalizationstate(proposer, {'currentDynasty': 6,
@@ -180,6 +184,11 @@ class EsperanzaWithdrawTest(UnitETestFramework):
                                             'lastJustifiedEpoch': 9,
                                             'lastFinalizedEpoch': 8,
                                             'validators': 1})
+        assert_equal(finalizer1.getvalidatorinfo()['validator_status'], 'WAITING_FOR_WITHDRAW_DELAY')
+        assert_raises_rpc_error(-25,
+                                "Withdraw delay hasn't passed yet. Can't withdraw.",
+                                finalizer1.withdraw,
+                                finalizer1_address)
 
         # WITHDRAW_DELAY - 2 is because:
         # -1 as we checked the first loop manually
@@ -202,7 +211,11 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         # We have an known issue https://github.com/dtr-org/unit-e/issues/643
         # that finalizer can't vote after checkpoint is processed, it looks that
         # finalizer can't create any finalizer commits at this point (and only at this point).
-        assert_raises_rpc_error(-8, 'Cannot send withdraw transaction.', finalizer1.withdraw, finalizer1_address)
+        assert_equal(finalizer1.getvalidatorinfo()['validator_status'], 'WAITING_FOR_WITHDRAW_DELAY')
+        assert_raises_rpc_error(-25,
+                                "Withdraw delay hasn't passed yet. Can't withdraw.",
+                                finalizer1.withdraw,
+                                finalizer1_address)
 
         self.log.info('finalizer1 could not withdraw during WITHDRAW_DELAY period')
 
@@ -219,10 +232,12 @@ class EsperanzaWithdrawTest(UnitETestFramework):
                                             'lastFinalizedEpoch': 18,
                                             'validators': 1})
         sync_blocks([proposer, finalizer1], timeout=10)
+        assert_equal(finalizer1.getvalidatorinfo()['validator_status'], 'WAITING_TO_WITHDRAW')
         w1 = finalizer1.withdraw(finalizer1_address)
         wait_until(lambda: w1 in proposer.getrawmempool(), timeout=10)
         proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
         sync_blocks([proposer, finalizer1])
+        assert_equal(finalizer1.getvalidatorinfo()['validator_status'], 'NOT_VALIDATING')
 
         self.log.info('finalizer1 was able to withdraw deposit at dynasty=18')
 
@@ -246,22 +261,20 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         # Test that after withdraw the node can deposit again
         sync_blocks([proposer, finalizer1], timeout=10)
         assert_equal(proposer.getblockcount(), 103)
-        wait_until(lambda: finalizer1.getvalidatorinfo()['validator_status'] == 'NOT_VALIDATING',
-                   timeout=5)
+        assert_equal(finalizer1.getvalidatorinfo()['validator_status'], 'NOT_VALIDATING')
         deposit = finalizer1.deposit(finalizer1.getnewaddress('', 'legacy'), 1500)
-        wait_until(lambda: finalizer1.getvalidatorinfo()['validator_status'] == 'WAITING_DEPOSIT_CONFIRMATION',
-                   timeout=5)
+        assert_equal(finalizer1.getvalidatorinfo()['validator_status'], 'WAITING_DEPOSIT_CONFIRMATION')
 
         self.wait_for_transaction(deposit, timeout=10, nodes=[proposer, finalizer1])
         proposer.generate(1)
         sync_blocks([proposer, finalizer1], timeout=10)
         assert_equal(proposer.getblockcount(), 104)
 
-        wait_until(lambda: finalizer1.getvalidatorinfo()['validator_status'] == 'WAITING_DEPOSIT_FINALIZATION',
-                   timeout=20)
+        assert_equal(finalizer1.getvalidatorinfo()['validator_status'], 'WAITING_DEPOSIT_FINALIZATION')
 
         self.log.info('finalizer1 deposits again')
 
+        # Test that finalizer is voting after depositing again
         disconnect_nodes(finalizer1, proposer.index)
 
         proposer.generate(2)

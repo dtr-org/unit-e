@@ -94,6 +94,7 @@ BASE_SCRIPTS = [
     'esperanza_slash.py',
     'feature_segwit.py',
     'esperanza_withdraw.py',
+    'finalization_deposit_reorg.py',
     'feature_fork_choice_forked_finalize_epoch.py',
     'p2p_snapshot.py',
     'proposer_settings.py',
