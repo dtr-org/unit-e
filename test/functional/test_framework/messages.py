@@ -671,13 +671,21 @@ class CBlock(CBlockHeader):
         super(CBlock, self).deserialize(f)
         self.vtx = deser_vector(f, CTransaction)
 
-    def serialize(self, with_witness=False):
+    # Regular serialization is with witness -- must explicitly
+    # call serialize_without_witness to exclude witness data.
+    def serialize(self):
         r = b""
         r += super(CBlock, self).serialize()
-        if with_witness:
-            r += ser_vector(self.vtx, "serialize_with_witness")
-        else:
-            r += ser_vector(self.vtx, "serialize_without_witness")
+        r += ser_vector(self.vtx, "serialize_with_witness")
+        # UNIT-E: serialize an empty block signature on top of the block
+        # this is just an interim solution
+        r += ser_vector([])
+        return r
+
+    def serialize_without_witness(self):
+        r = b""
+        r += super(CBlock, self).serialize()
+        r += ser_vector(self.vtx, "serialize_without_witness")
         # UNIT-E: serialize an empty block signature on top of the block
         # this is just an interim solution
         r += ser_vector([])
@@ -960,13 +968,10 @@ class BlockTransactions():
         self.blockhash = deser_uint256(f)
         self.transactions = deser_vector(f, CTransaction)
 
-    def serialize(self, with_witness=True):
+    def serialize(self):
         r = b""
         r += ser_uint256(self.blockhash)
-        if with_witness:
-            r += ser_vector(self.transactions, "serialize_with_witness")
-        else:
-            r += ser_vector(self.transactions, "serialize_without_witness")
+        r += ser_vector(self.transactions, "serialize_with_witness")
         return r
 
     def __repr__(self):
@@ -1212,7 +1217,7 @@ class msg_block():
         self.block.deserialize(f)
 
     def serialize(self):
-        return self.block.serialize(with_witness=True)
+        return self.block.serialize()
 
     def __repr__(self):
         return "msg_block(block=%s)" % (repr(self.block))
@@ -1478,7 +1483,7 @@ class msg_blocktxn():
 
     def serialize(self):
         r = b""
-        r += self.block_transactions.serialize(with_witness=True)
+        r += self.block_transactions.serialize()
         return r
 
     def __repr__(self):
@@ -1487,7 +1492,7 @@ class msg_blocktxn():
 class msg_witness_blocktxn(msg_blocktxn):
     def serialize(self):
         r = b""
-        r += self.block_transactions.serialize(with_witness=True)
+        r += self.block_transactions.serialize()
         return r
 
 class msg_getsnaphead:
