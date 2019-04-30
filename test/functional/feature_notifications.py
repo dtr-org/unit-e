@@ -65,23 +65,25 @@ class NotificationsTest(UnitETestFramework):
         txids_rpc = set(map(lambda t: t['txid'], self.nodes[1].listtransactions("*", 100)))
         assert_equal(set(os.listdir(self.walletnotify_dir)), txids_rpc)
 
-        # Mine another 41 up-version blocks. -alertnotify should trigger on the 51st.
-        self.log.info("test -alertnotify")
-        self.nodes[1].generate(41)
-        self.sync_all()
-
-        # Give unit-e 10 seconds to write the alert notification
-        wait_until(lambda: len(os.listdir(self.alertnotify_dir)), timeout=10)
-
-        for notify_file in os.listdir(self.alertnotify_dir):
-            os.remove(os.path.join(self.alertnotify_dir, notify_file))
-
-        # Mine more up-version blocks, should not get more alerts:
-        self.nodes[1].generate(2)
-        self.sync_all()
-
-        self.log.info("-alertnotify should not continue notifying for more unknown version blocks")
-        assert_equal(len(os.listdir(self.alertnotify_dir)), 0)
+        # TODO: UNIT-E: re-enable or delete https://github.com/dtr-org/unit-e/issues/472
+        # # Mine another 41 up-version blocks. -alertnotify should trigger on the 51st.
+        # self.log.info("test -alertnotify")
+        # self.nodes[1].generate(41)
+        # assert_equal(self.nodes[1].getblockcount(), 51)
+        # self.sync_all()
+        #
+        # # Give unit-e 10 seconds to write the alert notification
+        # wait_until(lambda: len(os.listdir(self.alertnotify_dir)), timeout=10)
+        #
+        # for notify_file in os.listdir(self.alertnotify_dir):
+        #     os.remove(os.path.join(self.alertnotify_dir, notify_file))
+        #
+        # # Mine more up-version blocks, should not get more alerts:
+        # self.nodes[1].generate(2)
+        # self.sync_all()
+        #
+        # self.log.info("-alertnotify should not continue notifying for more unknown version blocks")
+        # assert_equal(len(os.listdir(self.alertnotify_dir)), 0)
 
 if __name__ == '__main__':
     NotificationsTest().main()
