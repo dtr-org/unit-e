@@ -1489,11 +1489,6 @@ class msg_blocktxn():
     def __repr__(self):
         return "msg_blocktxn(block_transactions=%s)" % (repr(self.block_transactions))
 
-class msg_witness_blocktxn(msg_blocktxn):
-    def serialize(self):
-        r = b""
-        r += self.block_transactions.serialize()
-        return r
 
 class msg_getsnaphead:
     command = b"getsnaphead"

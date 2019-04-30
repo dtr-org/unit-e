@@ -418,7 +418,7 @@ class CompactBlocksTest(UnitETestFramework):
             assert_equal(absolute_indexes, [0])  # should be a coinbase request
 
             # Send the coinbase, and verify that the tip advances.
-            msg = msg_witness_blocktxn()
+            msg = msg_blocktxn()
             msg.block_transactions.blockhash = block.sha256
             msg.block_transactions.transactions = [block.vtx[0]]
             test_node.send_and_ping(msg)
@@ -472,7 +472,7 @@ class CompactBlocksTest(UnitETestFramework):
 
         test_getblocktxn_response(block, comp_block, test_node, block.vtx[1:])
 
-        msg_bt = msg_witness_blocktxn() # serialize with witnesses
+        msg_bt = msg_blocktxn() # serialize with witnesses
         msg_bt.block_transactions = BlockTransactions(block.sha256, block.vtx[1:])
         test_tip_after_message(node, test_node, msg_bt, block.sha256)
 
@@ -556,7 +556,7 @@ class CompactBlocksTest(UnitETestFramework):
         # different peer provide the block further down, so that we're still
         # verifying that the block isn't marked bad permanently. This is good
         # enough for now.
-        msg = msg_witness_blocktxn()
+        msg = msg_blocktxn()
 
         missing_txs = block.middle_txs[6:] + [block.unspent_tx]
 
