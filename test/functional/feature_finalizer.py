@@ -16,11 +16,6 @@ from test_framework.util import (
     sync_blocks,
 )
 
-
-def generate_block(node):
-    generate_block(node)
-
-
 class FeatureFinalizerTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 2
