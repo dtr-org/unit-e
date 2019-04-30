@@ -94,7 +94,7 @@ class BlockStore():
         block.calc_sha256()
         try:
             self.blockDB[repr(block.sha256)] = bytes(block.serialize())
-            self.wblockDB[repr(block.sha256)] = bytes(block.serialize(with_witness=True))
+            self.wblockDB[repr(block.sha256)] = bytes(block.serialize())
         except TypeError as e:
             logger.exception("Unexpected error")
         self.currentBlock = block.sha256
