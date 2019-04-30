@@ -24,7 +24,7 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_reject_coinbase, TestChain100Setup)
     CScript scriptPubKey = CScript() << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
     CMutableTransaction coinbaseTx;
 
-    coinbaseTx.nVersion = 1;
+    coinbaseTx.version = 1;
     coinbaseTx.vin.resize(1);
     coinbaseTx.vout.resize(1);
     coinbaseTx.SetType(TxType::COINBASE);

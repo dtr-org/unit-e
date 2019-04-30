@@ -105,7 +105,7 @@ def sign_transaction(node, unsignedtx):
 
 def create_bip112special(node, input, txversion, address):
     tx = create_transaction(node, input, address, amount=PROPOSER_REWARD-Decimal("0.02"))
-    tx.nVersion = txversion
+    tx.version = txversion
     signtx = sign_transaction(node, tx)
     signtx.vin[0].scriptSig = CScript([-1, OP_CHECKSEQUENCEVERIFY, OP_DROP] + list(CScript(signtx.vin[0].scriptSig)))
     return signtx
@@ -120,7 +120,7 @@ def create_bip68txs(node, bip68inputs, txversion, address, locktime_delta=0):
     for i, (sdf, srhb, stf, srlb) in enumerate(product(*[[True, False]] * 4)):
         locktime = relative_locktime(sdf, srhb, stf, srlb)
         tx = create_transaction(node, bip68inputs[i], address, amount=PROPOSER_REWARD - Decimal("0.02"))
-        tx.nVersion = txversion
+        tx.version = txversion
         tx.vin[0].nSequence = locktime + locktime_delta
         tx = sign_transaction(node, tx)
         tx.rehash()
@@ -139,7 +139,7 @@ def create_bip112txs(node, bip112inputs, varyOP_CSV, txversion, address, locktim
             tx.vin[0].nSequence = BASE_RELATIVE_LOCKTIME + locktime_delta
         else:  # vary nSequence instead, OP_CSV is fixed
             tx.vin[0].nSequence = locktime + locktime_delta
-        tx.nVersion = txversion
+        tx.version = txversion
         signtx = sign_transaction(node, tx)
         if (varyOP_CSV):
             signtx.vin[0].scriptSig = CScript([locktime, OP_CHECKSEQUENCEVERIFY, OP_DROP] + list(CScript(signtx.vin[0].scriptSig)))
@@ -327,10 +327,10 @@ class BIP68_112_113Test(UnitETestFramework):
         # BIP113 test transaction will be modified before each use to put in appropriate block time
         bip113tx_v1 = create_transaction(self.nodes[0], bip113input, self.nodeaddress, amount=PROPOSER_REWARD-Decimal("0.02"))
         bip113tx_v1.vin[0].nSequence = 0xFFFFFFFE
-        bip113tx_v1.nVersion = 1
+        bip113tx_v1.version = 1
         bip113tx_v2 = create_transaction(self.nodes[0], bip113input, self.nodeaddress, amount=PROPOSER_REWARD-Decimal("0.02"))
         bip113tx_v2.vin[0].nSequence = 0xFFFFFFFE
-        bip113tx_v2.nVersion = 2
+        bip113tx_v2.version = 2
 
         # For BIP68 test all 16 relative sequence locktimes
         bip68txs_v1 = create_bip68txs(self.nodes[0], bip68inputs, 1, self.nodeaddress)

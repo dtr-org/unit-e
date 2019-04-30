@@ -139,9 +139,10 @@ class FilterTransactionsTest(UnitETestFramework):
     def test_search(self):
         queries = [
             (self.node_1_address, 2),
-            ("440", 1)
+            ("4400", 1)
         ]
 
+        import pprint
         for query, expected_length in queries:
             txs = self.nodes[0].filtertransactions({"search": query})
             assert_equal(len(txs), expected_length)

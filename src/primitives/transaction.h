@@ -180,13 +180,15 @@ struct CMutableTransaction;
 
 /**
  * Basic transaction serialization format:
- * - int32_t nVersion
+ * - uint8_t type
+ * - uint8_t version
  * - std::vector<CTxIn> vin
  * - std::vector<CTxOut> vout
  * - uint32_t nLockTime
  *
  * Extended transaction serialization format:
- * - int32_t nVersion
+ * - uint8_t type
+ * - uint8_t version
  * - unsigned char dummy = 0x00
  * - unsigned char flags (!= 0)
  * - std::vector<CTxIn> vin
@@ -199,7 +201,8 @@ template<typename Stream, typename TxType>
 inline void UnserializeTransaction(TxType& tx, Stream& s) {
     const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
 
-    s >> tx.nVersion;
+    s >> tx.type;
+    s >> tx.version;
     unsigned char flags = 0;
     tx.vin.clear();
     tx.vout.clear();
@@ -234,7 +237,8 @@ template<typename Stream, typename TxType>
 inline void SerializeTransaction(const TxType& tx, Stream& s) {
     const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
 
-    s << tx.nVersion;
+    s << tx.type;
+    s << tx.version;
     unsigned char flags = 0;
     // Consistency check
     if (fAllowWitness) {
@@ -264,14 +268,12 @@ class TransactionBase
 {
 public:
 
-    //! Returns the version of this transaction (considers only the two lower bytes of nVersion).
-    uint16_t GetVersion() const {
-        return static_cast<uint16_t>(GetDerived()->nVersion);
+    uint8_t GetVersion() const {
+        return GetDerived()->version;
     }
 
-    //! Returns the transaction type (TxType) of this transaction (stored in the two upper bytes of the nVersion field).
     TxType GetType() const {
-        return TxType::_from_index_unchecked(GetDerived()->nVersion >> 16);
+        return TxType::_from_index_unchecked(GetDerived()->type);
     }
 
     bool IsRegular() const {
@@ -345,13 +347,13 @@ class CTransaction : public TransactionBase<CTransaction>
 {
 public:
     // Default transaction version.
-    static const int32_t CURRENT_VERSION=2;
+    static const uint8_t CURRENT_VERSION=2;
 
     // Changing the default transaction version requires a two step process: first
     // adapting relay policy by bumping MAX_STANDARD_VERSION, and then later date
     // bumping the default CURRENT_VERSION at which point both CURRENT_VERSION and
     // MAX_STANDARD_VERSION will be equal.
-    static const int32_t MAX_STANDARD_VERSION=2;
+    static const uint8_t MAX_STANDARD_VERSION=2;
 
     // The local variables are made const to prevent unintended modification
     // without updating the cached hash value. However, CTransaction is not
@@ -369,7 +371,8 @@ public:
      * Thus the upper two bytes are used to piggy back that type (also uint16_t) onto
      * the version field.
      */
-    const uint32_t nVersion;
+    const uint8_t version;
+    const uint8_t type;
     const uint32_t nLockTime;
 
 private:
@@ -435,7 +438,8 @@ struct CMutableTransaction : public TransactionBase<CMutableTransaction>
 {
     std::vector<CTxIn> vin;
     std::vector<CTxOut> vout;
-    uint32_t nVersion;
+    uint8_t version;
+    uint8_t type;
     uint32_t nLockTime;
 
     CMutableTransaction();
@@ -457,7 +461,7 @@ struct CMutableTransaction : public TransactionBase<CMutableTransaction>
         Unserialize(s);
     }
 
-    void SetVersion(uint16_t version);
+    void SetVersion(uint8_t version);
 
     void SetType(TxType type);
 

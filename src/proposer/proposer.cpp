@@ -120,7 +120,7 @@ class ProposerImpl : public Proposer {
             continue;
           }
           const EligibleCoin &coin = winning_ticket.get();
-          LogPrint(BCLog::PROPOSING, "Proposing... (wallet=%s, coin=%s)\n",
+          LogPrint(BCLog::PROPOSING, "Proposing... (wallet=%s, coin=%d)\n",
                    wallet_name, util::to_string(coin.utxo));
           staking::TransactionPicker::PickTransactionsParameters parameters{};
           staking::TransactionPicker::PickTransactionsResult result =

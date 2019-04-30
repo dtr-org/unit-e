@@ -96,9 +96,9 @@ class TxnMallTest(UnitETestFramework):
         clone_raw = self.nodes[0].createrawtransaction(clone_inputs, clone_outputs, clone_locktime)
 
         # createrawtransaction randomizes the order of its outputs, so swap them if necessary.
-        # output 0 is at version+#inputs+input+sigstub+sequence+#outputs
+        # output 0 is at type+version+#inputs+input+sigstub+sequence+#outputs
         # 40 UTE serialized is 00286bee00000000
-        pos0 = 2 * (4 + 1 + 36 + 1 + 4 + 1)
+        pos0 = 2 * (1 + 1 + 1 + 36 + 1 + 4 + 1)
         hex40 = "00286bee00000000"
         output_len = 16 + 2 + 2 * int("0x" + clone_raw[pos0 + 16:pos0 + 16 + 2], 0)
         if (rawtx1["vout"][0]["value"] == 40 and clone_raw[pos0:pos0 + 16] != hex40 or rawtx1["vout"][0]["value"] != 40 and clone_raw[pos0:pos0 + 16] == hex40):

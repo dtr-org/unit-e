@@ -234,7 +234,7 @@ class MempoolAcceptanceTest(UnitETestFramework):
 
         self.log.info('Some nonstandard transactions')
         tx.deserialize(BytesIO(hex_str_to_bytes(raw_tx_reference)))
-        tx.nVersion = 3  # A version currently non-standard
+        tx.version = 3  # A version currently non-standard
         self.check_mempool_result(
             result_expected=[{'txid': tx.rehash(), 'allowed': False, 'reject-reason': '64: version'}],
             rawtxs=[bytes_to_hex_str(tx.serialize())],

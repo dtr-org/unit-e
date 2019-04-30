@@ -1333,8 +1333,10 @@ public:
     /** Serialize txTo */
     template<typename S>
     void Serialize(S &s) const {
-        // Serialize nVersion
-        ::Serialize(s, txTo.nVersion);
+        // Serialize type
+        ::Serialize(s, txTo.type);
+        // Serialize version
+        ::Serialize(s, txTo.version);
         // Serialize vin
         unsigned int nInputs = fAnyoneCanPay ? 1 : txTo.vin.size();
         ::WriteCompactSize(s, nInputs);
@@ -1433,8 +1435,10 @@ uint256 SignatureHash(const CScript& scriptCode, const T& txTo, unsigned int nIn
         }
 
         CHashWriter ss(SER_GETHASH, 0);
+        // Type
+        ss << txTo.type;
         // Version
-        ss << txTo.nVersion;
+        ss << txTo.version;
         // Input prevouts/nSequence (none/all, depending on flags)
         ss << hashPrevouts;
         ss << hashSequence;
@@ -1549,7 +1553,7 @@ bool GenericTransactionSignatureChecker<T>::CheckSequence(const CScriptNum& nSeq
 
     // Fail if the transaction's version number is not set high
     // enough to trigger BIP 68 rules.
-    if (static_cast<uint32_t>(txTo->nVersion) < 2)
+    if (txTo->version < 2)
         return false;
 
     // Sequence numbers with their most significant bit set are not

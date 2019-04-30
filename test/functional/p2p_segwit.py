@@ -596,7 +596,8 @@ class SegWitTest(UnitETestFramework):
                 if not self.wit.is_null():
                     flags |= 1
                 r = b""
-                r += struct.pack("<i", self.nVersion)
+                r += struct.pack("<B", self.type)
+                r += struct.pack("<B", self.version)
                 if flags:
                     dummy = []
                     r += ser_vector(dummy)

@@ -41,7 +41,7 @@ bool GetPreparePhaseAPDUs(const CTransaction &tx, const CCoinsViewCache &view,
   {
     // The transaction is serialized over several APDUs
     APDU apdu(BTCHIP_INS_HASH_INPUT_START, 0x00, 0x02);
-    apdu << tx.nVersion;
+    apdu << tx.version;
     ::WriteCompactSize(apdu, tx.vin.size());
     apdus_out.emplace_back(std::move(apdu));
   }
@@ -111,7 +111,7 @@ bool GetSignPhaseAPDUs(const std::vector<uint32_t> &path,
   {
     // To get the signature, we send a pseudo-transaction with 1 input and no outputs
     APDU apdu(BTCHIP_INS_HASH_INPUT_START, 0x00, 0x80);
-    apdu << tx.nVersion
+    apdu << tx.version
          << u8(1);
     apdus_out.emplace_back(std::move(apdu));
   }

@@ -25,7 +25,7 @@ CBlock GetRealBlock() {
           // prev block
           "90f0a9f110702f808219ebea1173056042a714bad51b916cb680000000000000"
           // hash merkle root
-          "5275289558f51c9966699404ae2294730c3c9f9bda53523ce50e9b95e558da2f"
+          "93664dea656e49b7d99df0c0bb453558efb552e312dac40f644938a499bb231f"
           // hash witness merkle root
           "0000000000000000000000000000000000000000000000000000000000000000"
           // hash finalizer commits merkle root
@@ -40,8 +40,10 @@ CBlock GetRealBlock() {
 
           // tx[0] coinbase transaction
 
+          // tx type
+          "00"
           // tx version
-          "01000000"
+          "01"
           // number of inputs
           "01"
           // prevout.hash
@@ -65,8 +67,10 @@ CBlock GetRealBlock() {
 
           // tx[1]
 
+          // tx type
+          "00"
           // tx version
-          "01000000"
+          "01"
           // number of inputs
           "01"
           // remaining transaction data
@@ -80,8 +84,10 @@ CBlock GetRealBlock() {
 
           // tx[2]
 
+          // tx type
+          "00"
           // tx version
-          "01000000"
+          "01"
           // number of inputs
           "01"
           // remaining transaction data
@@ -98,8 +104,10 @@ CBlock GetRealBlock() {
 
           // tx[3]
 
+          // tx type
+          "00"
           // tx version
-          "01000000"
+          "01"
           // number of inputs
           "02"
           // remaining transaction data
@@ -122,8 +130,10 @@ CBlock GetRealBlock() {
 
           // tx[4]
 
+          // tx type
+          "00"
           // tx version
-          "01000000"
+          "01"
           // number of inputs
           "01"
           // remaining transaction data
@@ -140,8 +150,10 @@ CBlock GetRealBlock() {
 
           // tx[5]
 
+          // tx type
+          "00"
           // tx version
-          "01000000"
+          "01"
           // number of inputs
           "01"
           // remaining transaction data
@@ -158,8 +170,10 @@ CBlock GetRealBlock() {
 
           // tx[6]
 
+          // tx type
+          "00"
           // tx version
-          "01000000"
+          "01"
           // number of inputs
           "05"
           // remaining transaction data
@@ -198,8 +212,10 @@ CBlock GetRealBlock() {
 
           // tx[7]
 
+          // tx type
+          "00"
           // tx version
-          "01000000"
+          "01"
           // number of inputs
           "01"
           // remaining transaction data
@@ -216,8 +232,10 @@ CBlock GetRealBlock() {
 
           // tx[8]
 
+          // tx type
+          "00"
           // tx version
-          "01000000"
+          "01"
           // number of inputs
           "01"
           // remaining transaction data

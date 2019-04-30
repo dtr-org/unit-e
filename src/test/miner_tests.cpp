@@ -231,7 +231,7 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
             pblock->nVersion = 1;
             pblock->nTime = chainActive.Tip()->GetMedianTimePast()+1;
             CMutableTransaction txCoinbase(*pblock->vtx[0]);
-            txCoinbase.nVersion = 1;
+            txCoinbase.version = 1;
             txCoinbase.vin[0].scriptSig = CScript();
             txCoinbase.vin[0].scriptSig.push_back(blockinfo[i].extranonce);
             txCoinbase.vin[0].scriptSig.push_back(chainActive.Height());
@@ -424,7 +424,7 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     std::vector<int> prevheights;
 
     // relative height locked
-    tx.nVersion = 2;
+    tx.version = 2;
     tx.vin.resize(1);
     prevheights.resize(1);
     tx.vin[0].prevout.hash = txFirst[0]->GetHash(); // only 1 transaction
