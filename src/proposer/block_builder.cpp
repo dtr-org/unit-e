@@ -37,6 +37,37 @@ class BlockBuilderImpl : public BlockBuilder {
     return pieces;
   }
 
+  CAmount CombineCoins(const staking::CoinSet &coins, const staking::Coin &stake, std::vector<CTxIn> &tx_inputs) const {
+    // We already include the eligible coin and its amount
+    CAmount combined_total = stake.GetAmount();
+    for (const staking::Coin &coin : coins) {
+      if (coin == stake) {
+        // if it's the staking coin we already included it in tx.vin so we
+        // can skip here. It is already included in combined_total.
+        continue;
+      }
+      const CAmount new_total = combined_total + coin.GetAmount();
+      if (m_settings->stake_combine_maximum > 0 && new_total > m_settings->stake_combine_maximum) {
+        // stake combination does not break here, but it continues here. This
+        // way the order of the coins does not matter. If there is another coin
+        // later on which actually fits stake_combine_maximum it might still
+        // be included.
+        continue;
+      }
+      WitnessProgram wp;
+      if (coin.GetScriptPubKey().ExtractWitnessProgram(wp) && wp.IsRemoteStaking()) {
+        // Remote-staking funds must be sent back to the same scripts when
+        // used as coinbase inputs. Hence, we skip remote-staking outputs to
+        // simplify stake combination.
+        continue;
+      }
+
+      combined_total = new_total;
+      tx_inputs.emplace_back(coin.GetOutPoint());
+    }
+    return combined_total;
+  }
+
   bool SignBlock(CBlock &block, const staking::StakingWallet &wallet) const {
     const std::vector<CPubKey> keys = staking::ExtractBlockSigningKeys(block);
     if (keys.empty()) {
@@ -88,25 +119,13 @@ class BlockBuilderImpl : public BlockBuilder {
     // add stake
     tx.vin.emplace_back(eligible_coin.utxo.GetOutPoint());
 
-    // add combined stake - we already include the eligible coin and its amount.
-    CAmount combined_total = eligible_coin.utxo.GetAmount();
-    for (const staking::Coin &coin : coins) {
-      if (coin == eligible_coin.utxo) {
-        // if it's the staking coin we already included it in tx.vin so we
-        // can skip here. It is already included in combined_total.
-        continue;
-      }
-      const CAmount new_total = combined_total + coin.GetAmount();
-      if (m_settings->stake_combine_maximum > 0 && new_total > m_settings->stake_combine_maximum) {
-        // stake combination does not break here, but it continues here. This
-        // way the order of the coins does not matter. If there is another coin
-        // later on which actually fits stake_combine_maximum it might still
-        // be included.
-        continue;
-      }
-      combined_total = new_total;
-      tx.vin.emplace_back(coin.GetOutPoint());
-    }
+    WitnessProgram wp;
+    bool remote_staking = eligible_coin.utxo.GetScriptPubKey().ExtractWitnessProgram(wp) && wp.IsRemoteStaking();
+
+    // Do not combine coins if stake is a remote-staking UTXO
+    CAmount combined_total = remote_staking
+                                 ? eligible_coin.utxo.GetAmount()
+                                 : CombineCoins(coins, eligible_coin.utxo, tx.vin);
 
     const CAmount reward = fees + eligible_coin.reward;
 

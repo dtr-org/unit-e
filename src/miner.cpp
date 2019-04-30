@@ -214,6 +214,31 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     return std::move(pblocktemplate);
 }
 
+std::unique_ptr<CBlockTemplate> BlockAssembler::PickTransactions()
+{
+    LOCK(GetComponent<finalization::StateRepository>()->GetLock());
+    LOCK(mempool.cs);
+
+    resetBlock();
+
+    pblocktemplate.reset(new CBlockTemplate());
+    pblock = &pblocktemplate->block; // pointer for convenience
+
+    // Add dummy coinbase tx as first transaction
+    pblock->vtx.emplace_back();
+
+    AddMandatoryTxs();
+
+    int nPackagesSelected = 0;
+    int nDescendantsUpdated = 0;
+    addPackageTxs(nPackagesSelected, nDescendantsUpdated);
+
+    ltor::SortTransactions(pblock->vtx);
+    pblock->vtx.erase(pblock->vtx.begin());
+
+    return std::move(pblocktemplate);
+}
+
 void BlockAssembler::AddMandatoryTxs()
 {
     const finalization::FinalizationState *fin_state =

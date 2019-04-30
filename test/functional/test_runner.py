@@ -171,6 +171,7 @@ BASE_SCRIPTS = [
     'feature_spend_genesis.py',
     'wallet_groups.py',
     'p2p_disconnect_ban.py',
+    'proposer_remote_staking.py',
     'feature_uacomment.py',
     'p2p_node_network_limited.py',
     'rpc_runstringcommand.py',
