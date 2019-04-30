@@ -12,11 +12,11 @@
 namespace blockchain {
 
 void CheckGenesisBlockSupply(Parameters &p) noexcept {
-    CAmount genesis_supply = 0;
-    for (const auto &tx : p.genesis_block.block.vtx) {
-        genesis_supply += tx->GetValueOut();
-    }
-    assert(genesis_supply == p.initial_supply);
+  CAmount genesis_supply = 0;
+  for (const auto &tx : p.genesis_block.block.vtx) {
+    genesis_supply += tx->GetValueOut();
+  }
+  assert(genesis_supply == p.initial_supply);
 }
 
 Parameters Parameters::Base() noexcept {
