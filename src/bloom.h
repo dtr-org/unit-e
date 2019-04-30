@@ -14,8 +14,8 @@ class CTransaction;
 class uint256;
 
 //! 20,000 items with fp rate < 0.1% or 10,000 items and <0.0001%
-static const unsigned int MAX_BLOOM_FILTER_SIZE = 36000; // bytes
-static const unsigned int MAX_HASH_FUNCS = 50;
+static const size_t MAX_BLOOM_FILTER_SIZE = 36000; // bytes
+static const size_t MAX_HASH_FUNCS = 50;
 
 /**
  * First two bits of nFlags control how much IsRelevantAndUpdate actually updates
@@ -46,17 +46,17 @@ enum bloomflags
 class CBloomFilter
 {
 private:
-    std::vector<unsigned char> vData;
+    std::vector<uint8_t> vData;
     bool isFull;
     bool isEmpty;
-    unsigned int nHashFuncs;
-    unsigned int nTweak;
-    unsigned char nFlags;
+    uint32_t nHashFuncs;
+    uint32_t nTweak;
+    uint8_t nFlags;
 
     unsigned int Hash(unsigned int nHashNum, const std::vector<unsigned char>& vDataToHash) const;
 
     // Private constructor for CRollingBloomFilter, no restrictions on size
-    CBloomFilter(const unsigned int nElements, const double nFPRate, const unsigned int nTweak);
+    CBloomFilter(size_t nElements, double nFPRate, uint32_t nTweak);
     friend class CRollingBloomFilter;
 
 public:
@@ -69,7 +69,7 @@ public:
      * It should generally always be a random value (and is largely only exposed for unit testing)
      * nFlags can be MATCH_ESPERANZA_TRANSACTIONS and one of the BLOOM_UPDATE_* enums (not _MASK)
      */
-    CBloomFilter(const unsigned int nElements, const double nFPRate, const unsigned int nTweak, unsigned char nFlagsIn, size_t max_filter_size_bytes = MAX_BLOOM_FILTER_SIZE, size_t max_hash_funcs = MAX_HASH_FUNCS);
+    CBloomFilter(size_t nElements, double nFPRate, uint32_t nTweak, uint8_t nFlagsIn, size_t max_filter_size_bytes = MAX_BLOOM_FILTER_SIZE, size_t max_hash_funcs = MAX_HASH_FUNCS);
     CBloomFilter() : isFull(true), isEmpty(false), nHashFuncs(0), nTweak(0), nFlags(0) {}
 
     ADD_SERIALIZE_METHODS;
@@ -95,7 +95,7 @@ public:
     bool contains(const uint256& hash) const;
 
     void clear();
-    void reset(const unsigned int nNewTweak);
+    void reset(const uint32_t nNewTweak);
 
     //! True if the size is <= MAX_BLOOM_FILTER_SIZE and the number of hash functions is <= MAX_HASH_FUNCS
     //! (catch a filter which was just deserialized which was too big)
