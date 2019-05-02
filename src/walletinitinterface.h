@@ -11,7 +11,7 @@ class CScheduler;
 class CRPCTable;
 
 namespace esperanza {
-struct WalletExtensionDeps;
+class WalletExtensionDeps;
 }
 
 class WalletInitInterface {

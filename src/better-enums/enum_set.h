@@ -63,7 +63,7 @@ class EnumSet {
   EnumSet() : m_bits(0){};
   EnumSet(const EnumSet<Enum> &) = default;
   EnumSet(std::initializer_list<Enum> es) : m_bits(0) {
-    for (const auto e : es) {
+    for (const auto &e : es) {
       Add(e);
     }
   }

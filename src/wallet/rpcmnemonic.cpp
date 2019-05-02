@@ -89,7 +89,7 @@ UniValue mnemonicinfo(const JSONRPCRequest &request) {
 
 UniValue mnemoniclistlanguages(const JSONRPCRequest &request) {
   UniValue response(UniValue::VOBJ);
-  for (const auto language : key::mnemonic::Language::_values()) {
+  for (const auto &language : key::mnemonic::Language::_values()) {
     response.pushKV(key::mnemonic::GetLanguageTag(language),
                     UniValue(key::mnemonic::GetLanguageDesc(language)));
   }
