@@ -23,6 +23,7 @@ from test_framework.util import (
     bytes_to_hex_str,
     connect_nodes,
     disconnect_nodes,
+    generate_block,
     sync_blocks,
     wait_until,
 )
@@ -37,7 +38,7 @@ def setup_deposit(self, proposer, validators):
         deptx = n.deposit(n.new_address, 1500)
         self.wait_for_transaction(deptx, nodes=[proposer])
 
-    proposer.generatetoaddress(21, proposer.getnewaddress('', 'bech32'))
+    generate_block(proposer, count=21)
 
     assert_equal(proposer.getblockcount(), 22)
 

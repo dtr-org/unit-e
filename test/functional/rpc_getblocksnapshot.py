@@ -18,6 +18,7 @@ from test_framework.util import (
     connect_nodes,
     sync_blocks,
     disconnect_nodes,
+    generate_block,
     wait_until,
 )
 
@@ -120,7 +121,7 @@ class RpcGetBlockSnapshotTest(UnitETestFramework):
 
         self.setup_stake_coins(node0, node1, node2)
 
-        node0.generatetoaddress(7, node0.getnewaddress('', 'bech32'))
+        generate_block(node0, count=7)
         connect_nodes(node1, node0.index)
         connect_nodes(node2, node0.index)
         sync_blocks([node0, node1])
@@ -130,7 +131,7 @@ class RpcGetBlockSnapshotTest(UnitETestFramework):
         disconnect_nodes(node2, node0.index)
 
         # generated shorter fork
-        forked_block_hash = node1.generatetoaddress(1, node1.getnewaddress('', 'bech32'))[0]
+        forked_block_hash = generate_block(node1)[0]
         connect_nodes(node0, node1.index)
         sync_blocks([node0, node1])
         disconnect_nodes(node0, node1.index)
@@ -138,7 +139,7 @@ class RpcGetBlockSnapshotTest(UnitETestFramework):
         assert_equal(node0.getblockhash(node0.getblockcount()), forked_block_hash)
 
         # generate longer fork
-        node2.generatetoaddress(22, node2.getnewaddress('', 'bech32'))
+        generate_block(node2, count=22)
         connect_nodes(node0, node2.index)
         sync_blocks([node0, node2])
         disconnect_nodes(node0, node2.index)

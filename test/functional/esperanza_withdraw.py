@@ -4,12 +4,13 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
-    json,
-    connect_nodes,
-    disconnect_nodes,
     assert_equal,
     assert_finalizationstate,
     assert_raises_rpc_error,
+    connect_nodes,
+    disconnect_nodes,
+    generate_block,
+    json,
     sync_blocks,
     wait_until,
 )
@@ -60,7 +61,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         self.setup_stake_coins(*self.nodes)
 
         # Leave IBD
-        proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
+        generate_block(proposer)
         sync_blocks([proposer, finalizer1, finalizer2], timeout=10)
 
         finalizer1_address = finalizer1.getnewaddress('', 'legacy')
@@ -74,7 +75,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         d2 = finalizer2.deposit(finalizer2.getnewaddress('', 'legacy'), 1500)
         self.wait_for_transaction(d1, timeout=10)
         self.wait_for_transaction(d2, timeout=10)
-        proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
+        generate_block(proposer)
         sync_blocks([proposer, finalizer1, finalizer2], timeout=10)
         disconnect_nodes(finalizer1, proposer.index)
         disconnect_nodes(finalizer2, proposer.index)
@@ -91,7 +92,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         # e0 - e1 - e2 - e3 - e4 - e5 - e6[26]
         #      d1
         #      d2
-        proposer.generatetoaddress(3 + 5 + 5 + 5 + 5, proposer.getnewaddress('', 'bech32'))
+        generate_block(proposer, count=3 + 5 + 5 + 5 + 5)
         assert_equal(proposer.getblockcount(), 25)
         assert_finalizationstate(proposer, {'currentDynasty': 2,
                                             'currentEpoch': 5,
@@ -99,7 +100,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
                                             'lastFinalizedEpoch': 3,
                                             'validators': 0})
 
-        proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
+        generate_block(proposer)
         assert_equal(proposer.getblockcount(), 26)
         assert_finalizationstate(proposer, {'currentDynasty': 3,
                                             'currentEpoch': 6,
@@ -118,7 +119,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
 
         # TODO UNIT-E: logout tx can't be created if its vote is not in the block
         # we should check that input of logout tx is in the mempool too
-        proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
+        generate_block(proposer)
 
         connect_nodes(finalizer1, proposer.index)
         sync_blocks([finalizer1, proposer], timeout=10)
@@ -126,7 +127,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         wait_until(lambda: l1 in proposer.getrawmempool(), timeout=10)
         disconnect_nodes(finalizer1, proposer.index)
 
-        proposer.generatetoaddress(3, proposer.getnewaddress('', 'bech32'))
+        generate_block(proposer, count=3)
         assert_equal(proposer.getblockcount(), 30)
         assert_finalizationstate(proposer, {'currentDynasty': 3,
                                             'currentEpoch': 6,
@@ -139,10 +140,10 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         # Since the finalization happens at every epoch,
         # number of dynasties is equal to number of epochs.
         for _ in range(LOGOUT_DYNASTY_DELAY):
-            proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
+            generate_block(proposer)
             self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=proposer)
             self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=proposer)
-            proposer.generatetoaddress(4, proposer.getnewaddress('', 'bech32'))
+            generate_block(proposer, count=4)
             assert_raises_rpc_error(-25,
                                     "Logout delay hasn't passed yet. Can't withdraw.",
                                     finalizer1.withdraw,
@@ -158,14 +159,14 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         self.log.info('finalizer1 voted during logout delay successfully')
 
         # During WITHDRAW_DELAY finalizer1 can't vote and can't withdraw
-        proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
+        generate_block(proposer)
         assert_finalizationstate(proposer, {'currentDynasty': 7,
                                             'currentEpoch': 10,
                                             'lastJustifiedEpoch': 8,
                                             'lastFinalizedEpoch': 7,
                                             'validators': 1})
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=proposer)
-        proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
+        generate_block(proposer)
         assert_finalizationstate(proposer, {'currentDynasty': 7,
                                             'currentEpoch': 10,
                                             'lastJustifiedEpoch': 9,
@@ -177,7 +178,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         time.sleep(2)  # ensure no votes from finalizer1
         assert_equal(len(proposer.getrawmempool()), 0)
 
-        proposer.generatetoaddress(3, proposer.getnewaddress('', 'bech32'))
+        generate_block(proposer, count=3)
         assert_equal(proposer.getblockcount(), 50)
         assert_finalizationstate(proposer, {'currentDynasty': 7,
                                             'currentEpoch': 10,
@@ -194,9 +195,9 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         # -1 as we checked the first loop manually
         # -1 as at this epoch we should be able to withdraw already
         for _ in range(WITHDRAW_EPOCH_DELAY - 2):
-            proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
+            generate_block(proposer)
             self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=proposer)
-            proposer.generatetoaddress(4, proposer.getnewaddress('', 'bech32'))
+            generate_block(proposer, count=4)
 
         assert_equal(proposer.getblockcount(), 100)
         assert_finalizationstate(proposer, {'currentDynasty': 17,
@@ -223,7 +224,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         # e0 - e1 - ... - e6 - ... - e21[101, 102]
         #      d1         l1                  w1
         #      d2
-        proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
+        generate_block(proposer)
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=proposer)
         assert_equal(proposer.getblockcount(), 101)
         assert_finalizationstate(proposer, {'currentDynasty': 18,
@@ -235,7 +236,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         assert_equal(finalizer1.getvalidatorinfo()['validator_status'], 'WAITING_TO_WITHDRAW')
         w1 = finalizer1.withdraw(finalizer1_address)
         wait_until(lambda: w1 in proposer.getrawmempool(), timeout=10)
-        proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
+        generate_block(proposer)
         sync_blocks([proposer, finalizer1])
         assert_equal(finalizer1.getvalidatorinfo()['validator_status'], 'NOT_VALIDATING')
 
@@ -253,7 +254,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         self.wait_for_transaction(spent_w1, nodes=[proposer])
 
         # mine block
-        block_hash = proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))[0]
+        block_hash = generate_block(proposer)[0]
         assert spent_w1 in proposer.getblock(block_hash)['tx']
 
         self.log.info('finalizer1 was able to spend withdraw commit')

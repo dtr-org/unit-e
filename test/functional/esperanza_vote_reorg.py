@@ -8,12 +8,13 @@ votes correctly during re-orgs
 """
 from test_framework.util import (
     assert_equal,
-    sync_blocks,
-    connect_nodes,
-    disconnect_nodes,
     assert_finalizationstate,
     assert_raises_rpc_error,
     bytes_to_hex_str,
+    connect_nodes,
+    disconnect_nodes,
+    generate_block,
+    sync_blocks,
 )
 from test_framework.test_framework import UnitETestFramework
 from test_framework.messages import (
@@ -63,7 +64,7 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
         connect_nodes(fork0, finalizer2.index)
 
         # leave IBD
-        fork0.generatetoaddress(1, fork0.getnewaddress('', 'bech32'))
+        generate_block(fork0)
         sync_blocks(self.nodes)
 
         # deposit
@@ -72,14 +73,14 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
         d1 = finalizer.getrawtransaction(d1_hash)
         self.wait_for_transaction(d1_hash, timeout=10)
         self.wait_for_transaction(d2_hash, timeout=10)
-        fork0.generatetoaddress(1, fork0.getnewaddress('', 'bech32'))
+        generate_block(fork0)
         disconnect_nodes(fork0, finalizer.index)
         disconnect_nodes(fork0, finalizer2.index)
 
         # leave instant justification
         # F    F    F    F    J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6[26]
-        fork0.generatetoaddress(3 + 5 + 5 + 5 + 5 + 1, fork0.getnewaddress('', 'bech32'))
+        generate_block(fork0, count=3 + 5 + 5 + 5 + 5 + 1)
         assert_equal(fork0.getblockcount(), 26)
         assert_finalizationstate(fork0, {'currentDynasty': 3,
                                          'currentEpoch': 6,
@@ -96,7 +97,7 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
         v0 = self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork0)
         assert_vote(vote_raw_tx=v0, input_raw_tx=d1, source_epoch=4, target_epoch=5, target_hash=fork0.getblockhash(25))
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork0)
-        fork0.generatetoaddress(3, fork0.getnewaddress('', 'bech32'))
+        generate_block(fork0, count=3)
         sync_blocks([fork0, fork1], timeout=10)
         disconnect_nodes(fork0, fork1.index)
         assert_equal(fork0.getblockcount(), 29)
@@ -111,11 +112,11 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
         # ... - e5 - e6[26, 27, 28, 29, 30] - e7[31, 32] fork0
         #                            \
         #                             - fork1
-        fork0.generatetoaddress(2, fork0.getnewaddress('', 'bech32'))
+        generate_block(fork0, count=2)
         assert_equal(fork0.getblockcount(), 31)
         v1 = self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork0)
         assert_vote(vote_raw_tx=v1, input_raw_tx=v0, source_epoch=5, target_epoch=6, target_hash=fork0.getblockhash(30))
-        fork0.generatetoaddress(1, fork0.getnewaddress('', 'bech32'))
+        generate_block(fork0)
         connect_nodes(finalizer, fork0.index)
         sync_blocks([finalizer, fork0], timeout=10)
         disconnect_nodes(finalizer, fork0.index)
@@ -128,7 +129,7 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
         # ... - e5 - e6[26, 27, 28, 29, 30] - e7[31, 32] fork0
         #                            \
         #                             - 30] - e7[31, 32, 33] fork1
-        fork1.generatetoaddress(4, fork1.getnewaddress('', 'bech32'))
+        generate_block(fork1, count=4)
         assert_equal(fork1.getblockcount(), 33)
         connect_nodes(finalizer, fork1.index)
         sync_blocks([finalizer, fork1], timeout=10)
@@ -142,11 +143,11 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
         # ... - e5 - e6[26, 27, 28, 29, 30] - e7[31, 32] fork0
         #                            \                         v2
         #                             - 30] - e7[...] - e8[36, 37] fork1
-        fork1.generatetoaddress(3, fork1.getnewaddress('', 'bech32'))
+        generate_block(fork1, count=3)
         assert_equal(fork1.getblockcount(), 36)
         v2 = self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork1)
         assert_vote(vote_raw_tx=v2, input_raw_tx=v0, source_epoch=5, target_epoch=7, target_hash=fork1.getblockhash(35))
-        fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
+        generate_block(fork1)
         assert_equal(fork1.getblockcount(), 37)
 
         # create new epoch on fork1 and check that finalizer votes
@@ -154,11 +155,11 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
         # ... - e5 - e6[26, 27, 28, 29, 30] - e7[31, 32] fork0
         #                            \                         v2                v3
         #                             - 30] - e7[...] - e8[36, 37, ...] - e9[41, 42] fork1
-        fork1.generatetoaddress(4, fork1.getnewaddress('', 'bech32'))
+        generate_block(fork1, count=4)
         assert_equal(fork1.getblockcount(), 41)
         v3 = self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork1)
         assert_vote(vote_raw_tx=v3, input_raw_tx=v2, source_epoch=5, target_epoch=8, target_hash=fork1.getblockhash(40))
-        fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
+        generate_block(fork1)
         assert_equal(fork1.getblockcount(), 42)
 
         # create longer fork0 and check that after reorg finalizer doesn't vote
@@ -166,7 +167,7 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
         # ... - e5 - e6[26, 27, 28, 29, 30] - e7 - e8 - e9[41,42, 43] fork0
         #                            \             v2          v3
         #                             - 30] - e7 - e8 - e9[41, 42] fork1
-        fork0.generatetoaddress(11, fork0.getnewaddress('', 'bech32'))
+        generate_block(fork0, count=11)
         assert_equal(fork0.getblockcount(), 43)
         connect_nodes(finalizer, fork0.index)
         sync_blocks([finalizer, fork0])
@@ -180,11 +181,11 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
         # ... - e5 - e6[26, 27, 28, 29, 30] - e7 - e8 - e9[...] - e10[46, 47] fork0
         #                            \             v2          v3
         #                             - 30] - e7 - e8 - e9[41, 42] fork1
-        fork0.generatetoaddress(3, fork0.getnewaddress('', 'bech32'))
+        generate_block(fork0, count=3)
         assert_equal(fork0.getblockcount(), 46)
         v4 = self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork0)
         assert_vote(vote_raw_tx=v4, input_raw_tx=v1, source_epoch=5, target_epoch=9, target_hash=fork0.getblockhash(45))
-        fork0.generatetoaddress(1, fork0.getnewaddress('', 'bech32'))
+        generate_block(fork0)
         assert_equal(fork0.getblockcount(), 47)
 
         # finalize epoch8 on fork1 and re-broadcast all vote txs
@@ -194,7 +195,7 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
         #                            \             F      v2        J      v3
         #                             - 30] - e7 - e8[36, 37,...] - e9[41, 42, 43] - e10[46, 47] fork1
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork1)
-        fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
+        generate_block(fork1)
         assert_equal(fork1.getblockcount(), 43)
         assert_finalizationstate(fork1, {'currentDynasty': 4,
                                          'currentEpoch': 9,
@@ -202,10 +203,10 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
                                          'lastFinalizedEpoch': 4,
                                          'validators': 2})
 
-        fork1.generatetoaddress(3, fork1.getnewaddress())
+        generate_block(fork1, count=3)
         assert_equal(fork1.getblockcount(), 46)
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork1)
-        fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
+        generate_block(fork1)
         assert_equal(fork1.getblockcount(), 47)
         assert_finalizationstate(fork1, {'currentDynasty': 4,
                                          'currentEpoch': 10,

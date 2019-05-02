@@ -58,9 +58,10 @@ from test_framework.blocktools import (
 )
 from test_framework.util import (
     assert_equal,
-    wait_until,
     bytes_to_hex_str,
+    generate_block,
     hex_str_to_bytes,
+    wait_until,
 )
 
 import math
@@ -300,7 +301,7 @@ class P2PSnapshotTest(UnitETestFramework):
         self.setup_stake_coins(serving_node)
 
         # generate 2 epochs + 1 block to create the first finalized snapshot
-        serving_node.generatetoaddress(5 + 5 + 1, serving_node.getnewaddress('', 'bech32'))
+        generate_block(serving_node, count=5 + 5 + 1)
         assert_equal(serving_node.getblockcount(), 11)
         wait_until(lambda: has_valid_snapshot(serving_node, 4), timeout=10)
 
@@ -383,7 +384,7 @@ class P2PSnapshotTest(UnitETestFramework):
         self.setup_stake_coins(snap_node)
 
         # generate 2 epochs + 1 block to create the first finalized snapshot
-        snap_node.generatetoaddress(5 + 5 + 1, snap_node.getnewaddress('', 'bech32'))
+        generate_block(snap_node, count=5 + 5 + 1)
         assert_equal(snap_node.getblockcount(), 11)
         wait_until(lambda: has_valid_snapshot(snap_node, 4), timeout=10)
 
@@ -477,7 +478,7 @@ class P2PSnapshotTest(UnitETestFramework):
 
         # generate 2 epochs + 1 block to create the first finalized snapshot
         # and store it in valid_p2p
-        snap_node.generatetoaddress(5 + 5 + 1, snap_node.getnewaddress('', 'bech32'))
+        generate_block(snap_node, count=5 + 5 + 1)
         assert_equal(snap_node.getblockcount(), 11)
         wait_until(lambda: has_valid_snapshot(snap_node, 4), timeout=10)
 
@@ -485,7 +486,7 @@ class P2PSnapshotTest(UnitETestFramework):
         valid_p2p.update_snapshot_from(snap_node)
 
         # create the second snapshot and store it in broken_p2p
-        snap_node.generatetoaddress(5, snap_node.getnewaddress('', 'bech32'))
+        generate_block(snap_node, count=5)
         assert_equal(snap_node.getblockcount(), 16)
         wait_until(lambda: has_valid_snapshot(snap_node, 9), timeout=10)
 
@@ -566,7 +567,7 @@ class P2PSnapshotTest(UnitETestFramework):
         self.setup_stake_coins(snap_node)
 
         # add 2nd best snapshot to full_snap_p2p
-        snap_node.generatetoaddress(5 + 5 + 1, snap_node.getnewaddress('', 'bech32'))
+        generate_block(snap_node, count=5 + 5 + 1)
         assert_equal(snap_node.getblockcount(), 11)
         wait_until(lambda: has_valid_snapshot(snap_node, 4), timeout=10)
         full_snap_p2p = WaitNode()
@@ -575,7 +576,7 @@ class P2PSnapshotTest(UnitETestFramework):
             p2p.update_snapshot_from(snap_node)
 
         # add the best snapshot to half_snap_p2p
-        snap_node.generatetoaddress(5, snap_node.getnewaddress('', 'bech32'))
+        generate_block(snap_node, count=5)
         assert_equal(snap_node.getblockcount(), 16)
         wait_until(lambda: has_valid_snapshot(snap_node, 9), timeout=10)
         half_snap_p2p = WaitNode()

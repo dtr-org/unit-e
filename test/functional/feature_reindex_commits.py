@@ -15,6 +15,7 @@ from test_framework.util import (
     assert_finalizationstate,
     connect_nodes_bi,
     disconnect_nodes,
+    generate_block,
     json,
     sync_blocks,
     wait_until,
@@ -118,9 +119,7 @@ class FeatureReindexCommits(UnitETestFramework):
                 "", "legacy"), MIN_DEPOSIT)
         self.wait_for_transaction(deposit_tx)
 
-        self.proposer.generatetoaddress(
-            24, self.proposer.getnewaddress(
-                '', 'bech32'))
+        generate_block(self.proposer, count=24)
         assert_equal(self.proposer.getblockcount(), 25)
 
     def assert_finalizer_status(self, status):

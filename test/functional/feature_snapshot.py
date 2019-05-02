@@ -11,6 +11,7 @@ from test_framework.util import (
     assert_equal,
     connect_nodes,
     disconnect_nodes,
+    generate_block,
     sync_blocks,
     wait_until,
 )
@@ -99,7 +100,7 @@ class SnapshotTest(UnitETestFramework):
         # | isd_node
         # | rework_node
         # | blank_node
-        full_node.generatetoaddress(5 + 5, full_node.getnewaddress('', 'bech32'))
+        generate_block(full_node, count=5 + 5)
         assert_equal(full_node.getblockcount(), 10)
         wait_until(lambda: has_snapshot(full_node, 4), timeout=3)
         wait_until(lambda: has_snapshot(full_node, 9), timeout=3)
@@ -112,7 +113,7 @@ class SnapshotTest(UnitETestFramework):
         connect_nodes(rework_node, full_node.index)
         sync_blocks([rework_node, full_node])
         disconnect_nodes(rework_node, full_node.index)
-        rework_node.generatetoaddress(5, rework_node.getnewaddress('', 'bech32'))
+        generate_block(rework_node, count=5)
         assert_equal(rework_node.getblockcount(), 15)
 
         # generate 1 more block creates new epoch and instantly finalizes the previous one
@@ -121,7 +122,7 @@ class SnapshotTest(UnitETestFramework):
         # G------------(h=4)...(h=9)-(h=10)-(h=11) full_node, blank_node
         # | isd_node                   \
         #                               -------------------(h=15) rework_node
-        full_node.generatetoaddress(1, full_node.getnewaddress('', 'bech32'))
+        generate_block(full_node)
         assert_equal(full_node.getblockcount(), 11)
         wait_until(lambda: has_finalized_snapshot(full_node, height=4), timeout=5)
         wait_until(lambda: has_snapshot(full_node, height=9), timeout=5)
@@ -176,7 +177,7 @@ class SnapshotTest(UnitETestFramework):
         fund_proof = isd_node.gettxoutproof([funding_txid])
         isd_node.importprunedfunds(genesis_tx_hex, fund_proof)
 
-        isd_node.generatetoaddress(1, isd_node.getnewaddress('', 'bech32'))
+        generate_block(isd_node)
         assert_equal(isd_node.getblockcount(), 12)
 
         # test that reorg one epoch after finalization is possible
@@ -199,7 +200,7 @@ class SnapshotTest(UnitETestFramework):
 
         self.setup_stake_coins(full_node)
 
-        full_node.generatetoaddress(5, full_node.getnewaddress('', 'bech32'))
+        generate_block(full_node, count=5)
         wait_until(lambda: len(full_node.listsnapshots()) == 1, timeout=10)
         for res in full_node.listsnapshots():
             full_node.deletesnapshot(res['snapshot_hash'])

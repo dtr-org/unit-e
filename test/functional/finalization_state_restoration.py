@@ -14,14 +14,13 @@ from test_framework.util import (
     cleanup_datadir,
     connect_nodes,
     disconnect_nodes,
+    generate_block,
     initialize_datadir,
     sync_blocks,
     sync_mempools,
     wait_until,
 )
 
-def generate_block(proposer, count=1):
-    proposer.generatetoaddress(count, proposer.getnewaddress('', 'bech32'))
 
 def setup_deposit(self, proposer, validators):
     for _, n in enumerate(validators):

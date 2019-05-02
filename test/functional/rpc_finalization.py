@@ -13,6 +13,7 @@ from test_framework.util import (
     assert_equal,
     connect_nodes,
     disconnect_nodes,
+    generate_block,
     wait_until,
     sync_blocks,
 )
@@ -62,7 +63,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # e0 - e1[1]
         connect_nodes(node, finalizer1.index)
         connect_nodes(node, finalizer2.index)
-        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
+        generate_block(node)
         sync_blocks([node, finalizer1, finalizer2])
         disconnect_nodes(node, finalizer1.index)
         disconnect_nodes(node, finalizer2.index)
@@ -81,7 +82,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # test instant justification 1
         # F
         # e0 - e1
-        node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
+        generate_block(node, count=4)
         assert_equal(node.getblockcount(), 5)
         state = node.getfinalizationstate()
         assert_equal(state['currentDynasty'], 0)
@@ -94,7 +95,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # test instant justification 2
         # F    J
         # e0 - e1 - e2
-        node.generatetoaddress(5, node.getnewaddress('', 'bech32'))
+        generate_block(node, count=5)
         assert_equal(node.getblockcount(), 10)
         state = node.getfinalizationstate()
         assert_equal(state['currentDynasty'], 0)
@@ -107,7 +108,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # test instant justification 3
         # F    F    J
         # e0 - e1 - e2 - e3
-        node.generatetoaddress(5, node.getnewaddress('', 'bech32'))
+        generate_block(node, count=5)
         assert_equal(node.getblockcount(), 15)
         state = node.getfinalizationstate()
         assert_equal(state['currentDynasty'], 0)
@@ -120,7 +121,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # test instant justification 4
         # F    F    F    J
         # e0 - e1 - e2 - e3 - e4
-        node.generatetoaddress(5, node.getnewaddress('', 'bech32'))
+        generate_block(node, count=5)
         assert_equal(node.getblockcount(), 20)
         state = node.getfinalizationstate()
         assert_equal(state['currentDynasty'], 1)
@@ -133,7 +134,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # test instant justification 5 (must be last one)
         # F    F    F    F    J
         # e0 - e1 - e2 - e3 - e4 - e5
-        node.generatetoaddress(5, node.getnewaddress('', 'bech32'))
+        generate_block(node, count=5)
         assert_equal(node.getblockcount(), 25)
         state = node.getfinalizationstate()
         assert_equal(state['currentDynasty'], 2)
@@ -145,7 +146,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # no justification
         # F    F    F    F    J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6
-        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
+        generate_block(node)
         assert_equal(node.getblockcount(), 26)
         state = node.getfinalizationstate()
         assert_equal(state['currentDynasty'], 3)
@@ -154,7 +155,7 @@ class RpcFinalizationTest(UnitETestFramework):
         assert_equal(state['lastFinalizedEpoch'], 3)
         assert_equal(state['validators'], 1)
 
-        node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
+        generate_block(node, count=4)
         assert_equal(node.getblockcount(), 30)
         state = node.getfinalizationstate()
         assert_equal(state['currentDynasty'], 3)
@@ -166,7 +167,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # no justification
         # F    F    F    F    J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7[31]
-        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
+        generate_block(node)
         assert_equal(node.getblockcount(), 31)
         state = node.getfinalizationstate()
         assert_equal(state['currentDynasty'], 3)
@@ -180,7 +181,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # F    F    F    F    J         J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7[31, 32]
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
-        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
+        generate_block(node)
 
         assert_equal(node.getblockcount(), 32)
         state = node.getfinalizationstate()
@@ -194,7 +195,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # skip 1 justification
         # F    F    F    F    J         J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9[41]
-        node.generatetoaddress(9, node.getnewaddress('', 'bech32'))
+        generate_block(node, count=9)
         assert_equal(node.getblockcount(), 41)
         state = node.getfinalizationstate()
         assert_equal(state['currentDynasty'], 3)
@@ -208,7 +209,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # F    F    F    J              J         J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9[41, 42]
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
-        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
+        generate_block(node)
         assert_equal(node.getblockcount(), 42)
         state = node.getfinalizationstate()
         assert_equal(state['currentDynasty'], 3)
@@ -219,9 +220,9 @@ class RpcFinalizationTest(UnitETestFramework):
 
         # F    F    F    F    J         J         F    J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10[46, 47]
-        node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
+        generate_block(node, count=4)
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
-        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
+        generate_block(node)
         assert_equal(node.getblockcount(), 47)
         state = node.getfinalizationstate()
         assert_equal(state['currentDynasty'], 3)
@@ -232,7 +233,7 @@ class RpcFinalizationTest(UnitETestFramework):
 
         # F    F    F    F    J         J         F    J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10
-        node.generatetoaddress(3, node.getnewaddress('', 'bech32'))
+        generate_block(node, count=3)
         assert_equal(node.getblockcount(), 50)
         state = node.getfinalizationstate()
         assert_equal(state['currentDynasty'], 3)
@@ -245,7 +246,7 @@ class RpcFinalizationTest(UnitETestFramework):
 
         # F    F    F    F    J              J    F    J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10 - e11[51]
-        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
+        generate_block(node)
         assert_equal(node.getblockcount(), 51)
         state = node.getfinalizationstate()
         assert_equal(state['currentDynasty'], 4)
@@ -261,7 +262,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # F    F    F    F    J              J    F    F    J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10 - e11
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
-        node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
+        generate_block(node, count=4)
         assert_equal(node.getblockcount(), 55)
         state = node.getfinalizationstate()
         assert_equal(state['currentDynasty'], 4)
@@ -272,9 +273,9 @@ class RpcFinalizationTest(UnitETestFramework):
 
         # F    F    F    F    J              J    F    F    F     J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10 - e11 - e12
-        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
+        generate_block(node)
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
-        node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
+        generate_block(node, count=4)
         assert_equal(node.getblockcount(), 60)
         state = node.getfinalizationstate()
         assert_equal(state['currentDynasty'], 5)
@@ -285,9 +286,9 @@ class RpcFinalizationTest(UnitETestFramework):
 
         # F    F    F    J                   J    F    F    F     F     J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10 - e11 - e12 - e13
-        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
+        generate_block(node)
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
-        node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
+        generate_block(node, count=4)
         assert_equal(node.getblockcount(), 65)
         state = node.getfinalizationstate()
         assert_equal(state['currentDynasty'], 6)
@@ -298,7 +299,7 @@ class RpcFinalizationTest(UnitETestFramework):
 
         # F    F    F    F    J              J    F    F    F     F     J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10 - e11 - e12 - e13 - e14[66]
-        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
+        generate_block(node)
         assert_equal(node.getblockcount(), 66)
         state = node.getfinalizationstate()
         assert_equal(state['currentDynasty'], 7)
@@ -312,7 +313,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10 - e11 - e12 - e13 - e14
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=node)
-        node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
+        generate_block(node, count=4)
         assert_equal(node.getblockcount(), 70)
         state = node.getfinalizationstate()
         assert_equal(state['currentDynasty'], 7)

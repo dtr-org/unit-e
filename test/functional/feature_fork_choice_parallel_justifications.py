@@ -19,10 +19,11 @@ from test_framework.util import (
     assert_equal,
     assert_finalizationstate,
     assert_not_equal,
-    connect_nodes,
     base58check_to_bytes,
     bytes_to_hex_str,
+    connect_nodes,
     disconnect_nodes,
+    generate_block,
     sync_blocks,
     wait_until,
 )
@@ -76,13 +77,13 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
             assert node.getblockcount() % 5 == 0
             fs = node.getfinalizationstate()
             checkpoint = node.getbestblockhash()
-            node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
+            generate_block(node)
             vtx = make_vote_tx(finalizer, finalizer_address, checkpoint,
                                source_epoch=fs['lastJustifiedEpoch'],
                                target_epoch=fs['currentEpoch'],
                                input_tx_id=prevtx)
             node.sendrawtransaction(vtx)
-            checkpoint = node.generatetoaddress(4, fork1.getnewaddress('', 'bech32'))
+            generate_block(node, count=4)
             vtx = FromHex(CTransaction(), vtx)
             vtx.rehash()
             return vtx.hash
@@ -114,7 +115,7 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         # e0 - e1 - e2 - e3 - e4 - e5 -  node
         #                             |
         #                             -  fork2
-        node.generatetoaddress(24, node.getnewaddress('', 'bech32'))
+        generate_block(node, count=24)
         assert_equal(node.getblockcount(), 25)
         sync_blocks([node, finalizer])
         assert_finalizationstate(node, {'currentDynasty': 2,
@@ -135,9 +136,9 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         #                             |
         #                             -  fork2
 
-        fork1.generatetoaddress(5, fork1.getnewaddress('', 'bech32'))
+        generate_block(fork1, count=5)
         vtx1 = generate_epoch_and_vote(fork1, finalizer, finalizer_address, deptx)
-        fork1.generatetoaddress(5, fork1.getnewaddress('', 'bech32'))
+        generate_block(fork1, count=5)
         assert_equal(fork1.getblockcount(), 40)
         assert_finalizationstate(fork1, {'currentDynasty': 3,
                                          'currentEpoch': 8,
@@ -164,7 +165,7 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         #                             |       J
         #                             - e6 - e7 - e8 fork2 node
 
-        fork2.generatetoaddress(10, fork2.getnewaddress('', 'bech32'))
+        generate_block(fork2, count=10)
         vtx2 = generate_epoch_and_vote(fork2, finalizer, finalizer_address, deptx)
         assert_equal(fork2.getblockcount(), 40)
         assert_finalizationstate(fork2, {'currentDynasty': 3,
@@ -191,7 +192,7 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         # e0 - e1 - e2 - e3 - e4 - e5 -
         #                             |       J
         #                             - e6 - e7 - e8 fork2
-        fork1.generatetoaddress(5, fork1.getnewaddress('', 'bech32'))
+        generate_block(fork1, count=5)
         sync_node_to_fork(finalizer, fork1)
         vtx1 = generate_epoch_and_vote(fork1, finalizer, finalizer_address, vtx1)
         assert_equal(fork1.getblockcount(), 50)
