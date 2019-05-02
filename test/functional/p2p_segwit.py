@@ -1096,7 +1096,8 @@ class SegWitTest(UnitETestFramework):
         # over max sig ops, and one with a program that would exactly reach max
         # sig ops
         outputs = (MAX_SIGOP_COST // sigops_per_script) + 2
-        extra_sigops_available = MAX_SIGOP_COST % sigops_per_script
+        # we discount 1 sigop because this is the coinbase sigop
+        extra_sigops_available = (MAX_SIGOP_COST % sigops_per_script) - 1
 
         # We chose the number of checkmultisigs/checksigs to make this work:
         assert extra_sigops_available < 100 # steer clear of MAX_OPS_PER_SCRIPT
