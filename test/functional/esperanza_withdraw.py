@@ -259,7 +259,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
 
         # Test that after withdraw the node can deposit again
         sync_blocks([proposer, finalizer1], timeout=10)
-        assert_equal(proposer.getblockcount(), 103)
+        assert_equal(proposer.getblockcount(), 108)
         assert_equal(finalizer1.getvalidatorinfo()['validator_status'], 'NOT_VALIDATING')
         deposit = finalizer1.deposit(finalizer1.getnewaddress('', 'legacy'), 1500)
         assert_equal(finalizer1.getvalidatorinfo()['validator_status'], 'WAITING_DEPOSIT_CONFIRMATION')
