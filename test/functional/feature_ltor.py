@@ -20,13 +20,8 @@ from test_framework.blocktools import (
     create_block,
     sign_coinbase,
     create_coinbase,
-    create_transaction,
+    create_tx_with_script,
     get_tip_snapshot_meta,
-)
-from test_framework.comptool import (
-    RejectResult,
-    TestInstance,
-    TestManager
 )
 from test_framework.messages import (
     CTxOut,
@@ -36,18 +31,27 @@ from test_framework.messages import (
     uint256_from_str
 )
 from test_framework.mininode import (
-    network_thread_join,
-    network_thread_start,
     P2PInterface
 )
 from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.script import CScript
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
+    assert_equal,
     sync_blocks,
     sync_mempools,
     wait_until
 )
+
+
+class TestNode(P2PInterface):
+
+    def __init__(self):
+        super().__init__()
+        self.reject_map = {}
+
+    def on_reject(self, message):
+        self.reject_map[message.data] = message.reason
 
 
 class LTORTest(UnitETestFramework):
@@ -60,20 +64,10 @@ class LTORTest(UnitETestFramework):
         self.tip = None
         self.block_time = None
 
-        test = TestManager(self, self.options.tmpdir)
-        test.add_all_connections(self.nodes)
-
         # This mininode will help us to create blocks
-        mininode = self.nodes[0].add_p2p_connection(P2PInterface())
-        network_thread_start()
+        mininode = self.nodes[0].add_p2p_connection(TestNode())
         mininode.wait_for_verack()
-        test.run()
 
-        # Releasing network resources
-        mininode.close()
-        network_thread_join()
-
-    def get_tests(self):
         self.spendable_outputs = []
         self.load_wallets()
 
@@ -82,10 +76,10 @@ class LTORTest(UnitETestFramework):
 
         self.exit_ibd_state()  # Exit IBD state, so we can sync mempools
 
-        for test_result in self.test_created_blocks_satisfy_ltor(sync_height=201):
-            yield test_result
-        for test_result in self.test_ltor_infringement_detection(sync_height=202):
-            yield test_result
+        # run tests
+        self.test_created_blocks_satisfy_ltor(sync_height=201)
+
+        self.test_ltor_infringement_detection(sync_height=202)
 
         rnd_setstate(rnd_state)
 
@@ -98,10 +92,9 @@ class LTORTest(UnitETestFramework):
         block.compute_merkle_trees()
         block.solve()
 
-        yield TestInstance(
-            [[block, RejectResult(16, b'bad-tx-ordering')]],
-            test_name='test_ltor_infringement_detection'
-        )
+        self.nodes[0].p2p.send_message(msg_block(block))
+        wait_until(lambda: self.nodes[0].p2p.reject_map, timeout=5)
+        assert_equal(self.nodes[0].p2p.reject_map[int(block.hash, 16)], b'bad-tx-ordering')
 
     def test_created_blocks_satisfy_ltor(self, sync_height):
         recipient_addresses = [
@@ -123,8 +116,6 @@ class LTORTest(UnitETestFramework):
         # We also check node1 to ensure that block is properly relayed
         block_tx_ids = self.get_tip_transactions(1)
         assert sorted(tx_ids) == block_tx_ids[1:]
-
-        yield TestInstance(test_name="test_created_blocks_satisfy_ltor")
 
     # Boilerplate functions:
     # --------------------------------------------------------------------------
@@ -191,7 +182,7 @@ class LTORTest(UnitETestFramework):
         return txns
 
     def create_child_transaction(self, last_tx, tx_value, output_idx):
-        tx = create_transaction(last_tx, output_idx, b'', tx_value)
+        tx = create_tx_with_script(last_tx, output_idx, b'', amount=tx_value)
         tx.vout.append(CTxOut(tx_value, CScript()))
         tx.rehash()
         return tx
@@ -246,7 +237,7 @@ class LTORTest(UnitETestFramework):
                 stake=node0.listunspent()[0],
                 snapshot_hash=snapshot_hash
             )),
-            nTime=block_time
+            ntime=block_time
         )
         block.solve()
 

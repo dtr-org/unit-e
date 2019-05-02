@@ -77,8 +77,8 @@ and features such as:
 
 We regularly merge upstream changes into the unit-e code base and also strive to
 contribute back changes which are relevant for upstream as we already have done.
-The last upstream sync was with the [0.16 version](
-https://github.com/bitcoin/bitcoin/tree/0.16), plus some changes cherry-picked
+The last upstream sync was with the [0.17 version](
+https://github.com/bitcoin/bitcoin/tree/0.17), plus some changes cherry-picked
 from later development branches.
 
 ## Alpha Testnet

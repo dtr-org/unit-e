@@ -1,5 +1,4 @@
 packages:=boost openssl libevent zeromq
-native_packages := native_ccache
 
 wallet_packages=bdb
 

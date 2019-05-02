@@ -70,7 +70,6 @@ class FinalizationSlashSelfTest(UnitETestFramework):
         txid1 = finalizer1.deposit(addr, 1500)
         wait_until(lambda: txid1 in fork1.getrawmempool())
 
-        finalizer2.setaccount(addr, '')
         txid2 = finalizer2.deposit(addr, 1500)
         assert_equal(txid1, txid2)
         connect_nodes(fork1, finalizer2.index)
@@ -127,7 +126,7 @@ class FinalizationSlashSelfTest(UnitETestFramework):
                                          'validators': 1})
 
         # Send the conflicting vote from the other chain to finalizer2, it should record it and slash it later
-        assert_raises_rpc_error(-26, " bad-vote-invalid", finalizer2.sendrawtransaction, raw_vote_1)
+        assert_raises_rpc_error(-26, "bad-vote-invalid", finalizer2.sendrawtransaction, raw_vote_1)
 
         fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork2)
@@ -161,7 +160,7 @@ class FinalizationSlashSelfTest(UnitETestFramework):
 
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork2)
 
-        assert_raises_rpc_error(-26, " bad-vote-invalid", finalizer2.sendrawtransaction, raw_vote_2)
+        assert_raises_rpc_error(-26, "bad-vote-invalid", finalizer2.sendrawtransaction, raw_vote_2)
 
         # The vote hasn't been replaces by a slash
         vote = finalizer2.decoderawtransaction(finalizer2.getrawtransaction(finalizer2.getrawmempool()[0]))

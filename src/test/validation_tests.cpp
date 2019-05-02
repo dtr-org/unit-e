@@ -206,8 +206,8 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_is_final_tx) {
   CBlockIndex prev;
   prev.nTime = 100000;
   prev.nHeight = 10;
-
-  auto final_tx = CreateTx();
+  
+  CMutableTransaction final_tx = CreateTx();
   final_tx.nLockTime = 0;
   final_tx.vin.resize(1);
   final_tx.vin[0].nSequence = CTxIn::SEQUENCE_FINAL;

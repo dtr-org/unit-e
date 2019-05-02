@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2009-2018 The Bitcoin Core developers
 // Copyright (c) 2018 The Bitcoin ABC developers
 // Copyright (c) 2018-2019 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
@@ -20,7 +20,6 @@
 #include <esperanza/finalizationstate.h>
 #include <injector.h>
 #include <hash.h>
-#include <validation.h>
 #include <net.h>
 #include <policy/feerate.h>
 #include <policy/policy.h>
@@ -38,12 +37,6 @@
 #include <queue>
 #include <utility>
 
-//////////////////////////////////////////////////////////////////////////////
-//
-// UnitEMiner
-//
-
-//
 // Unconfirmed transactions in the memory pool often depend on other
 // transactions in the memory pool. When we select transactions from the
 // pool, we select by highest fee rate of a transaction combined with all
@@ -72,7 +65,7 @@ BlockAssembler::BlockAssembler(const CChainParams& params, const Options& option
     nBlockMaxWeight = std::max<size_t>(4000, std::min<size_t>(MAX_BLOCK_WEIGHT - 4000, options.nBlockMaxWeight));
 }
 
-static BlockAssembler::Options DefaultOptions(const CChainParams& params)
+static BlockAssembler::Options DefaultOptions()
 {
     // Block resource limits
     // If -blockmaxweight is not given, limit to DEFAULT_BLOCK_MAX_WEIGHT
@@ -88,7 +81,7 @@ static BlockAssembler::Options DefaultOptions(const CChainParams& params)
     return options;
 }
 
-BlockAssembler::BlockAssembler(const CChainParams& params) : BlockAssembler(params, DefaultOptions(params)) {}
+BlockAssembler::BlockAssembler(const CChainParams& params) : BlockAssembler(params, DefaultOptions()) {}
 
 void BlockAssembler::resetBlock()
 {
@@ -103,15 +96,17 @@ void BlockAssembler::resetBlock()
     nFees = 0;
 }
 
-std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, CWallet *wallet)
+std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, CWallet *pwallet)
 {
     //TODO UNIT-E: Remove this as soon as we move to the new proposing logic
     // Get the wallet that is used to retrieve the stakable coins.
     // If a wallet is not explicitly provided, stake on the first one available.
-    if (!wallet) {
-        auto wallets = GetComponent<proposer::MultiWallet>()->GetWallets();
+    std::shared_ptr<CWallet> wallet;
+    if (!pwallet) {
+        std::vector<std::shared_ptr<CWallet>> wallets = GetComponent<proposer::MultiWallet>()->GetWallets();
         assert(!wallets.empty());
         wallet = wallets[0];
+        pwallet = wallet.get();
     }
 
     int64_t nTimeStart = GetTimeMicros();
@@ -130,7 +125,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     pblocktemplate->vTxSigOpsCost.push_back(-1); // updated at end
 
     LOCK(cs_main);
-    LOCK(wallet->cs_wallet);
+    LOCK(pwallet->cs_wallet);
     LOCK(GetComponent<finalization::StateRepository>()->GetLock());
     LOCK(mempool.cs);
     CBlockIndex* pindexPrev = chainActive.Tip();
@@ -163,7 +158,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     std::vector<uint8_t> snapshot_hash = pcoinsTip->GetSnapshotHash().GetHashVector(*chainActive.Tip());
 
     // Create coinbase transaction.
-    const staking::CoinSet &stakeable_coins = wallet->GetWalletExtension().GetStakeableCoins();
+    const staking::CoinSet &stakeable_coins = pwallet->GetWalletExtension().GetStakeableCoins();
     if (stakeable_coins.empty()) {
       throw std::runtime_error(strprintf("%s: no stakeable coins.", __func__));
     }
@@ -183,7 +178,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
           0 //TODO UNIT-E: At the moment is not used, since we still have PoW here
       };
 
-      const CTransactionRef coinbase = GetComponent<proposer::BlockBuilder>()->BuildCoinbaseTransaction(uint256(snapshot_hash), eligible_coin, staking::CoinSet(), nFees, wallet->GetWalletExtension());
+      const CTransactionRef coinbase = GetComponent<proposer::BlockBuilder>()->BuildCoinbaseTransaction(uint256(snapshot_hash), eligible_coin, staking::CoinSet(), nFees, pwallet->GetWalletExtension());
       pblocktemplate->block.vtx[0] = coinbase;
 
       LogPrintf("%s: block weight=%u txs=%u fees=%ld sigops=%d\n", __func__, GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost);
@@ -303,7 +298,7 @@ bool BlockAssembler::TestPackage(uint64_t packageSize, int64_t packageSigOpsCost
 // - transaction finality (locktime)
 bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& package)
 {
-    for (const CTxMemPool::txiter it : package) {
+    for (CTxMemPool::txiter it : package) {
         if (!IsFinalTx(it->GetTx(), nHeight, nLockTimeCutoff))
             return false;
     }
@@ -333,7 +328,7 @@ int BlockAssembler::UpdatePackagesForAdded(const CTxMemPool::setEntries& already
         indexed_modified_transaction_set &mapModifiedTx)
 {
     int nDescendantsUpdated = 0;
-    for (const CTxMemPool::txiter it : alreadyAdded) {
+    for (CTxMemPool::txiter it : alreadyAdded) {
         CTxMemPool::setEntries descendants;
         mempool.CalculateDescendants(it, descendants);
         // Insert all descendants (not yet in block) into the modified set
@@ -371,7 +366,7 @@ bool BlockAssembler::SkipMapTxEntry(CTxMemPool::txiter it, indexed_modified_tran
     return mapModifiedTx.count(it) || inBlock.count(it) || failedTx.count(it);
 }
 
-void BlockAssembler::SortForBlock(const CTxMemPool::setEntries& package, CTxMemPool::txiter entry, std::vector<CTxMemPool::txiter>& sortedEntries)
+void BlockAssembler::SortForBlock(const CTxMemPool::setEntries& package, std::vector<CTxMemPool::txiter>& sortedEntries)
 {
     // Sort package by ancestor count
     // If a transaction A depends on transaction B, then A's ancestor count
@@ -507,7 +502,7 @@ void BlockAssembler::addPackageTxs(int &nPackagesSelected, int &nDescendantsUpda
 
         // Package can be added. Sort the entries in a valid order.
         std::vector<CTxMemPool::txiter> sortedEntries;
-        SortForBlock(ancestors, iter, sortedEntries);
+        SortForBlock(ancestors, sortedEntries);
 
         for (size_t i=0; i<sortedEntries.size(); ++i) {
             AddToBlock(sortedEntries[i]);

@@ -5,6 +5,7 @@
     "txtype": 0,
     "size": 10,
     "vsize": 10,
+    "weight": 40,
     "locktime": 0,
     "vin": [
     ],

@@ -11,7 +11,6 @@ Test p2p commits messaging.
 from test_framework.blocktools import (
     create_coinbase,
     create_block,
-    CBlockHeader
 )
 from test_framework.test_framework import UnitETestFramework
 from test_framework.key import CECKey
@@ -19,6 +18,7 @@ from test_framework.messages import (
     msg_getcommits,
     msg_commits,
     CBlock,
+    CBlockHeader,
     CommitsLocator,
     HeaderAndCommits,
     ser_uint256,
@@ -29,7 +29,9 @@ from test_framework.util import (
 )
 import copy
 import time
-from test_framework.mininode import network_thread_start, P2PInterface
+from test_framework.mininode import (
+    P2PInterface,
+)
 
 class P2P(P2PInterface):
     def __init__(self):
@@ -69,7 +71,6 @@ class CommitsTest(UnitETestFramework):
 
         for n in self.nodes:
             n.add_p2p_connection(P2P())
-        network_thread_start()
         for n in self.nodes:
             n.p2p.wait_for_verack()
         self.getcommits_test(self.nodes[0])

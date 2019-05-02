@@ -29,7 +29,7 @@ class ProposerRPCImpl : public ProposerRPC {
   const Dependency<staking::ActiveChain> m_chain;
   const Dependency<Proposer> m_proposer;
 
-  UniValue GetWalletInfo(const std::vector<CWalletRef> &wallets) const {
+  UniValue GetWalletInfo(const std::vector<std::shared_ptr<CWallet>> &wallets) const {
     UniValue result(UniValue::VARR);
     for (const auto &wallet : wallets) {
       wallet->BlockUntilSyncedToCurrentChain();
@@ -109,10 +109,11 @@ class ProposerRPCImpl : public ProposerRPC {
           __func__));
     }
     UniValue result(UniValue::VOBJ);
-    result.pushKV("wallets", GetWalletInfo(m_multi_wallet->GetWallets()));
+    std::vector<std::shared_ptr<CWallet>> wallets = m_multi_wallet->GetWallets();
+    result.pushKV("wallets", GetWalletInfo(wallets));
     const auto sync_status = m_chain->GetInitialBlockDownloadStatus();
     result.pushKV("sync_status", UniValue(sync_status._to_string()));
-    result.pushKV("time", DateTimeToString(GetTime()));
+    result.pushKV("time", FormatISO8601DateTime(GetTime()));
     const uint64_t cin = m_network->GetInboundNodeCount();
     const uint64_t cout = m_network->GetOutboundNodeCount();
     result.pushKV("incoming_connections", UniValue(cin));
@@ -135,8 +136,9 @@ class ProposerRPCImpl : public ProposerRPC {
   }
 
   UniValue liststakeablecoins(const JSONRPCRequest &request) const override {
-    CWallet *const wallet = GetWalletForJSONRPCRequest(request);
-    if (!EnsureWalletIsAvailable(wallet, request.fHelp)) {
+    const std::shared_ptr<CWallet> wallet = GetWalletForJSONRPCRequest(request);
+    CWallet *const pwallet = wallet.get();
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
       return NullUniValue;
     }
     if (request.fHelp || request.params.size() > 0) {
@@ -148,7 +150,7 @@ class ProposerRPCImpl : public ProposerRPC {
     }
     wallet->BlockUntilSyncedToCurrentChain();
     UniValue obj(UniValue::VOBJ);
-    const staking::StakingWallet &staking_wallet = wallet->GetWalletExtension();
+    const staking::StakingWallet &staking_wallet = pwallet->GetWalletExtension();
     const staking::CoinSet stakeable_coins = [&]() {
       LOCK2(m_chain->GetLock(), staking_wallet.GetLock());
       return staking_wallet.GetStakeableCoins();

@@ -63,7 +63,7 @@ bool CheckFinalizerCommit(const CTransaction &tx, CValidationState &err_state) {
 
 namespace {
 inline bool CheckValidatorAddress(const CTransaction &tx, uint160 *addr_out) {
-  static thread_local uint160 addr_tmp;
+  uint160 addr_tmp;
   if (addr_out == nullptr) {
     addr_out = &addr_tmp;
   }
@@ -315,7 +315,7 @@ bool CheckVoteTx(const CTransaction &tx, CValidationState &err_state,
   }
 
   static thread_local Vote vote_tmp;
-  static thread_local std::vector<unsigned char> vote_sig_tmp;
+  std::vector<unsigned char> vote_sig_tmp;
   if (vote_out == nullptr) {
     vote_out = &vote_tmp;
   }
@@ -479,7 +479,7 @@ bool CheckAdminTx(const CTransaction &tx, CValidationState &err_state,
 
   const auto &witness = tx.vin.front().scriptWitness;
 
-  static thread_local std::vector<CPubKey> keys_tmp;
+  std::vector<CPubKey> keys_tmp;
   if (keys_out == nullptr) {
     keys_out = &keys_tmp;
   }

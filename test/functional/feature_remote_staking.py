@@ -10,7 +10,6 @@ from test_framework.blocktools import (
 )
 from test_framework.mininode import (
     msg_block,
-    network_thread_start,
     P2PInterface,
     sha256,
 )
@@ -86,8 +85,8 @@ class RemoteStakingTest(UnitETestFramework):
         self.num_nodes = 2
         self.setup_clean_chain = True
         self.extra_args = [
-            [],
-            ['-minimumchainwork=0', '-maxtipage=1000000000']
+            ['-deprecatedrpc=validateaddress'],
+            ['-deprecatedrpc=validateaddress', '-minimumchainwork=0', '-maxtipage=1000000000']
         ]
 
     def run_test(self):
@@ -95,7 +94,6 @@ class RemoteStakingTest(UnitETestFramework):
         alice.importmasterkey(regtest_mnemonics[0]['mnemonics'])
 
         bob.add_p2p_connection(P2PInterface())
-        network_thread_start()
         bob.p2p.wait_for_verack()
 
         alice.generate(1)

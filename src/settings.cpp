@@ -4,8 +4,9 @@
 
 #include <settings.h>
 
-#include <base58.h>
+#include <key_io.h>
 #include <dependency.h>
+#include <shutdown.h>
 
 std::unique_ptr<Settings> Settings::New(
     Dependency<::ArgsManager> args,

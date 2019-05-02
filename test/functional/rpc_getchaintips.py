@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2017 The Bitcoin Core developers
+# Copyright (c) 2014-2018 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the getchaintips RPC.
@@ -10,7 +10,7 @@
 - verify that getchaintips now returns two chain tips.
 """
 
-from test_framework.test_framework import (UnitETestFramework, DISABLE_FINALIZATION)
+from test_framework.test_framework import UnitETestFramework, DISABLE_FINALIZATION
 from test_framework.util import assert_equal
 
 class GetChainTipsTest (UnitETestFramework):
@@ -18,6 +18,9 @@ class GetChainTipsTest (UnitETestFramework):
         self.num_nodes = 4
         self.extra_args = [[DISABLE_FINALIZATION]] * 4
         self.setup_clean_chain = True
+
+    def skip_test_if_missing_module(self):
+        self.skip_if_no_wallet()
 
     def run_test (self):
         self.setup_stake_coins(self.nodes[0], self.nodes[2])
@@ -33,7 +36,7 @@ class GetChainTipsTest (UnitETestFramework):
         assert_equal (tips[0]['status'], 'active')
 
         # Split the network and build two chains of different lengths.
-        self.split_network ()
+        self.split_network()
         self.nodes[0].generate(10)
         self.nodes[2].generate(20)
         self.sync_all([self.nodes[:2], self.nodes[2:]])

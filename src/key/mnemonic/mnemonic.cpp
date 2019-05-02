@@ -5,6 +5,7 @@
 
 #include <crypto/hmac_sha512.h>
 #include <crypto/sha256.h>
+#include <key_io.h>
 #include <util.h>
 
 #include <unilib/uninorms.h>
@@ -549,7 +550,7 @@ Seed::Seed(const std::string &mnemonic, const std::string &passphrase) {
   m_hexSeed = EncodeBase16(m_seed);
   m_hexEntropy = EncodeBase16(m_entropy);
   m_extKey.SetSeed(m_seed.data(), static_cast<unsigned int>(m_seed.size()));
-  m_extKey58.SetKey(m_extKey);
+  m_extKey58 = EncodeExtKey(m_extKey);
 }
 
 const std::string &Seed::GetHumandReadableLanguage() const {
@@ -566,7 +567,7 @@ const std::string &Seed::GetHexEntropy() const { return m_hexEntropy; }
 
 const CExtKey &Seed::GetExtKey() const { return m_extKey; }
 
-const CUnitEExtKey &Seed::GetExtKey58() const { return m_extKey58; }
+const std::string &Seed::GetExtKey58() const { return m_extKey58; }
 
 }  // namespace mnemonic
 

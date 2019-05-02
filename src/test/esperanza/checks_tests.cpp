@@ -389,12 +389,12 @@ BOOST_AUTO_TEST_CASE(ContextualCheckLogoutTx_test) {
   mtx.vin.resize(1);
   mtx.vout.resize(1);
   mtx.vout = {CTxOut(1, script)};
-  CTransaction prev_tx(mtx);
+  CTransactionRef prev_tx = MakeTransactionRef(mtx);
 
   CCoinsView view;
 
   {
-    CTransaction tx = CreateLogoutTx(prev_tx, key, 1);
+    CTransaction tx = CreateLogoutTx(*prev_tx, key, 1);
     CValidationState err_state;
     finalization::Params params;
     FinalizationStateSpy spy(params);
@@ -409,7 +409,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckLogoutTx_test) {
   }
 
   {
-    CTransaction tx = CreateLogoutTx(prev_tx, key, 1);
+    CTransaction tx = CreateLogoutTx(*prev_tx, key, 1);
     CValidationState err_state;
 
     finalization::Params params;
@@ -433,10 +433,11 @@ BOOST_AUTO_TEST_CASE(ContextualCheckLogoutTx_test) {
   }
 
   {
-    CTransaction tx = CreateLogoutTx(prev_tx, key, 10000);
+    CTransaction tx = CreateLogoutTx(*prev_tx, key, 10000);
 
+    LOCK(mempool.cs);
     TestMemPoolEntryHelper entry;
-    mempool.addUnchecked(prev_tx.GetHash(),
+    mempool.addUnchecked(prev_tx->GetHash(),
                          entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
 
     CValidationState err_state;
@@ -752,12 +753,12 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
   mt.vin.resize(1);
   mt.vout.resize(1);
   mt.vout = {CTxOut(1, CScript::CreateFinalizerCommitScript(pub_key))};
-  CTransaction prev_tx(mt);
+  CTransactionRef prev_tx = MakeTransactionRef(mt);
 
   CCoinsView view;
 
   {
-    CTransaction tx = CreateVoteTx(prev_tx, key, vote_out, vote_sig_out);
+    CTransaction tx = CreateVoteTx(*prev_tx, key, vote_out, vote_sig_out);
     CValidationState err_state;
     finalization::Params params;
     FinalizationStateSpy spy(params);
@@ -781,7 +782,10 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
 
   {
     TestMemPoolEntryHelper entry;
-    mempool.addUnchecked(prev_tx.GetHash(), entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
+    {
+      LOCK(mempool.cs);
+      mempool.addUnchecked(prev_tx->GetHash(), entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
+    }
 
     finalization::Params params;
     FinalizationStateSpy spy(params);
@@ -801,7 +805,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
     std::vector<unsigned char> vote_sig;
     BOOST_REQUIRE(CreateVoteSignature(&keystore, vote_from_other_validator, vote_sig));
 
-    CTransaction tx = CreateVoteTx(prev_tx, other_key, vote_from_other_validator, vote_sig);
+    CTransaction tx = CreateVoteTx(*prev_tx, other_key, vote_from_other_validator, vote_sig);
     CValidationState err_state;
 
     bool ok = ContextualCheckVoteTx(tx, err_state, spy, view);
@@ -815,7 +819,10 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
 
   {
     TestMemPoolEntryHelper entry;
-    mempool.addUnchecked(prev_tx.GetHash(), entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
+    {
+      LOCK(mempool.cs);
+      mempool.addUnchecked(prev_tx->GetHash(), entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
+    }
 
     finalization::Params params;
     FinalizationStateSpy spy(params);
@@ -827,7 +834,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
 
     spy.CreateAndActivateDeposit(validator_address, deposit_size);
 
-    CTransaction tx = CreateVoteTx(prev_tx, key, vote_out, vote_sig_out);
+    CTransaction tx = CreateVoteTx(*prev_tx, key, vote_out, vote_sig_out);
     CValidationState err_state;
 
     bool ok = ContextualCheckVoteTx(tx, err_state, spy, view);
@@ -847,8 +854,9 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
   }
 
   {
+    LOCK(mempool.cs);
     TestMemPoolEntryHelper entry;
-    mempool.addUnchecked(prev_tx.GetHash(), entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
+    mempool.addUnchecked(prev_tx->GetHash(), entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
 
     finalization::Params params;
     FinalizationStateSpy spy(params);
@@ -860,7 +868,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
 
     spy.CreateAndActivateDeposit(validator_address, deposit_size);
 
-    CTransaction tx = CreateVoteTx(prev_tx, key, vote_out, vote_sig_out);
+    CTransaction tx = CreateVoteTx(*prev_tx, key, vote_out, vote_sig_out);
     CValidationState err_state;
 
     bool ok = ContextualCheckVoteTx(tx, err_state, spy, view);
@@ -952,7 +960,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckWithdrawTx_test) {
   mt.vin.resize(1);
   mt.vout.resize(1);
   mt.vout = {CTxOut(1, CScript::CreateFinalizerCommitScript(pub_key))};
-  CTransaction prev_tx(mt);
+  CTransactionRef prev_tx = MakeTransactionRef(mt);
 
   CCoinsView view;
 
@@ -967,7 +975,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckWithdrawTx_test) {
 
     spy.CreateAndActivateDeposit(validator_address, deposit_size);
 
-    CTransaction tx = CreateWithdrawTx(prev_tx, key, 1);
+    CTransaction tx = CreateWithdrawTx(*prev_tx, key, 1);
     CValidationState err_state;
 
     bool ok = ContextualCheckWithdrawTx(tx, err_state, spy, view);
@@ -980,8 +988,9 @@ BOOST_AUTO_TEST_CASE(ContextualCheckWithdrawTx_test) {
   }
 
   {
+    LOCK(mempool.cs);
     TestMemPoolEntryHelper entry;
-    mempool.addUnchecked(prev_tx.GetHash(), entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
+    mempool.addUnchecked(prev_tx->GetHash(), entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
 
     CBlockIndex block_index;
     block_index.phashBlock = &target_hash;
@@ -999,7 +1008,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckWithdrawTx_test) {
     Validator *validator = &(*spy.pValidators())[validator_address];
     validator->m_end_dynasty = 0;
 
-    CTransaction tx = CreateWithdrawTx(prev_tx, key, 1);
+    CTransaction tx = CreateWithdrawTx(*prev_tx, key, 1);
     CValidationState err_state;
 
     bool ok = ContextualCheckWithdrawTx(tx, err_state, spy, view);

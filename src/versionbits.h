@@ -1,9 +1,9 @@
-// Copyright (c) 2016-2017 The Bitcoin Core developers
+// Copyright (c) 2016-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_CONSENSUS_VERSIONBITS
-#define UNITE_CONSENSUS_VERSIONBITS
+#ifndef UNITE_VERSIONBITS_H
+#define UNITE_VERSIONBITS_H
 
 #include <chain.h>
 #include <map>
@@ -77,4 +77,4 @@ BIP9Stats VersionBitsStatistics(const CBlockIndex* pindexPrev, const Consensus::
 int VersionBitsStateSinceHeight(const CBlockIndex* pindexPrev, const Consensus::Params& params, Consensus::DeploymentPos pos, VersionBitsCache& cache);
 uint32_t VersionBitsMask(const Consensus::Params& params, Consensus::DeploymentPos pos);
 
-#endif
+#endif // UNITE_VERSIONBITS_H

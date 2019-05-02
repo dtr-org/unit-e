@@ -18,7 +18,6 @@ from test_framework.util import (
 from test_framework.mininode import (
     P2PInterface,
     msg_block,
-    network_thread_start,
 )
 from test_framework.test_framework import UnitETestFramework
 
@@ -99,7 +98,6 @@ class ProposerStakeMaturityTest(UnitETestFramework):
 
         # Create P2P connections to the second node
         self.nodes[1].add_p2p_connection(P2P())
-        network_thread_start()
 
         self.log.info("Waiting untill the P2P connection is fully up...")
         self.nodes[1].p2p.wait_for_verack()

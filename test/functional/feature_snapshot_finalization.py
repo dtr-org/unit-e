@@ -114,7 +114,7 @@ class SnapshotFinalization(UnitETestFramework):
         vote['target_hash'] = "".join(target_hash)
         prev_tx = s.decoderawtransaction(ToHex(votes[-1]))
         vtx = v.createvotetransaction(vote, prev_tx['txid'])
-        vtx = v.signrawtransaction(vtx)
+        vtx = v.signrawtransactionwithwallet(vtx)
         vtx = FromHex(CTransaction(), vtx['hex'])
         assert_raises_rpc_error(-26, 'bad-vote-invalid', s.sendrawtransaction, ToHex(vtx))
         wait_until(lambda: len(s.getrawmempool()) > 0, timeout=20)

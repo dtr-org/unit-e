@@ -1,12 +1,12 @@
-// Copyright (c) 2012-2017 The Bitcoin Core developers
+// Copyright (c) 2012-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <bloom.h>
 
-#include <base58.h>
 #include <clientversion.h>
 #include <key.h>
+#include <key_io.h>
 #include <merkleblock.h>
 #include <primitives/block.h>
 #include <random.h>
@@ -87,10 +87,7 @@ BOOST_AUTO_TEST_CASE(bloom_create_insert_serialize_with_tweak)
 BOOST_AUTO_TEST_CASE(bloom_create_insert_key)
 {
     std::string strSecret = std::string("93SeGWzHAZjTh1Cz2AALv1DPKh7ok6x7vg15Npugu8pVgVAzKyk");
-    CUnitESecret vchSecret;
-    BOOST_CHECK(vchSecret.SetString(strSecret));
-
-    CKey key = vchSecret.GetKey();
+    CKey key = DecodeSecret(strSecret);
     CPubKey pubkey = key.GetPubKey();
     std::vector<unsigned char> vchPubKey(pubkey.begin(), pubkey.end());
 
@@ -178,7 +175,6 @@ BOOST_AUTO_TEST_CASE(bloom_match)
     filter = CBloomFilter(10, 0.000001, 0, BLOOM_UPDATE_ALL);
     filter.insert(COutPoint(uint256S("0x000000d70786e899529d71dbeba91ba216982fb6ba58f3bdaab65e73b7e9260b"), 0));
     BOOST_CHECK_MESSAGE(!filter.IsRelevantAndUpdate(tx), "Simple Bloom filter matched COutPoint for an output we didn't care about");
-
 }
 
 BOOST_AUTO_TEST_CASE(bloom_esperanza_finalization)
@@ -264,7 +260,7 @@ BOOST_FIXTURE_TEST_CASE(merkle_block_1, RealBlockFixture)
     CMerkleBlock merkleBlock(block, filter);
     BOOST_CHECK_EQUAL(merkleBlock.header.GetHash().GetHex(), block.GetHash().GetHex());
 
-    BOOST_CHECK_EQUAL(merkleBlock.vMatchedTxn.size(), 1);
+    BOOST_CHECK_EQUAL(merkleBlock.vMatchedTxn.size(), 1U);
     std::pair<unsigned int, uint256> pair = merkleBlock.vMatchedTxn[0];
 
     BOOST_CHECK(merkleBlock.vMatchedTxn[0].second == uint256S("0x74d681e0e03bafa802c8aa084379aa98d9fcd632ddc2ed9782b586ec87451f20"));

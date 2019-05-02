@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2017 The Bitcoin Core developers
+# Copyright (c) 2014-2018 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Helpful routines for regression testing."""
@@ -434,9 +434,16 @@ def initialize_datadir(dirname, n):
         os.makedirs(datadir)
     with open(os.path.join(datadir, "unit-e.conf"), 'w', encoding='utf8') as f:
         f.write("regtest=1\n")
+        f.write("[regtest]\n")
         f.write("port=" + str(p2p_port(n)) + "\n")
         f.write("rpcport=" + str(rpc_port(n)) + "\n")
+        f.write("server=1\n")
+        f.write("keypool=1\n")
+        f.write("discover=0\n")
         f.write("listenonion=0\n")
+        f.write("printtoconsole=0\n")
+        os.makedirs(os.path.join(datadir, 'stderr'), exist_ok=True)
+        os.makedirs(os.path.join(datadir, 'stdout'), exist_ok=True)
     return datadir
 
 def cleanup_datadir(dirname, n):
@@ -445,6 +452,11 @@ def cleanup_datadir(dirname, n):
 
 def get_datadir_path(dirname, n):
     return os.path.join(dirname, "node" + str(n))
+
+def append_config(datadir, options):
+    with open(os.path.join(datadir, "unite.conf"), 'a', encoding='utf8') as f:
+        for option in options:
+            f.write(option + "\n")
 
 def get_auth_cookie(datadir):
     user = None
@@ -459,7 +471,7 @@ def get_auth_cookie(datadir):
                     assert password is None  # Ensure that there is only one rpcpassword line
                     password = line.split("=")[1].strip("\n")
     if os.path.isfile(os.path.join(datadir, "regtest", ".cookie")):
-        with open(os.path.join(datadir, "regtest", ".cookie"), 'r') as f:
+        with open(os.path.join(datadir, "regtest", ".cookie"), 'r', encoding="ascii") as f:
             userpass = f.read()
             split_userpass = userpass.split(':')
             user = split_userpass[0]
@@ -516,69 +528,30 @@ def sync_blocks(rpc_connections, *, wait=1, timeout=60, height=None):
     stable tip, otherwise there's a chance it might return before all nodes are
     stably synced.
     """
-    if height is None:
-        # Use getblockcount() instead of waitforblockheight() to determine the
-        # initial max height because the two RPCs look at different internal
-        # global variables (chainActive vs latestBlock) and the former gets
-        # updated earlier.
-        maxheight = max(x.getblockcount() for x in rpc_connections)
-    else:
-        maxheight = height
-
-    start_time = cur_time = time.time()
-    while cur_time <= start_time + timeout:
-        tips = [r.waitforblockheight(maxheight, int(wait * 1000)) for r in rpc_connections]
-        if all(t["height"] == maxheight for t in tips):
-            if all(t["hash"] == tips[0]["hash"] for t in tips):
-                return
-            raise AssertionError("Block sync failed, mismatched block hashes:{}".format(
-                                 "".join("\n  {!r}".format(tip) for tip in tips)))
-        cur_time = time.time()
-    raise AssertionError("Block sync to height {} timed out:{}".format(
-                         maxheight, "".join("\n  {!r}".format(tip) for tip in tips)))
-
-def sync_chain(rpc_connections, *, wait=1, timeout=60):
-    """
-    Wait until everybody has the same best block
-    """
-    while timeout > 0:
+    stop_time = time.time() + timeout
+    while time.time() <= stop_time:
         best_hash = [x.getbestblockhash() for x in rpc_connections]
-        if best_hash == [best_hash[0]] * len(best_hash):
+        if best_hash.count(best_hash[0]) == len(rpc_connections):
             return
         time.sleep(wait)
-        timeout -= wait
-    raise AssertionError("Chain sync failed: Best block hashes don't match")
+    raise AssertionError("Block sync timed out:{}".format("".join("\n  {!r}".format(b) for b in best_hash)))
 
 def sync_mempools(rpc_connections, *, wait=1, timeout=150, flush_scheduler=True):
     """
     Wait until everybody has the same transactions in their memory
     pools
     """
-    timeout += time.perf_counter()
-    mempools = dict()
-
-    while time.perf_counter() < timeout:
-        sample_pool = set(rpc_connections[0].getrawmempool())
-        mempools[rpc_connections[0].index] = sample_pool
-        all_synced = True
-
-        for rpc_connection in rpc_connections[1:]:
-            pool = set(rpc_connection.getrawmempool())
-            mempools[rpc_connection.index] = pool
-
-            if pool != sample_pool:
-                all_synced = False
-
-        if all_synced:
+    stop_time = time.time() + timeout
+    while time.time() <= stop_time:
+        pool = [set(r.getrawmempool()) for r in rpc_connections]
+        if pool.count(pool[0]) == len(rpc_connections):
             if flush_scheduler:
                 for r in rpc_connections:
                     r.syncwithvalidationinterfacequeue()
             return
 
         time.sleep(wait)
-
-    raise AssertionError("Mempool sync failed:%s" % "".join(
-        ["\nNode %d: %s" % entry for entry in mempools.items()]))
+    raise AssertionError("Mempool sync timed out:{}".format("".join("\n  {!r}".format(m) for m in pool)))
 
 def get_unspent_coins(node, n_coins, lock=False):
     """
@@ -654,7 +627,7 @@ def random_transaction(nodes, amount, min_fee, fee_increment, fee_variants):
     outputs[to_node.getnewaddress()] = float(amount)
 
     rawtx = from_node.createrawtransaction(inputs, outputs)
-    signresult = from_node.signrawtransaction(rawtx)
+    signresult = from_node.signrawtransactionwithwallet(rawtx)
     txid = from_node.sendrawtransaction(signresult["hex"], True)
 
     return (txid, signresult["hex"], fee)
@@ -681,7 +654,7 @@ def create_confirmed_utxos(fee, node, count):
         outputs[addr1] = satoshi_round(send_value / 2)
         outputs[addr2] = satoshi_round(send_value / 2)
         raw_tx = node.createrawtransaction(inputs, outputs)
-        signed_tx = node.signrawtransaction(raw_tx)["hex"]
+        signed_tx = node.signrawtransactionwithwallet(raw_tx)["hex"]
         node.sendrawtransaction(signed_tx)
 
     while (node.getmempoolinfo()['size'] > 0):
@@ -711,14 +684,6 @@ def gen_return_txouts():
         txouts = txouts + script_pubkey
     return txouts
 
-def create_tx(node, coinbase, to_address, amount):
-    inputs = [{"txid": coinbase, "vout": 0}]
-    outputs = {to_address: amount}
-    rawtx = node.createrawtransaction(inputs, outputs)
-    signresult = node.signrawtransaction(rawtx)
-    assert_equal(signresult["complete"], True)
-    return signresult["hex"]
-
 # Create a spend of each passed-in utxo, splicing in "txouts" to each raw
 # transaction to make it large.  See gen_return_txouts() above.
 def create_lots_of_big_transactions(node, txouts, utxos, num, fee):
@@ -734,7 +699,7 @@ def create_lots_of_big_transactions(node, txouts, utxos, num, fee):
         newtx = rawtx[0:92]
         newtx = newtx + txouts
         newtx = newtx + rawtx[94:]
-        signresult = node.signrawtransaction(newtx, None, None, "NONE")
+        signresult = node.signrawtransactionwithwallet(newtx, None, "NONE")
         txid = node.sendrawtransaction(signresult["hex"], True)
         txids.append(txid)
     return txids
@@ -752,6 +717,17 @@ def mine_large_block(node, utxos=None):
     fee = 100 * node.getnetworkinfo()["relayfee"]
     create_lots_of_big_transactions(node, txouts, utxos, num, fee=fee)
     node.generate(1)
+
+def find_vout_for_address(node, txid, addr):
+    """
+    Locate the vout index of the given transaction sending to the
+    given address. Raises runtime error exception if not found.
+    """
+    tx = node.getrawtransaction(txid, True)
+    for i in range(len(tx["vout"])):
+        if any([addr == a for a in tx["vout"][i]["scriptPubKey"]["addresses"]]):
+            return i
+    raise RuntimeError("Vout not found for address: txid=%s, addr=%s" % (txid, addr))
 
 def base58_to_bytes(string):
     char_map = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
@@ -804,5 +780,5 @@ def make_vote_tx(finalizer, finalizer_address, target_hash, source_epoch, target
         'source_epoch': source_epoch
     }
     vtx = finalizer.createvotetransaction(vote, input_tx_id)
-    vtx = finalizer.signrawtransaction(vtx)
+    vtx = finalizer.signrawtransactionwithwallet(vtx)
     return vtx['hex']

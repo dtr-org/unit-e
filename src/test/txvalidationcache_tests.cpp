@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2017 The Bitcoin Core developers
+// Copyright (c) 2011-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -9,6 +9,7 @@
 #include <script/standard.h>
 #include <script/sign.h>
 #include <test/test_unite.h>
+#include <utiltime.h>
 #include <core_io.h>
 #include <keystore.h>
 #include <policy/policy.h>
@@ -21,7 +22,7 @@ bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsVi
 BOOST_AUTO_TEST_SUITE(tx_validationcache_tests)
 
 static bool
-ToMemPool(CMutableTransaction& tx)
+ToMemPool(const CMutableTransaction& tx)
 {
     LOCK(cs_main);
 
@@ -32,7 +33,7 @@ ToMemPool(CMutableTransaction& tx)
 
 BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, TestChain100Setup)
 {
-    // Make sure skipping validation of transctions that were
+    // Make sure skipping validation of transactions that were
     // validated going into the memory pool does not allow
     // double-spends in blocks to pass validation when they should not.
 
@@ -89,7 +90,7 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, TestChain100Setup)
     BOOST_CHECK(chainActive.Tip()->GetBlockHash() == block.GetHash());
     // spends[1] should have been removed from the mempool when the
     // block with spends[0] is accepted:
-    BOOST_CHECK_EQUAL(mempool.size(), 0);
+    BOOST_CHECK_EQUAL(mempool.size(), 0U);
 }
 
 // Run CheckInputs (using pcoinsTip) on the given transaction, for all script
@@ -103,7 +104,7 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, TestChain100Setup)
 // should fail.
 // Capture this interaction with the upgraded_nop argument: set it when evaluating
 // any script flag that is implemented as an upgraded NOP code.
-void ValidateCheckInputsForAllFlags(CMutableTransaction &tx, uint32_t failing_flags, bool add_to_cache)
+static void ValidateCheckInputsForAllFlags(const CTransaction &tx, uint32_t failing_flags, bool add_to_cache)
 {
     PrecomputedTransactionData txdata(tx);
     // If we add many more flags, this loop can get too expensive, but we can
@@ -157,7 +158,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
 
     const CTransactionRef p2pkh_coinbase = CreateAndProcessBlock({}, p2pkh_scriptPubKey).vtx[0];
 
-    pwalletMain->AddCScript(p2pkh_scriptPubKey);
+    m_wallet->AddCScript(p2pkh_scriptPubKey);
 
     // flags to test: SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY, SCRIPT_VERIFY_CHECKSEQUENCE_VERIFY, SCRIPT_VERIFY_NULLDUMMY, uncompressed pubkey thing
 
@@ -182,7 +183,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
     // Sign, with a non-DER signature
     {
         std::vector<unsigned char> vchSig;
-        uint256 hash = SignatureHash(p2pkh_scriptPubKey, dersig_invalid_tx, 0, SIGHASH_ALL, coinbaseTxns.back().vout[0].nValue, SigVersion::BASE);
+        uint256 hash = SignatureHash(p2pkh_scriptPubKey, dersig_invalid_tx, 0, SIGHASH_ALL, m_coinbase_txns.back().vout[0].nValue, SigVersion::BASE);
         BOOST_CHECK(coinbaseKey.Sign(hash, vchSig));
         vchSig.push_back((unsigned char) 0); // padding byte makes this non-DER
         vchSig.push_back((unsigned char)SIGHASH_ALL);
@@ -203,7 +204,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
         // not caching invalidity (if that changes, delete this test case).
         std::vector<CScriptCheck> scriptchecks;
         BOOST_CHECK(CheckInputs(dersig_invalid_tx, state, pcoinsTip.get(), true, SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_DERSIG, true, true, ptd_spend_tx, &scriptchecks));
-        BOOST_CHECK_EQUAL(scriptchecks.size(), 1);
+        BOOST_CHECK_EQUAL(scriptchecks.size(), 1U);
 
         // Check that the invalid transaction is in fact recognized as invalid
         // under the strict DER flags.
@@ -241,8 +242,8 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
 
     // Lock the coin so it cannot be used for staking
     {
-        LOCK(pwalletMain->cs_wallet);
-        pwalletMain->LockCoin(COutPoint(p2pkh_coinbase->GetHash(), 1));
+        LOCK(m_wallet->cs_wallet);
+        m_wallet->LockCoin(COutPoint(p2pkh_coinbase->GetHash(), 1));
     }
 
     block = CreateAndProcessBlock({spend_tx}, p2pkh_scriptPubKey);
@@ -341,8 +342,8 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
 
         // Sign
         SignatureData sigdata;
-        ProduceSignature(*pwalletMain, MutableTransactionSignatureCreator(&valid_with_witness_tx, 0, 11*EEES, SIGHASH_ALL), spend_tx.vout[1].scriptPubKey, sigdata);
-        UpdateTransaction(valid_with_witness_tx, 0, sigdata);
+        ProduceSignature(*m_wallet, MutableTransactionSignatureCreator(&valid_with_witness_tx, 0, 11*EEES, SIGHASH_ALL), spend_tx.vout[1].scriptPubKey, sigdata);
+        UpdateInput(valid_with_witness_tx.vin[0], sigdata);
 
         // This should be valid under all script flags.
         ValidateCheckInputsForAllFlags(valid_with_witness_tx, 0, true);
@@ -369,8 +370,8 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
         // Sign
         for (int i=0; i<2; ++i) {
             SignatureData sigdata;
-            ProduceSignature(*pwalletMain, MutableTransactionSignatureCreator(&tx, i, 11*EEES, SIGHASH_ALL), spend_tx.vout[i].scriptPubKey, sigdata);
-            UpdateTransaction(tx, i, sigdata);
+            ProduceSignature(*m_wallet, MutableTransactionSignatureCreator(&tx, i, 11*EEES, SIGHASH_ALL), spend_tx.vout[i].scriptPubKey, sigdata);
+            UpdateInput(tx.vin[i], sigdata);
         }
 
         // This should be valid under all script flags
@@ -391,7 +392,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
         // input was valid)
         BOOST_CHECK(CheckInputs(tx, state, pcoinsTip.get(), true, SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS, true, true, txdata, &scriptchecks));
         // Should get 2 script checks back -- caching is on a whole-transaction basis.
-        BOOST_CHECK_EQUAL(scriptchecks.size(), 2);
+        BOOST_CHECK_EQUAL(scriptchecks.size(), 2U);
     }
 
     {
@@ -409,8 +410,8 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
       tx.vout[0].scriptPubKey = p2pkh_scriptPubKey;
 
       {
-        LOCK(pwalletMain->GetWalletExtension().GetLock());
-        pwalletMain->GetWalletExtension().SignCoinbaseTransaction(tx);
+        LOCK(m_wallet->GetWalletExtension().GetLock());
+        m_wallet->GetWalletExtension().SignCoinbaseTransaction(tx);
       }
 
       CValidationState state;

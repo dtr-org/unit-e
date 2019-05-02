@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017 The Bitcoin Core developers
+# Copyright (c) 2017-2018 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test various fingerprinting protections.
 
-If an stale block more than a month old or its header are requested by a peer,
+If a stale block more than a month old or its header are requested by a peer,
 the node should pretend that it does not have it to avoid fingerprinting.
 """
 
@@ -17,23 +17,22 @@ from test_framework.blocktools import (
     get_tip_snapshot_meta,
     update_snapshot_with_tx,
 )
+from test_framework.messages import CInv
 from test_framework.mininode import (
     P2PInterface,
-    network_thread_start,
-    wait_until,
-)
-from test_framework.messages import (
-    CInv,
     msg_headers,
     msg_block,
     msg_getdata,
     msg_getheaders,
 )
-
-from test_framework.test_framework import (UnitETestFramework, DISABLE_FINALIZATION)
+from test_framework.test_framework import (
+    DISABLE_FINALIZATION,
+    UnitETestFramework,
+)
 from test_framework.util import (
     assert_equal,
     get_unspent_coins,
+    wait_until,
 )
 
 class P2PFingerprintTest(UnitETestFramework):
@@ -41,6 +40,9 @@ class P2PFingerprintTest(UnitETestFramework):
         self.setup_clean_chain = True
         self.num_nodes = 1
         self.extra_args = [[DISABLE_FINALIZATION, '-stakesplitthreshold=1000000000']]
+
+    def skip_test_if_missing_module(self):
+        self.skip_if_no_wallet()
 
     # Build a chain of blocks on top of given one
     def build_chain(self, nblocks, prev_hash, prev_height, prev_median_time, unspent_outputs, snapshot_meta):
@@ -91,9 +93,6 @@ class P2PFingerprintTest(UnitETestFramework):
         self.setup_stake_coins(self.nodes[0])
 
         node0 = self.nodes[0].add_p2p_connection(P2PInterface())
-
-        network_thread_start()
-        node0.wait_for_verack()
 
         # Set node time to 60 days ago
         self.nodes[0].setmocktime(int(time.time()) - 60 * 24 * 60 * 60)

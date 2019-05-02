@@ -1,22 +1,23 @@
 #!/usr/bin/env python3
-# Copyright (c) 2015-2017 The Bitcoin Core developers
+# Copyright (c) 2015-2018 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the preciousblock RPC."""
+
+from io import BytesIO
 
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_equal,
     connect_nodes_bi,
-    sync_chain,
     sync_blocks,
     wait_until,
     hex_str_to_bytes,
 )
 from test_framework.mininode import (
-    network_thread_start,
     P2PInterface,
 )
+from test_framework.messages import CBlock, msg_block
 
 def unidirectional_node_sync_via_rpc(node_src, node_dest):
     blocks_to_copy = []
@@ -32,7 +33,9 @@ def unidirectional_node_sync_via_rpc(node_src, node_dest):
     blocks_to_copy.reverse()
     for blockhash in blocks_to_copy:
         blockdata = node_src.getblock(blockhash, False)
-        node_dest.p2p.send_data(b'block', hex_str_to_bytes(blockdata))
+        block = CBlock()
+        block.deserialize(BytesIO(hex_str_to_bytes(blockdata)))
+        node_dest.p2p.send_message(msg_block(block))
         node_dest.p2p.sync_with_ping()
 
 def node_sync_via_rpc(nodes):
@@ -47,6 +50,9 @@ class PreciousTest(UnitETestFramework):
         self.setup_clean_chain = True
         self.num_nodes = 3
 
+    def skip_test_if_missing_module(self):
+        self.skip_if_no_wallet()
+
     def setup_network(self):
         self.setup_nodes()
 
@@ -55,7 +61,6 @@ class PreciousTest(UnitETestFramework):
 
         for i in range(self.num_nodes):
             self.nodes[i].add_p2p_connection(P2PInterface())
-        network_thread_start()
 
         wait_until(lambda: all(self.nodes[i].p2p.got_verack() for i in range(self.num_nodes)), timeout=10)
 
@@ -88,7 +93,7 @@ class PreciousTest(UnitETestFramework):
         assert_equal(self.nodes[0].getbestblockhash(), hashC)
         self.log.info("Make Node1 prefer block C")
         self.nodes[1].preciousblock(hashC)
-        sync_chain(self.nodes[0:2]) # wait because node 1 may not have downloaded hashC
+        sync_blocks(self.nodes[0:2])  # wait because node 1 may not have downloaded hashC
         assert_equal(self.nodes[1].getbestblockhash(), hashC)
         self.log.info("Make Node1 prefer block G again")
         self.nodes[1].preciousblock(hashG)

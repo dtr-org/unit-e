@@ -25,7 +25,7 @@ from test_framework.blocktools import (
     create_coinbase,
     sign_coinbase
 )
-from test_framework.mininode import P2PInterface, network_thread_start
+from test_framework.mininode import P2PInterface
 from test_framework.messages import (
     msg_headers,
     msg_block,
@@ -61,7 +61,6 @@ class GrapheneActive(UnitETestFramework):
         self.generate_sync(self.nodes[0], 10)
 
         self.nodes[0].add_p2p_connection(Node())
-        network_thread_start()
 
         self.nodes[0].p2p.wait_for_verack()
 

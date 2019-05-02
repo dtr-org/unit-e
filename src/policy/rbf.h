@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2017 The Bitcoin Core developers
+// Copyright (c) 2016-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -23,6 +23,6 @@ bool SignalsOptInRBF(const CTransaction &tx);
 // according to BIP 125
 // This involves checking sequence numbers of the transaction, as well
 // as the sequence numbers of all in-mempool ancestors.
-RBFTransactionState IsRBFOptIn(const CTransaction &tx, CTxMemPool &pool);
+RBFTransactionState IsRBFOptIn(const CTransaction &tx, CTxMemPool &pool) EXCLUSIVE_LOCKS_REQUIRED(pool.cs);
 
 #endif // UNITE_POLICY_RBF_H

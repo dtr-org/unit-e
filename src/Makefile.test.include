@@ -8,15 +8,15 @@ TEST_SRCDIR = test
 TEST_BINARY=test/test_unite$(EXEEXT)
 
 JSON_TEST_FILES = \
-  test/data/script_tests.json \
-  test/data/base58_keys_valid.json \
   test/data/base58_encode_decode.json \
-  test/data/base58_keys_invalid.json \
+  test/data/key_io_valid.json \
+  test/data/key_io_invalid.json \
   test/data/bip39_vectors_english.json \
   test/data/bip39_vectors_japanese.json \
+  test/data/script_tests.json \
+  test/data/sighash.json \
   test/data/tx_invalid.json \
-  test/data/tx_valid.json \
-  test/data/sighash.json
+  test/data/tx_valid.json
 
 RAW_TEST_FILES =
 
@@ -38,7 +38,7 @@ UNITE_TEST_SUITE = \
   test/test_unite_mocks.h
 
 # test_unite binary #
-UNITE_TESTS = \
+UNITE_TESTS =\
   test/arith_uint256_tests.cpp \
   test/addrman_tests.cpp \
   test/amount_tests.cpp \
@@ -63,8 +63,9 @@ UNITE_TESTS = \
   test/compress_tests.cpp \
   test/crypto_tests.cpp \
   test/cuckoocache_tests.cpp \
+  test/denialofservice_tests.cpp \
+  test/descriptor_tests.cpp \
   test/dependency_injector_tests.cpp \
-  test/DoS_tests.cpp \
   test/embargoman_tests.cpp \
   test/esperanza/admincommand_tests.cpp \
   test/esperanza/adminstate_tests.cpp \
@@ -86,6 +87,7 @@ UNITE_TESTS = \
   test/iblt_tests.cpp \
   test/interpreter_tests.cpp \
   test/ismine_tests.cpp \
+  test/key_io_tests.cpp \
   test/key_tests.cpp \
   test/limitedmap_tests.cpp \
   test/dbwrapper_tests.cpp \
@@ -107,7 +109,7 @@ UNITE_TESTS = \
   test/rpc_tests.cpp \
   test/sanity_tests.cpp \
   test/scheduler_tests.cpp \
-  test/script_P2SH_tests.cpp \
+  test/script_p2sh_tests.cpp \
   test/script_tests.cpp \
   test/script_standard_tests.cpp \
   test/scriptnum_tests.cpp \
@@ -155,14 +157,17 @@ UNITE_TESTS += \
   test/staking/abstract_block_validator_tests.cpp \
   test/staking/block_validator_tests.cpp \
   test/staking/stake_validator_tests.cpp \
+  test/txindex_tests.cpp \
   test/txvalidation_tests.cpp \
   test/txvalidationcache_tests.cpp \
   test/validation_block_tests.cpp \
+  wallet/test/accounting_tests.cpp \
+  wallet/test/psbt_wallet_tests.cpp \
   wallet/test/rpcvalidator_tests.cpp \
   wallet/test/rpcwalletext_tests.cpp \
-  wallet/test/accounting_tests.cpp \
   wallet/test/wallet_tests.cpp \
-  wallet/test/crypto_tests.cpp
+  wallet/test/wallet_crypto_tests.cpp \
+  wallet/test/coinselector_tests.cpp
 
 UNITE_TEST_SUITE += \
   wallet/test/wallet_test_fixture.cpp \
@@ -184,6 +189,7 @@ endif
 if ENABLE_USBDEVICE
 test_test_unite_LDADD += $(LIBUNITE_USBDEVICE) $(HIDAPI_LIBS)
 endif
+
 test_test_unite_LDADD += $(LIBUNITE_SERVER) $(LIBUNITE_CLI) $(LIBUNITE_COMMON) $(LIBUNITE_UTIL) $(LIBUNITE_CONSENSUS) $(LIBUNITE_CRYPTO) $(LIBUNIVALUE) \
   $(LIBLEVELDB) $(LIBLEVELDB_SSE42) $(LIBMEMENV) $(BOOST_LIBS) $(BOOST_UNIT_TEST_FRAMEWORK_LIB) $(LIBSECP256K1) $(EVENT_LIBS) $(EVENT_PTHREADS_LIBS)
 test_test_unite_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
@@ -209,6 +215,9 @@ test_test_unite_fuzzy_LDADD = \
   $(LIBUNITE_UTIL) \
   $(LIBUNITE_CONSENSUS) \
   $(LIBUNITE_CRYPTO) \
+  $(LIBUNITE_CRYPTO_SSE41) \
+  $(LIBUNITE_CRYPTO_AVX2) \
+  $(LIBUNITE_CRYPTO_SHANI) \
   $(LIBSECP256K1)
 
 test_test_unite_fuzzy_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS)
@@ -233,13 +242,16 @@ unite_test_clean : FORCE
 check-local: $(UNITE_TESTS:.cpp=.cpp.test)
 	@echo "Running test/util/unite-util-test.py..."
 	$(PYTHON) $(top_builddir)/test/util/unite-util-test.py
+	@echo "Running test/util/rpcauth-test.py..."
+	$(PYTHON) $(top_builddir)/test/util/rpcauth-test.py
 	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C secp256k1 check
 if EMBEDDED_UNIVALUE
 	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C univalue check
 endif
 
 %.cpp.test: %.cpp
-	@for test_suite in `cat $< | grep -E "(BOOST_FIXTURE_TEST_SUITE\\(|BOOST_AUTO_TEST_SUITE\\()" | cut -d '(' -f 2 | cut -d ',' -f 1 | cut -d ')' -f 1`; do \
+	for test_suite in `cat $< | grep -E "(BOOST_FIXTURE_TEST_SUITE\\(|BOOST_AUTO_TEST_SUITE\\()" | cut -d '(' -f 2 | cut -d ',' -f 1 | cut -d ')' -f 1`; do \
+	    echo $${test_suite}... \
 	    $(TEST_BINARY) -l test_suite -t $$test_suite > $<"-"$$test_suite".log" 2>&1 && (echo "Success: $$test_suite from $<") || ((echo "Failure: $$test_suite from $<"); cat $<"-"$$test_suite".log" && false) \
 	done
 

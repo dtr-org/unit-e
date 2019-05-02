@@ -89,7 +89,7 @@ class ProposerImpl : public Proposer {
         SetStatusOfAllWallets(Status::NOT_PROPOSING_SYNCING_BLOCKCHAIN);
         continue;
       }
-      for (CWalletRef wallet : m_multi_wallet->GetWallets()) {
+      for (auto wallet : m_multi_wallet->GetWallets()) {
         auto &wallet_ext = wallet->GetWalletExtension();
         const auto wallet_name = wallet->GetName();
         if (wallet->IsLocked()) {

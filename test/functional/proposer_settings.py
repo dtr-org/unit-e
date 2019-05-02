@@ -12,7 +12,7 @@ class ProposerSettingsTest(UnitETestFramework):
 
     def set_test_params(self):
         self.num_nodes = 3
-        self.extra_args = [['-proposing=0'], [], ['-proposing=1']]
+        self.extra_args = [['-wallet=xanadu', '-proposing=0'], [], ['-proposing=1']]
         self.setup_clean_chain = True
 
     def run_test(self):
@@ -21,7 +21,7 @@ class ProposerSettingsTest(UnitETestFramework):
         # If we pass -proposing=0 then the node should not propose
         status = self.nodes[0].proposerstatus()['wallets']
         assert_equal(status[0]['status'], 'NOT_PROPOSING')
-        assert_equal(status[0]['wallet'], 'wallet.dat')
+        assert_equal(status[0]['wallet'], 'xanadu')
 
         # If we don't pass -proposing then the node should not propose because of the default in regtest
         assert_equal(self.nodes[1].proposerstatus()['wallets'][0]['status'], 'NOT_PROPOSING')

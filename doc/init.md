@@ -15,7 +15,7 @@ Service User
 
 All three Linux startup configurations assume the existence of a "unite" user
 and group.  They must be created before attempting to use these scripts.
-The OS X configuration assumes unit-e will be set up for the current user.
+The macOS configuration assumes unit-e will be set up for the current user.
 
 Configuration
 ---------------------------------
@@ -62,7 +62,7 @@ reasons to make the configuration file and data directory only readable by the
 unite user and group.  Access to unit-e-cli and other unit-e rpc clients
 can then be controlled by group membership.
 
-### Mac OS X
+### macOS
 
 Binary:              `/usr/local/bin/unit-e`
 Configuration file:  `~/Library/Application Support/Unit-e/unit-e.conf`
@@ -90,6 +90,8 @@ check ownership and permissions and make it executable.  Test it with
 
 ### Upstart (for Debian/Ubuntu based distributions)
 
+Upstart is the default init system for Debian/Ubuntu versions older than 15.04. If you are using version 15.04 or newer and haven't manually configured upstart you should follow the systemd instructions instead.
+
 Drop unit-e.conf in /etc/init.  Test by running `service unit-e start`
 it will automatically start on reboot.
 
@@ -104,7 +106,7 @@ Using this script, you can adjust the path and flags to the unit-e program by
 setting the UNIT_E and FLAGS environment variables in the file
 /etc/sysconfig/unit-e. You can also use the DAEMONOPTS environment variable here.
 
-### Mac OS X
+### macOS
 
 Copy org.unite.unit-e.plist into ~/Library/LaunchAgents. Load the launch agent by
 running `launchctl load ~/Library/LaunchAgents/org.unite.unit-e.plist`.

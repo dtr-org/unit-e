@@ -10,6 +10,8 @@
 #include <esperanza/finalizationstate_data.h>
 #include <finalization/params.h>
 
+class CBlock;
+class CBlockIndex;
 class CChainParams;
 
 namespace esperanza {

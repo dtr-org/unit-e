@@ -4,7 +4,7 @@
 
 #include <wallet/rpcadmin.h>
 
-#include <base58.h>
+#include <key_io.h>
 #include <consensus/validation.h>
 #include <esperanza/admincommand.h>
 #include <net.h>
@@ -20,9 +20,9 @@ struct UTXO {
       : m_outPoint(outPoint), m_txOut(std::move(txOut)) {}
 };
 
-CWalletTx SignAndSend(CMutableTransaction &&mutableTx, CWallet *const wallet,
+uint256 SignAndSend(CMutableTransaction &&mutableTx, CWallet *const wallet,
                       const std::vector<UTXO> &adminUTXOs) {
-  CTransaction constTx(mutableTx);
+  CTransaction constTx = mutableTx;
   SignatureData sigdata;
 
   for (size_t i = 0; i < constTx.vin.size(); ++i) {
@@ -30,8 +30,8 @@ CWalletTx SignAndSend(CMutableTransaction &&mutableTx, CWallet *const wallet,
     const auto &scriptPubKey = utxo.m_txOut.scriptPubKey;
     const auto amountIn = utxo.m_txOut.nValue;
 
-    const TransactionSignatureCreator signatureCreator(
-        &constTx, static_cast<unsigned>(i), amountIn, SIGHASH_ALL);
+    const MutableTransactionSignatureCreator signatureCreator(
+        &mutableTx, static_cast<unsigned>(i), amountIn, SIGHASH_ALL);
 
     if (!ProduceSignature(*wallet, signatureCreator, scriptPubKey, sigdata,
                           &constTx)) {
@@ -40,18 +40,14 @@ CWalletTx SignAndSend(CMutableTransaction &&mutableTx, CWallet *const wallet,
                          "Unable to sign admin transaction");
     }
 
-    UpdateTransaction(mutableTx, static_cast<unsigned>(i), sigdata);
+    UpdateInput(mutableTx.vin.at(i), sigdata);
   }
 
-  CWalletTx walletTx;
-  walletTx.fTimeReceivedIsTxTime = true;
-  walletTx.BindWallet(wallet);
-  walletTx.SetTx(MakeTransactionRef(std::move(mutableTx)));
-
+  CTransactionRef txref = MakeTransactionRef(mutableTx);
   CReserveKey reserveKey(wallet);
   CValidationState state;
-  if (!wallet->CommitTransaction(walletTx, reserveKey, g_connman.get(),
-                                 state)) {
+  if (!wallet->CommitTransaction(txref, {} /* mapValue */, {} /* orderForm */, {} /* fromAccount */, reserveKey,
+                                 g_connman.get(), state)) {
     LogPrint(BCLog::RPC, "Unable to commit admin transaction");
     throw JSONRPCError(RPC_TRANSACTION_ERROR,
                        "Unable to commit admin transaction");
@@ -64,7 +60,7 @@ CWalletTx SignAndSend(CMutableTransaction &&mutableTx, CWallet *const wallet,
                        "Unable to validate admin transaction: " + reason);
   }
 
-  return walletTx;
+  return txref->GetHash();
 }
 
 std::vector<CPubKey> ParsePayload(const UniValue &value) {
@@ -127,8 +123,10 @@ std::vector<UTXO> GetAdminUTXOs(CWallet *const wallet, const UniValue &node) {
 }
 
 UniValue sendadmincommands(const JSONRPCRequest &request) {
-  CWallet *const wallet = GetWalletForJSONRPCRequest(request);
-  if (!EnsureWalletIsAvailable(wallet, request.fHelp)) {
+  const std::shared_ptr<CWallet> wallet = GetWalletForJSONRPCRequest(request);
+  CWallet * const pwallet = wallet.get();
+
+  if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
     return NullUniValue;
   }
 
@@ -153,7 +151,7 @@ UniValue sendadmincommands(const JSONRPCRequest &request) {
 
   wallet->BlockUntilSyncedToCurrentChain();
 
-  const auto adminUTXOs = GetAdminUTXOs(wallet, request.params[0]);
+  const auto adminUTXOs = GetAdminUTXOs(pwallet, request.params[0]);
   const CAmount desiredFee = AmountFromValue(request.params[1]);
   const auto commands = ParseCommands(request.params[2]);
   CTxDestination remainderDestination;
@@ -192,9 +190,9 @@ UniValue sendadmincommands(const JSONRPCRequest &request) {
     adminTx.vout.emplace_back(remainder, scriptPubKey);
   }
 
-  const auto walletTx = SignAndSend(std::move(adminTx), wallet, adminUTXOs);
+  const auto txhash = SignAndSend(std::move(adminTx), pwallet, adminUTXOs);
 
-  return walletTx.GetHash().GetHex();
+  return txhash.GetHex();
 }
 
 // clang-format off
