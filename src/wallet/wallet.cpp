@@ -47,8 +47,6 @@ static const size_t OUTPUT_GROUP_MAX_ENTRIES = 10;
 static CCriticalSection cs_wallets;
 static std::vector<std::shared_ptr<CWallet>> vpwallets GUARDED_BY(cs_wallets);
 
-const char * DEFAULT_WALLET_DAT = "wallet.dat";
-
 bool AddWallet(const std::shared_ptr<CWallet>& wallet)
 {
     LOCK(cs_wallets);
@@ -1698,35 +1696,6 @@ void CWallet::SetHDSeed(const CPubKey& seed)
     newHdChain.seed_id = seed.GetID();
     SetHDChain(newHdChain, false);
 }
-
-bool CWallet::SetHDMasterKey(
-    const CPubKey& masterKey, const std::vector<CExtPubKey> &acctKeys,
-    const std::vector<CKeyMetadata> &acctKeyMetadata, bool isHardwareDevice
-)
- {
-    assert(!isHardwareDevice || !acctKeys.empty());
-    assert(acctKeys.size() == acctKeyMetadata.size());
-
-     LOCK(cs_wallet);
-
-    CHDChain newHdChain;
-    newHdChain.nVersion = CHDChain::VERSION_HD_HW_WALLET;
-    newHdChain.master_key_id = masterKey.GetID();
-    newHdChain.account_pubkeys.insert(newHdChain.account_pubkeys.end(), acctKeys.begin(), acctKeys.end());
-    newHdChain.is_hardware_device = isHardwareDevice;
-
-    // Associated metadata (HD key paths) must be persisted to the DB
-    WalletBatch walletdb(*database);
-    for (size_t i = 0; i < acctKeyMetadata.size(); i++) {
-        mapKeyMetadata[acctKeys[i].pubkey.GetID()] = acctKeyMetadata[i];
-        if (!walletdb.WriteKeyMetadata(acctKeys[i].pubkey, acctKeyMetadata[i])) {
-            return false;
-        }
-    }
-
-    SetHDChain(newHdChain, false);
-    return true;
- }
 
 void CWallet::SetHDChain(const CHDChain& chain, bool memonly)
 {
@@ -3640,12 +3609,6 @@ void CWallet::LoadKeyPool(int64_t nIndex, const CKeyPool &keypool)
     }
 }
 
-bool CWallet::GenerateNewKeys(unsigned int amount)
-{
-    auto currentKeys = setExternalKeyPool.size();
-    return TopUpKeyPool(currentKeys + amount);
-}
-
 bool CWallet::TopUpKeyPool(unsigned int kpSize)
 {
     if (IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS)) {
@@ -4236,21 +4199,6 @@ bool CWallet::EraseDestData(const CTxDestination &dest, const std::string &key)
 void CWallet::LoadDestData(const CTxDestination &dest, const std::string &key, const std::string &value)
 {
     mapAddressBook[dest].destdata.insert(std::make_pair(key, value));
-}
-
-bool CWallet::GetDestData(const CTxDestination &dest, const std::string &key, std::string *value) const
-{
-    std::map<CTxDestination, CAddressBookData>::const_iterator i = mapAddressBook.find(dest);
-    if (i != mapAddressBook.end()) {
-        CAddressBookData::StringMap::const_iterator j = i->second.destdata.find(key);
-        if (j != i->second.destdata.end()) {
-            if (value) {
-                *value = j->second;
-            }
-            return true;
-        }
-    }
-    return false;
 }
 
 std::vector<std::string> CWallet::GetDestValues(const std::string& prefix) const

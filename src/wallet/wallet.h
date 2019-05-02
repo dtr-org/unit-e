@@ -939,8 +939,6 @@ public:
     bool EraseDestData(const CTxDestination &dest, const std::string &key);
     //! Adds a destination data tuple to the store, without saving it to disk
     void LoadDestData(const CTxDestination &dest, const std::string &key, const std::string &value);
-    //! Look up a destination data tuple in the store, return true if found false otherwise
-    bool GetDestData(const CTxDestination &dest, const std::string &key, std::string *value) const;
     //! Get all destination values matching a prefix.
     std::vector<std::string> GetDestValues(const std::string& prefix) const;
 
@@ -1012,12 +1010,6 @@ public:
     void ListAccountCreditDebit(const std::string& strAccount, std::list<CAccountingEntry>& entries);
     bool AddAccountingEntry(const CAccountingEntry&);
     bool AddAccountingEntry(const CAccountingEntry&, WalletBatch *batch);
-    bool DummySignTx(CMutableTransaction &txNew, const std::set<CTxOut> &txouts, bool use_max_sig = false) const
-    {
-        std::vector<CTxOut> v_txouts(txouts.size());
-        std::copy(txouts.begin(), txouts.end(), v_txouts.begin());
-        return DummySignTx(txNew, v_txouts, use_max_sig);
-    }
     bool DummySignTx(CMutableTransaction &txNew, const std::vector<CTxOut> &txouts, bool use_max_sig = false) const;
     bool DummySignInput(CTxIn &tx_in, const CTxOut &txout, bool use_max_sig = false) const;
 
@@ -1040,7 +1032,6 @@ public:
     bool NewKeyPool();
     size_t KeypoolCountExternalKeys() EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool TopUpKeyPool(unsigned int kpSize = 0);
-    bool GenerateNewKeys(unsigned int amount);
 
     /**
      * Reserves a key from the keypool and sets nIndex to its index
@@ -1089,7 +1080,6 @@ public:
     CAmount GetDebit(const CTransaction& tx, const isminefilter& filter) const;
     /** Returns whether all of the inputs match the filter */
     bool IsAllFromMe(const CTransaction& tx, const isminefilter& filter) const;
-    CAmount GetCredit(const CWalletTx& wtx, const isminefilter& filter) const;
     CAmount GetMatureCredit(const CWalletTx& wtx, const isminefilter& filter) const;
     CAmount GetImmatureCredit(const CWalletTx& wtx, const isminefilter& filter) const;
     CAmount GetChange(const CTransaction& tx) const;
@@ -1203,11 +1193,6 @@ public:
        caller must ensure the current wallet version is correct before calling
        this function). */
     void SetHDSeed(const CPubKey& key);
-
-    bool SetHDMasterKey(
-        const CPubKey& masterKey, const std::vector<CExtPubKey> &acctKeys,
-        const std::vector<CKeyMetadata> &metadata, bool hardwareDevice = false
-    );
 
     /**
      * Blocks until the wallet state is up-to-date to /at least/ the current
