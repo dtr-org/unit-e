@@ -120,9 +120,9 @@ class ProposerStakeMaturityTest(UnitETestFramework):
         self.setup_stake_coins(*self.nodes)
 
         # Generate stakeable outputs on both nodes
-        nodes[0].generatetoaddress(1, nodes[0].getnewaddress('', 'bech32'))
+        nodes[0].proposetoaddress(1, nodes[0].getnewaddress('', 'bech32'))
         sync_blocks(nodes)
-        nodes[1].generatetoaddress(1, nodes[1].getnewaddress('', 'bech32'))
+        nodes[1].proposetoaddress(1, nodes[1].getnewaddress('', 'bech32'))
         sync_blocks(nodes)
 
         # Current chain length doesn't overcome stake threshold, so
@@ -131,21 +131,21 @@ class ProposerStakeMaturityTest(UnitETestFramework):
             self.check_node_balance(nodes[i], 10000, 10000)
 
         # Generate another block to overcome the stake threshold
-        nodes[0].generatetoaddress(1, nodes[0].getnewaddress('', 'bech32'))
+        nodes[0].proposetoaddress(1, nodes[0].getnewaddress('', 'bech32'))
         sync_blocks(nodes)
 
         # Maturity check in action and we have one immature stake output
         self.check_node_balance(nodes[0], 10000, 9000)
 
-        # Let's go further and generate yet another block
-        nodes[0].generatetoaddress(1, nodes[0].getnewaddress('', 'bech32'))
+        # Let's go further and propose yet another block
+        nodes[0].proposetoaddress(1, nodes[0].getnewaddress('', 'bech32'))
         sync_blocks(nodes)
 
         # Now we have two immature stake outputs
         self.check_node_balance(nodes[0], 10000, 8000)
 
         # Generate two more blocks at another node
-        nodes[1].generatetoaddress(2, nodes[1].getnewaddress('', 'bech32'))
+        nodes[1].proposetoaddress(2, nodes[1].getnewaddress('', 'bech32'))
         sync_blocks(nodes)
 
         # Thus all stake ouputs of the first node are mature
