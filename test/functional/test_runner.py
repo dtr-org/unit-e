@@ -58,7 +58,7 @@ BASE_SCRIPTS = [
     'feature_block.py',
     'feature_fee_estimation.py',
     # vv Tests less than 5m vv
-    'feature_bip9_softforks.py',
+    # 'feature_bip9_softforks.py', TODO: UNIT-E: re-enable or delete https://github.com/dtr-org/unit-e/issues/472
     'wallet_multiwallet.py --usecli',
     'feature_maxuploadtarget.py',
     'p2p_segwit.py',
