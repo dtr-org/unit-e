@@ -1249,7 +1249,7 @@ static void TestOtherProcess(fs::path dirname, std::string lockname, int fd)
                 break;
             case ExitCommand:
                 close(fd);
-                exit(0);
+                _Exit(0);
             default:
                 assert(0);
         }
