@@ -44,15 +44,14 @@ class LogicImpl final : public Logic {
   boost::optional<proposer::EligibleCoin> TryPropose(const staking::CoinSet &eligible_coins) override {
     AssertLockHeld(m_active_chain->GetLock());
 
-    const CBlockIndex *current_tip =
-        m_active_chain->GetTip();
+    const CBlockIndex *current_tip = m_active_chain->GetTip();
     if (!current_tip) {
       return boost::none;
     }
-    const blockchain::Height current_height =
-        m_active_chain->GetHeight();
-    const blockchain::Height target_height =
-        current_height + 1;
+    const blockchain::Height current_height = m_active_chain->GetHeight();
+    const blockchain::Height target_height = current_height + 1;
+
+    int64_t best_time = std::max(m_active_chain->GetTip()->GetMedianTimePast() + 1, m_network->GetTime());
     const blockchain::Time target_time =
         m_blockchain_behavior->CalculateProposingTimestampAfter(m_network->GetTime());
     const blockchain::Difficulty target_difficulty =
@@ -60,16 +59,22 @@ class LogicImpl final : public Logic {
 
     for (const staking::Coin &coin : eligible_coins) {
       const uint256 kernel_hash = m_stake_validator->ComputeKernelHash(current_tip, coin, target_time);
-      if (m_stake_validator->CheckKernel(coin.GetAmount(), kernel_hash, target_difficulty)) {
-        const CAmount reward = m_blockchain_behavior->CalculateBlockReward(
-            target_height);
-        return {{coin,
-                 kernel_hash,
-                 reward,
-                 target_height,
-                 target_time,
-                 target_difficulty}};
+
+      if (!m_stake_validator->CheckKernel(coin.GetAmount(), kernel_hash, target_difficulty)) {
+        if (m_blockchain_behavior->GetParameters().mine_blocks_on_demand) {
+          LogPrint(BCLog::VALIDATION, "Letting artificial block generation succeed nevertheless (mine_blocks_on_demand=true)\n");
+        } else {
+          continue;
+        }
       }
+
+      const CAmount reward = m_blockchain_behavior->CalculateBlockReward(target_height);
+      return {{coin,
+               kernel_hash,
+               reward,
+               target_height,
+               target_time,
+               target_difficulty}};
     }
     return boost::none;
   }

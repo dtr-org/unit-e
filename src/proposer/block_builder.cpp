@@ -102,6 +102,7 @@ class BlockBuilderImpl : public BlockBuilder {
       const EligibleCoin &eligible_coin,
       const staking::CoinSet &coins,
       const CAmount fees,
+      const boost::optional<CScript> &coinbase_script,
       staking::StakingWallet &wallet) const override {
     CMutableTransaction tx;
 
@@ -134,9 +135,16 @@ class BlockBuilderImpl : public BlockBuilder {
     // (which happens after the finite supply limit is reached)
     // then there is no reward at all. The reward output will nevertheless
     // be added with an amount of zero.
-    const CScript reward_script = m_settings->reward_destination && reward > 0
-                                      ? GetScriptForDestination(*m_settings->reward_destination)
-                                      : eligible_coin.utxo.GetScriptPubKey();
+    CScript reward_script;
+
+    if (coinbase_script) {
+      reward_script = CScript(coinbase_script->begin(), coinbase_script->end());
+    } else if (m_settings->reward_destination) {
+      reward_script = GetScriptForDestination(*m_settings->reward_destination);
+    } else {
+      reward_script = eligible_coin.utxo.GetScriptPubKey();
+    }
+
     tx.vout.emplace_back(reward, reward_script);
 
     const CAmount threshold = m_settings->stake_split_threshold;
@@ -173,6 +181,7 @@ class BlockBuilderImpl : public BlockBuilder {
       const staking::CoinSet &coins,
       const std::vector<CTransactionRef> &txs,
       const CAmount fees,
+      const boost::optional<CScript> &coinbase_script,
       staking::StakingWallet &wallet) const override {
 
     const std::shared_ptr<CBlock> new_block = std::make_shared<CBlock>();
@@ -185,7 +194,7 @@ class BlockBuilderImpl : public BlockBuilder {
 
     // add coinbase transaction first
     const CTransactionRef coinbase_transaction =
-        BuildCoinbaseTransaction(snapshot_hash, coin, coins, fees, wallet);
+        BuildCoinbaseTransaction(snapshot_hash, coin, coins, fees, coinbase_script, wallet);
     if (!coinbase_transaction) {
       Log("Failed to create coinbase transaction.");
       return nullptr;

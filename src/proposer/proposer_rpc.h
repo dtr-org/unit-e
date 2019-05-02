@@ -28,7 +28,7 @@ class Proposer;
 //! Usually RPC commands are statically bound by referencing function pointers.
 //! For the proposer RPC commands to be part of the dependency injector a
 //! proper module is defined and the commands are bound slightly differently
-//! (see rpc/proposer.cpp).
+//! (see rpc/proposing.cpp).
 //!
 //! This class is an interface.
 class ProposerRPC {
@@ -39,6 +39,10 @@ class ProposerRPC {
   virtual UniValue proposerwake(const JSONRPCRequest &request) const = 0;
 
   virtual UniValue liststakeablecoins(const JSONRPCRequest &request) const = 0;
+
+  virtual UniValue propose(const JSONRPCRequest &request) const = 0;
+
+  virtual UniValue proposetoaddress(const JSONRPCRequest &request) const = 0;
 
   virtual ~ProposerRPC() = default;
 

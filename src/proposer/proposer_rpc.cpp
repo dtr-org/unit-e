@@ -4,7 +4,10 @@
 
 #include <proposer/proposer_rpc.h>
 
+#include <chainparams.h>
 #include <core_io.h>
+#include <injector.h>
+#include <key_io.h>
 #include <proposer/multiwallet.h>
 #include <proposer/proposer.h>
 #include <rpc/server.h>
@@ -166,6 +169,134 @@ class ProposerRPCImpl : public ProposerRPC {
     }
     obj.pushKV("stakeable_coins", arr);
     return obj;
+  }
+
+  UniValue PorposeBlocks(CWallet *const wallet,
+                         const boost::optional<CScript> &coinbase_script,
+                         int num_generate) const {
+    assert(wallet);
+    blockchain::Height height = 0;
+    blockchain::Height height_end = 0;
+
+    proposer::Proposer *proposer = GetComponent<proposer::Proposer>();
+
+    staking::ActiveChain *active_chain;
+    {  // Don't keep cs_main locked
+      LOCK(cs_main);
+      active_chain = GetComponent<staking::ActiveChain>();
+      height = active_chain->GetHeight();
+      height_end = height + num_generate;
+    }
+    UniValue block_hashes(UniValue::VARR);
+
+    // To pick up to date coins for staking we need to make sure that the wallet is synced to the current chain.
+    wallet->BlockUntilSyncedToCurrentChain();
+
+    esperanza::WalletExtension &wallet_ext = wallet->GetWalletExtension();
+
+    while (height < height_end) {
+
+      std::shared_ptr<const CBlock> block;
+      {
+        LOCK2(cs_main, wallet_ext.GetLock());
+        const staking::CoinSet stakeable_coins = wallet_ext.GetStakeableCoins();
+
+        if (stakeable_coins.empty()) {
+          throw JSONRPCError(RPC_INTERNAL_ERROR,
+                             "Not proposing, not enough balance.");
+        }
+        staking::CoinSet coins;
+        coins.insert(*stakeable_coins.begin());
+
+        if (!proposer->GenerateBlock(wallet,
+                                     *active_chain->GetTip(),
+                                     coins,
+                                     coinbase_script,
+                                     block)) {
+          throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to generate a block.");
+        }
+      }
+
+      if (!ProcessNewBlock(Params(), block, /* fForceProcessing= */ true, nullptr)) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "ProcessNewBlock, block not accepted");
+      }
+
+      ++height;
+      block_hashes.push_back(block->GetHash().GetHex());
+
+      wallet->BlockUntilSyncedToCurrentChain();
+    }
+    return block_hashes;
+  }
+
+  UniValue propose(const JSONRPCRequest &request) const {
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet *const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+      return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() < 1 || request.params.size() > 2) {
+      throw std::runtime_error(
+          "propose nblocks ( maxtries )\n"
+          "\nPropose up to nblocks blocks immediately (before the RPC call returns) to an address in the wallet.\n"
+          "\nNote: this function can only be used on the regtest network.\n"
+          "\nArguments:\n"
+          "1. nblocks      (numeric, required) How many blocks are proposed immediately.\n"
+          "\nResult:\n"
+          "[ blockhashes ]     (array) hashes of blocks proposed\n"
+          "\nExamples:\n"
+          "\nGenerate 11 blocks\n" +
+          HelpExampleCli("proposed", "11"));
+    }
+
+    if (!Params().MineBlocksOnDemand()) {
+      throw JSONRPCError(RPC_METHOD_NOT_FOUND, "This method can only be used on regtest");
+    }
+
+    int num_generate = request.params[0].get_int();
+
+    return PorposeBlocks(pwallet, boost::none, num_generate);
+  }
+
+  UniValue proposetoaddress(const JSONRPCRequest &request) const {
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet *const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+      return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() < 2 || request.params.size() > 3)
+      throw std::runtime_error(
+          "proposetoaddress nblocks address (maxtries)\n"
+          "\nProposer blocks immediately to a specified address (before the RPC call returns)\n"
+          "\nNote: this function can only be used on the regtest network.\n"
+          "\nArguments:\n"
+          "1. nblocks      (numeric, required) How many blocks are proposed immediately.\n"
+          "2. address      (string, required) The address to send the newly proposed unite to.\n"
+          "\nResult:\n"
+          "[ blockhashes ]     (array) hashes of blocks generated\n"
+          "\nExamples:\n"
+          "\nGenerate 11 blocks to myaddress\n" +
+          HelpExampleCli("proposetoaddress", "11 \"myaddress\""));
+
+    if (!Params().MineBlocksOnDemand()) {
+      throw JSONRPCError(RPC_METHOD_NOT_FOUND, "This method can only be used on regtest");
+    }
+
+    int nGenerate = request.params[0].get_int();
+
+    CTxDestination destination = DecodeDestination(request.params[1].get_str());
+    if (!IsValidDestination(destination)) {
+      throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Error: Invalid address");
+    }
+
+    std::shared_ptr<CReserveScript> coinbaseScript = std::make_shared<CReserveScript>();
+    coinbaseScript->reserveScript = GetScriptForDestination(destination);
+
+    return PorposeBlocks(pwallet, coinbaseScript.get()->reserveScript, nGenerate);
   }
 };
 

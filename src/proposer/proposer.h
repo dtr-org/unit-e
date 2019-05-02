@@ -7,9 +7,13 @@
 
 #include <dependency.h>
 
+#include <chain.h>
+#include <primitives/block.h>
+#include <staking/coin.h>
 #include <memory>
 
 struct Settings;
+class CWallet;
 
 namespace blockchain {
 class Behavior;
@@ -37,6 +41,12 @@ class Proposer {
   virtual void Stop() = 0;
 
   virtual bool IsStarted() = 0;
+
+  virtual bool GenerateBlock(CWallet *wallet,
+                             const CBlockIndex &tip,
+                             const staking::CoinSet &coins,
+                             const boost::optional<CScript> &coinbase_script,
+                             std::shared_ptr<const CBlock> &block_out) = 0;
 
   virtual ~Proposer() = default;
 
