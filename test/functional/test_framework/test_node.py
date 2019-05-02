@@ -235,7 +235,10 @@ class TestNode():
         try:
             self.drain_main_signal_callbacks_pending()
             self.stop(wait=wait)
-        except (http.client.CannotSendRequest, subprocess.CalledProcessError):
+        except (JSONRPCException, ConnectionError, http.client.HTTPException, subprocess.CalledProcessError):
+            # Most likely, the node is already stopped or stopping. Print the exception and continue.
+            # Note: it's better to use TestFramework.stop_node, instead of TestNode.stop_node directly,
+            # since the former checks that process has ended and cleans up.
             self.log.exception("Unable to stop node.")
 
         # Check that stderr is as expected
