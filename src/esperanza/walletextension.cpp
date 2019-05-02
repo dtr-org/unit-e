@@ -286,6 +286,12 @@ bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
   const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().GetTipState();
   assert(fin_state);
 
+  const esperanza::Result is_valid = fin_state->ValidateDeposit(keyID, amount);
+  if (is_valid != +esperanza::Result::SUCCESS) {
+    LogPrintf("Cannot send deposit to %s, check above logs for details\n", keyID.GetHex());
+    return false;
+  }
+
   const ValidatorState::Phase cur_phase = GetFinalizerPhase(*fin_state);
   const ValidatorState::Phase exp_phase = ValidatorState::Phase::NOT_VALIDATING;
   if (cur_phase != exp_phase) {

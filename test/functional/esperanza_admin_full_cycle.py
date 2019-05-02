@@ -4,7 +4,12 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 from test_framework.test_framework import UnitETestFramework
-from test_framework.util import json, connect_nodes_bi, assert_raises_rpc_error
+from test_framework.util import (
+    assert_equal,
+    assert_raises_rpc_error,
+    connect_nodes_bi,
+    json,
+)
 from test_framework.admin import Admin
 
 MIN_DEPOSIT_SIZE = 1000
@@ -63,9 +68,12 @@ class AdminFullCycle(UnitETestFramework):
             framework.wait_for_transaction(tx, timeout=20)
 
         def deposit_reject(self):
+            balance = self.node.getbalance()
             assert_raises_rpc_error(None, "Cannot create deposit",
                                     self.node.deposit, self.address,
                                     MIN_DEPOSIT_SIZE)
+            # Make sure deposit doesn't disappear when rejected.
+            assert_equal(self.node.getbalance(), balance)
 
         def deposit_ok(self, deposit_amount=MIN_DEPOSIT_SIZE):
             tx = self.node.deposit(self.address, deposit_amount)
