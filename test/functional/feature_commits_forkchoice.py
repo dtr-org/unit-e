@@ -17,6 +17,7 @@ from test_framework.util import (
     connect_nodes,
     disconnect_nodes,
     sync_blocks,
+    sync_chain,
 )
 
 
@@ -148,7 +149,7 @@ class FinalizationForkChoice(UnitETestFramework):
         connect_nodes(p2, p0.index)
         connect_nodes(p2, p1.index)
 
-        sync_blocks([p1, p2])
+        sync_chain([p1, p2])
         assert_equal(p1.getblockcount(), 69)
         assert_equal(p2.getblockcount(), 69)
 
@@ -166,7 +167,7 @@ class FinalizationForkChoice(UnitETestFramework):
         # p2: p0, p1
         self.log.info("Test longest node reverts to justified")
         connect_nodes(p0, p1.index)
-        sync_blocks([p0, p1])
+        sync_chain([p0, p1])
 
         # check if p0 accepted shortest in terms of blocks but longest justified chain
         assert_equal(p0.getblockcount(), 69)
@@ -176,15 +177,15 @@ class FinalizationForkChoice(UnitETestFramework):
         # generate more blocks to make sure they're processed
         self.log.info("Test all nodes continue to work as usual")
         p0.generatetoaddress(30, p0.getnewaddress('', 'bech32'))
-        sync_blocks([p0, p1, p2, v0])
+        sync_chain([p0, p1, p2, v0])
         assert_equal(p0.getblockcount(), 99)
 
         p1.generatetoaddress(30, p1.getnewaddress('', 'bech32'))
-        sync_blocks([p0, p1, p2, v0])
+        sync_chain([p0, p1, p2, v0])
         assert_equal(p1.getblockcount(), 129)
 
         p2.generatetoaddress(30, p2.getnewaddress('', 'bech32'))
-        sync_blocks([p0, p1, p2, v0])
+        sync_chain([p0, p1, p2, v0])
         assert_equal(p2.getblockcount(), 159)
 
         # disconnect all nodes
@@ -215,7 +216,7 @@ class FinalizationForkChoice(UnitETestFramework):
         sync_blocks([p1, v0])
         connect_nodes(p1, p0.index)
         connect_nodes(p1, p2.index)
-        sync_blocks([p0, p1, p2, v0])
+        sync_chain([p0, p1, p2, v0])
 
 
 if __name__ == '__main__':

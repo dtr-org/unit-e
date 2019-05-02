@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2018 The Bitcoin Core developers
+# Copyright (c) 2017 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test that the wallet can send and receive using all combinations of address types.
@@ -63,7 +63,6 @@ from test_framework.util import (
     sync_mempools,
 )
 
-
 class AddressTypeTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 6
@@ -73,11 +72,8 @@ class AddressTypeTest(UnitETestFramework):
             ["-addresstype=p2sh-segwit", "-changetype=bech32"],
             ["-addresstype=bech32"],
             ["-changetype=p2sh-segwit"],
-            [],
+            []
         ]
-
-    def skip_test_if_missing_module(self):
-        self.skip_if_no_wallet()
 
     def setup_network(self):
         self.setup_nodes()
@@ -97,8 +93,8 @@ class AddressTypeTest(UnitETestFramework):
 
     def test_address(self, node, address, multisig, typ):
         """Run sanity checks on an address."""
-        info = self.nodes[node].getaddressinfo(address)
-        assert(self.nodes[node].validateaddress(address)['isvalid'])
+        info = self.nodes[node].validateaddress(address)
+        assert info['isvalid']
         if not multisig and typ == 'legacy':
             # P2PKH
             assert not info['isscript']
@@ -286,10 +282,7 @@ class AddressTypeTest(UnitETestFramework):
         self.log.info('getrawchangeaddress defaults to addresstype if -changetype is not set and argument is absent')
         self.test_address(3, self.nodes[3].getrawchangeaddress(), multisig=False, typ='bech32')
 
-        self.log.info('test invalid address type arguments')
-        assert_raises_rpc_error(-5, "Unknown address type ''", self.nodes[3].addmultisigaddress, 2, [compressed_1, compressed_2], None, '')
-        assert_raises_rpc_error(-5, "Unknown address type ''", self.nodes[3].getnewaddress, None, '')
-        assert_raises_rpc_error(-5, "Unknown address type ''", self.nodes[3].getrawchangeaddress, '')
+        self.log.info('getrawchangeaddress fails with invalid changetype argument')
         assert_raises_rpc_error(-5, "Unknown address type 'bech23'", self.nodes[3].getrawchangeaddress, 'bech23')
 
         self.log.info("Nodes with changetype=p2sh-segwit never use a P2WPKH change output")

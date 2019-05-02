@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2018 The Bitcoin Core developers
+// Copyright (c) 2015-2017 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -82,8 +82,6 @@ void CScheduler::serviceQueue()
                 reverse_lock<boost::unique_lock<boost::mutex> > rlock(lock);
                 f();
             }
-        } catch (const task_unscheduled& ) {
-            // Do nothing
         } catch (...) {
             --nThreadsServicingQueue;
             throw;

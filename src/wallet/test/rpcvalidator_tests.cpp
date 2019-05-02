@@ -2,7 +2,6 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <key_io.h>
 #include <wallet/rpcvalidator.h>
 
 #include <test/rpc_test_utils.h>
@@ -37,7 +36,7 @@ CTxDestination GetDestination(CWallet &wallet, OutputType type) {
 
 BOOST_FIXTURE_TEST_CASE(deposit_p2sh_segwit_not_supported, ValidatorWalletSetup) {
 
-  CTxDestination p2sh = GetDestination(*m_wallet, OutputType::P2SH_SEGWIT);
+  CTxDestination p2sh = GetDestination(*pwalletMain, OUTPUT_TYPE_P2SH_SEGWIT);
 
   std::string command = "deposit " + EncodeDestination(p2sh) + " 1500";
   AssertRPCError(command, RPC_INVALID_ADDRESS_OR_KEY, "Address must be a P2PKH address.");
@@ -45,7 +44,7 @@ BOOST_FIXTURE_TEST_CASE(deposit_p2sh_segwit_not_supported, ValidatorWalletSetup)
 
 BOOST_FIXTURE_TEST_CASE(deposit_bech32_not_supported, ValidatorWalletSetup) {
 
-  CTxDestination bech32 = GetDestination(*m_wallet, OutputType::BECH32);
+  CTxDestination bech32 = GetDestination(*pwalletMain, OUTPUT_TYPE_BECH32);
 
   std::string command = "deposit " + EncodeDestination(bech32) + " 1500";
   AssertRPCError(command, RPC_INVALID_ADDRESS_OR_KEY, "Address must be a P2PKH address.");
@@ -53,7 +52,7 @@ BOOST_FIXTURE_TEST_CASE(deposit_bech32_not_supported, ValidatorWalletSetup) {
 
 BOOST_FIXTURE_TEST_CASE(deposit_p2pkh_supported_but_not_enough_funds, ValidatorWalletSetup) {
 
-  CTxDestination p2pkh = GetDestination(*m_wallet, OutputType::LEGACY);
+  CTxDestination p2pkh = GetDestination(*pwalletMain, OUTPUT_TYPE_LEGACY);
 
   std::string command = "deposit " + EncodeDestination(p2pkh) + " 1499";
   AssertRPCError(command, RPC_INVALID_PARAMETER, "Amount is below minimum allowed.");
@@ -61,7 +60,7 @@ BOOST_FIXTURE_TEST_CASE(deposit_p2pkh_supported_but_not_enough_funds, ValidatorW
 
 BOOST_FIXTURE_TEST_CASE(deposit_not_a_validator, WalletTestingSetup) {
 
-  CTxDestination p2pkh = GetDestination(*m_wallet, OutputType::LEGACY);
+  CTxDestination p2pkh = GetDestination(*pwalletMain, OUTPUT_TYPE_LEGACY);
 
   std::string command = "deposit " + EncodeDestination(p2pkh) + " 0";
   AssertRPCError(command, RPC_INVALID_REQUEST, "The node must be enabled to be a finalizer.");

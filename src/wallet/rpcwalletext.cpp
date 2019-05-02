@@ -6,10 +6,10 @@
 #include <consensus/validation.h>
 #include <core_io.h>
 #include <injector.h>
-#include <key_io.h>
 #include <net.h>
 #include <policy/policy.h>
 #include <rpc/mining.h>
+#include <rpc/safemode.h>
 #include <rpc/server.h>
 #include <univalue.h>
 #include <validation.h>
@@ -116,7 +116,7 @@ static CCoinControl ParseCoinControlArgument(const UniValue &uvCoinControl) {
       throw JSONRPCError(RPC_INVALID_PARAMETER,
                          "Replaceable parameter must be boolean.");
     }
-    coinControl.m_signal_bip125_rbf = uvCoinControl["replaceable"].get_bool();
+    coinControl.signalRbf = uvCoinControl["replaceable"].get_bool();
   }
 
   if (uvCoinControl.exists("conf_target")) {
@@ -155,8 +155,7 @@ static CCoinControl ParseCoinControlArgument(const UniValue &uvCoinControl) {
 }
 
 UniValue sendtypeto(const JSONRPCRequest &request) {
-  std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-  CWallet * pwallet = wallet.get();
+  CWallet *pwallet = GetWalletForJSONRPCRequest(request);
   if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
     return NullUniValue;
   }
@@ -230,6 +229,8 @@ UniValue sendtypeto(const JSONRPCRequest &request) {
             "\\\"amount\\\":0.1}]\""));
   }
 
+  ObserveSafeMode();
+
   // Make sure the results are valid at least up to the most recent block
   // the user could have gotten from another RPC command prior to now
   pwallet->BlockUntilSyncedToCurrentChain();
@@ -263,19 +264,18 @@ UniValue sendtypeto(const JSONRPCRequest &request) {
   }
 
   // Wallet comments
-  CTransactionRef wtx;
-  mapValue_t map_value;
+  CWalletTx wtx;
 
   if (request.params.size() > 3 && !request.params[3].isNull()) {
     std::string s = request.params[3].get_str();
     if (!s.empty()) {
-      map_value["comment"] = s;
+      wtx.mapValue["comment"] = s;
     }
   }
   if (request.params.size() > 4 && !request.params[4].isNull()) {
     std::string s = request.params[4].get_str();
     if (!s.empty()) {
-      map_value["to"] = s;
+      wtx.mapValue["to"] = s;
     }
   }
 
@@ -309,10 +309,10 @@ UniValue sendtypeto(const JSONRPCRequest &request) {
   if (checkFeeOnly) {
     UniValue result(UniValue::VOBJ);
     result.pushKV("fee", ValueFromAmount(feeRet));
-    result.pushKV("bytes", GetVirtualTransactionSize(*wtx));
+    result.pushKV("bytes", GetVirtualTransactionSize(*(wtx.tx)));
 
     if (showHex) {
-      std::string strHex = EncodeHexTx(*wtx, RPCSerializationFlags());
+      std::string strHex = EncodeHexTx(*(wtx.tx), RPCSerializationFlags());
       result.pushKV("hex", strHex);
     }
 
@@ -320,13 +320,13 @@ UniValue sendtypeto(const JSONRPCRequest &request) {
   }
 
   CValidationState state;
-  if (!pwallet->CommitTransaction(wtx, map_value, {}, {}, keyChange, g_connman.get(), state)) {
+  if (!pwallet->CommitTransaction(wtx, keyChange, g_connman.get(), state)) {
     throw JSONRPCError(
         RPC_WALLET_ERROR,
         strprintf("Transaction commit failed: %s", FormatStateMessage(state)));
   }
 
-  return wtx->GetHash().GetHex();
+  return wtx.GetHash().GetHex();
 }
 
 constexpr const char* STAKEAT_HELP = "stakeat recipient test_fee coin_control\n"
@@ -373,8 +373,7 @@ constexpr const char* STAKEAT_CLI_PARAMS = "\"{\\\"address\\\":\\\"2NDoNG8nR57LD
   "\\\"amount\\\":0.1}\"";
 
 static UniValue stakeat(const JSONRPCRequest &request) {
-  std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-  CWallet * const pwallet = wallet.get();
+  CWallet *pwallet = GetWalletForJSONRPCRequest(request);
   if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
     return NullUniValue;
   }
@@ -386,6 +385,8 @@ static UniValue stakeat(const JSONRPCRequest &request) {
                                       HelpExampleCli("stakeat", STAKEAT_CLI_PARAMS));
     throw std::runtime_error(help_text);
   }
+
+  ObserveSafeMode();
 
   // Make sure the results are valid at least up to the most recent block
   // the user could have gotten from another RPC command prior to now
@@ -417,7 +418,7 @@ static UniValue stakeat(const JSONRPCRequest &request) {
 
   std::string error;
   CAmount tx_fee(0);
-  CTransactionRef wtx;
+  CWalletTx wtx;
   CReserveKey key_change(pwallet);
 
   auto &wallet_ext = pwallet->GetWalletExtension();
@@ -430,19 +431,19 @@ static UniValue stakeat(const JSONRPCRequest &request) {
   if (test_fee) {
     UniValue result(UniValue::VOBJ);
     result.pushKV("fee", ValueFromAmount(tx_fee));
-    result.pushKV("bytes", GetVirtualTransactionSize(*wtx));
+    result.pushKV("bytes", GetVirtualTransactionSize(*(wtx.tx)));
 
     return result;
   }
 
   CValidationState state;
-  if (!pwallet->CommitTransaction(wtx, {}, {}, {}, key_change, g_connman.get(), state)) {
+  if (!pwallet->CommitTransaction(wtx, key_change, g_connman.get(), state)) {
     throw JSONRPCError(
         RPC_WALLET_ERROR,
         strprintf("Transaction commit failed: %s", FormatStateMessage(state)));
   }
 
-  return wtx->GetHash().GetHex();
+  return wtx.GetHash().GetHex();
 }
 
 static bool OutputToJSON(UniValue &output, const COutputEntry &o,
@@ -596,8 +597,7 @@ static std::string GetAddress(const UniValue &transaction) {
 }
 
 UniValue filtertransactions(const JSONRPCRequest &request) {
-  std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-  CWallet * const pwallet = wallet.get();
+  CWallet *const pwallet = GetWalletForJSONRPCRequest(request);
   if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
     return NullUniValue;
   }
@@ -668,6 +668,8 @@ UniValue filtertransactions(const JSONRPCRequest &request) {
         HelpExampleRpc("filtertransactions", R"({\"category\":\"send\"})") +
         "\n");
   }
+
+  ObserveSafeMode();
 
   // Make sure the results are valid at least up to the most recent block
   // the user could have gotten from another RPC command prior to now

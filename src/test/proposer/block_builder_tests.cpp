@@ -5,7 +5,6 @@
 #include <proposer/block_builder.h>
 
 #include <blockchain/blockchain_behavior.h>
-#include <key_io.h>
 #include <primitives/transaction.h>
 #include <staking/block_validator.h>
 #include <wallet/wallet.h>

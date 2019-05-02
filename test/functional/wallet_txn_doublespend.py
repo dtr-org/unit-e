@@ -1,18 +1,11 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2018 The Bitcoin Core developers
+# Copyright (c) 2014-2017 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the wallet accounts properly when there is a double-spend conflict."""
-from decimal import Decimal
 
 from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
-from test_framework.util import (
-    assert_equal,
-    connect_nodes,
-    disconnect_nodes,
-    find_output,
-    sync_blocks,
-)
+from test_framework.util import *
 
 
 def create_and_sign_tx(node, inputs, outputs):
@@ -24,7 +17,7 @@ def create_and_sign_tx(node, inputs, outputs):
         outputs (dict): outputs, where keys are the addresses and values the amounts
     """
     rawtx = node.createrawtransaction(inputs, outputs)
-    signresult = node.signrawtransactionwithwallet(rawtx)
+    signresult = node.signrawtransaction(rawtx)
     assert_equal(signresult["complete"], True)
     return signresult["hex"]
 
@@ -34,12 +27,9 @@ class TxnMallTest(UnitETestFramework):
         self.num_nodes = 4
         self.extra_args = [['-maxtipage=1000000000']] * self.num_nodes
 
-    def skip_test_if_missing_module(self):
-        self.skip_if_no_wallet()
-
     def add_options(self, parser):
-        parser.add_argument("--mineblock", dest="mine_block", default=False, action="store_true",
-                            help="Test double-spend of 1-confirmed transaction")
+        parser.add_option("--mineblock", dest="mine_block", default=False, action="store_true",
+                          help="Test double-spend of 1-confirmed transaction")
 
     def setup_network(self):
         # Start with split network:
@@ -48,7 +38,7 @@ class TxnMallTest(UnitETestFramework):
         disconnect_nodes(self.nodes[2], 1)
 
     def run_test(self):
-        starting_balance = self.nodes[0].getbalance()
+        starting_balance = self.nodes[0].getbalance("")
         change_address = self.nodes[0].getnewaddress()
 
         foo_fund = 1219
@@ -56,20 +46,20 @@ class TxnMallTest(UnitETestFramework):
         doublespend_amount = 1240
         tx_fee = Decimal('-.02')
 
-        # Assign coins to foo and bar addresses:
-        node0_address_foo = self.nodes[0].getnewaddress()
+        # Assign coins to foo and bar accounts:
+        node0_address_foo = self.nodes[0].getnewaddress("foo")
         fund_foo_txid = self.nodes[0].sendtoaddress(node0_address_foo, foo_fund)
         fund_foo_tx = self.nodes[0].gettransaction(fund_foo_txid)
 
-        node0_address_bar = self.nodes[0].getnewaddress()
+        node0_address_bar = self.nodes[0].getnewaddress("bar")
         fund_bar_txid = self.nodes[0].sendtoaddress(node0_address_bar, bar_fund)
         fund_bar_tx = self.nodes[0].gettransaction(fund_bar_txid)
 
-        assert_equal(self.nodes[0].getbalance(),
-                     starting_balance + fund_foo_tx["fee"] + fund_bar_tx["fee"])
+        assert_equal(self.nodes[0].getbalance(""),
+                     starting_balance - foo_fund - bar_fund + fund_foo_tx["fee"] + fund_bar_tx["fee"])
 
         # Coins are sent to node1_address
-        node1_address = self.nodes[1].getnewaddress()
+        node1_address = self.nodes[1].getnewaddress("from0")
 
         # Make sure doublespend uses the same coins as tx1 and tx2
         foo_coin = {"txid": fund_foo_txid, "vout": find_output(self.nodes[0], fund_foo_txid, foo_fund)}
@@ -99,17 +89,23 @@ class TxnMallTest(UnitETestFramework):
         # Node0's balance should be starting balance, plus 50UTE for another
         # matured block, minus what was sent to node1, and minus transaction fees:
         expected = starting_balance + fund_foo_tx["fee"] + fund_bar_tx["fee"]
-        if self.options.mine_block:
-            expected += PROPOSER_REWARD
+        if self.options.mine_block: expected += PROPOSER_REWARD
         expected += tx1["amount"] + tx1["fee"]
         expected += tx2["amount"] + tx2["fee"]
         assert_equal(self.nodes[0].getbalance(), expected)
 
+        # Verify that node1 has the correct funds
+        expected = starting_balance
+        if self.options.mine_block:
+            # Amounts are negative as they come from node0
+            expected -= tx1["amount"] + tx2["amount"]
+        assert_equal(self.nodes[1].getbalance(), expected)
+
         if self.options.mine_block:
             assert_equal(tx1["confirmations"], 1)
             assert_equal(tx2["confirmations"], 1)
-            # Node1's balance should be both transaction amounts:
-            assert_equal(self.nodes[1].getbalance(), starting_balance - tx1["amount"] - tx2["amount"])
+            # Node1's "from0" balance should be both transaction amounts:
+            assert_equal(self.nodes[1].getbalance("from0"), -(tx1["amount"]+tx2["amount"]))
         else:
             assert_equal(tx1["confirmations"], 0)
             assert_equal(tx2["confirmations"], 0)
@@ -142,9 +138,16 @@ class TxnMallTest(UnitETestFramework):
         # plus fees (which are negative):
         expected = starting_balance + 3 * PROPOSER_REWARD - doublespend_amount + fund_foo_tx["fee"] + fund_bar_tx["fee"] + tx_fee
         assert_equal(self.nodes[0].getbalance(), expected)
+        assert_equal(self.nodes[0].getbalance("*"), expected)
 
-        # Node1's balance should be its initial balance plus the doublespend:
-        assert_equal(self.nodes[1].getbalance(), 10000 + 25 * PROPOSER_REWARD + 1240)
+        # Final "" balance is the node's total balance minus funds sent to "foo" and "bar"
+        assert_equal(self.nodes[0].getbalance("foo"), foo_fund)
+        assert_equal(self.nodes[0].getbalance("bar"), bar_fund)
+        assert_equal(self.nodes[0].getbalance(""), expected - foo_fund - bar_fund)
+
+        # Node1's "from0" account balance should be just the doublespend:
+        assert_equal(self.nodes[1].getbalance("from0"), doublespend_amount)
+
 
 if __name__ == '__main__':
     TxnMallTest().main()

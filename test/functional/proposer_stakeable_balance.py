@@ -9,11 +9,13 @@ class ProposerStakeableBalanceTest(UnitETestFramework):
 
     def set_test_params(self):
         self.num_nodes = 6
-        self.setup_clean_chain = True
+
         self.extra_args = list([
             '-proposing=1',
+            '-minimumchainwork=0',
             '-maxtipage=1000000000'
         ] for i in range(0, self.num_nodes))
+        self.setup_clean_chain = True
 
     def setup_network(self):
         self.setup_nodes()

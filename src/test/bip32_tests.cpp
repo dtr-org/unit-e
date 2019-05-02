@@ -1,11 +1,11 @@
-// Copyright (c) 2013-2018 The Bitcoin Core developers
+// Copyright (c) 2013-2017 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <boost/test/unit_test.hpp>
 
+#include <base58.h>
 #include <key.h>
-#include <key_io.h>
 #include <uint256.h>
 #include <util.h>
 #include <utilstrencodings.h>
@@ -87,7 +87,7 @@ TestVector test3 =
      "tprv8c4A69Yk5hEjpRjdrK6cp7bZQYpAmALDAkDPAKckYFCuGwjqStWup7GUkkXAQDpRXbuKqjSs5xmQeLB3KhqCRhkWptwt3yzbx4tvbt53nTu",
       0);
 
-static void RunTest(const TestVector &test) {
+void RunTest(const TestVector &test) {
     std::vector<unsigned char> seed = ParseHex(test.strHexMaster);
     CExtKey key;
     CExtPubKey pubkey;
@@ -99,12 +99,20 @@ static void RunTest(const TestVector &test) {
         pubkey.Encode(data);
 
         // Test private key
-        BOOST_CHECK(EncodeExtKey(key) == derive.prv);
-        BOOST_CHECK(DecodeExtKey(derive.prv) == key); //ensure a base58 decoded key also matches
+        CUnitEExtKey b58key; b58key.SetKey(key);
+        BOOST_CHECK(b58key.ToString() == derive.prv);
+
+        CUnitEExtKey b58keyDecodeCheck(derive.prv);
+        CExtKey checkKey = b58keyDecodeCheck.GetKey();
+        assert(checkKey == key); //ensure a base58 decoded key also matches
 
         // Test public key
-        BOOST_CHECK(EncodeExtPubKey(pubkey) == derive.pub);
-        BOOST_CHECK(DecodeExtPubKey(derive.pub) == pubkey); //ensure a base58 decoded pubkey also matches
+        CUnitEExtPubKey b58pubkey; b58pubkey.SetKey(pubkey);
+        BOOST_CHECK(b58pubkey.ToString() == derive.pub);
+
+        CUnitEExtPubKey b58PubkeyDecodeCheck(derive.pub);
+        CExtPubKey checkPubKey = b58PubkeyDecodeCheck.GetKey();
+        assert(checkPubKey == pubkey); //ensure a base58 decoded pubkey also matches
 
         // Derive new keys
         CExtKey keyNew;

@@ -1,47 +1,41 @@
-#!/usr/bin/env python3
-# Copyright (c) 2015-2018 The Bitcoin Core developers
+#!/usr/bin/env python
+# Copyright (c) 2015-2017 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+import hashlib
 import sys
 import os
 from random import SystemRandom
 import base64
 import hmac
 
-def generate_salt():
-    # This uses os.urandom() underneath
-    cryptogen = SystemRandom()
+if len(sys.argv) < 2:
+    sys.stderr.write('Please include username as an argument.\n')
+    sys.exit(0)
 
-    # Create 16 byte hex salt
-    salt_sequence = [cryptogen.randrange(256) for _ in range(16)]
-    return ''.join([format(r, 'x') for r in salt_sequence])
+username = sys.argv[1]
 
-def generate_password():
-    """Create 32 byte b64 password"""
-    return base64.urlsafe_b64encode(os.urandom(32)).decode('utf-8')
+#This uses os.urandom() underneath
+cryptogen = SystemRandom()
 
-def password_to_hmac(salt, password):
-    m = hmac.new(bytearray(salt, 'utf-8'), bytearray(password, 'utf-8'), 'SHA256')
-    return m.hexdigest()
+#Create 16 byte hex salt
+salt_sequence = [cryptogen.randrange(256) for i in range(16)]
+hexseq = list(map(hex, salt_sequence))
+salt = "".join([x[2:] for x in hexseq])
 
-def main():
-    if len(sys.argv) < 2:
-        sys.stderr.write('Please include username (and an optional password, will generate one if not provided) as an argument.\n')
-        sys.exit(0)
+#Create 32 byte b64 password
+password = base64.urlsafe_b64encode(os.urandom(32))
 
-    username = sys.argv[1]
+digestmod = hashlib.sha256
 
-    salt = generate_salt()
-    if len(sys.argv) > 2:
-        password = sys.argv[2]
-    else:
-        password = generate_password()
-    password_hmac = password_to_hmac(salt, password)
+if sys.version_info.major >= 3:
+    password = password.decode('utf-8')
+    digestmod = 'SHA256'
 
-    print('String to be appended to unit-e.conf:')
-    print('rpcauth={0}:{1}${2}'.format(username, salt, password_hmac))
-    print('Your password:\n{0}'.format(password))
+m = hmac.new(bytearray(salt, 'utf-8'), bytearray(password, 'utf-8'), digestmod)
+result = m.hexdigest()
 
-if __name__ == '__main__':
-    main()
+print("String to be appended to unit-e.conf:")
+print("rpcauth="+username+":"+salt+"$"+result)
+print("Your password:\n"+password)

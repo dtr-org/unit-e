@@ -1,10 +1,10 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_SCRIPT_UNITECONSENSUS_H
-#define UNITE_SCRIPT_UNITECONSENSUS_H
+#ifndef UNITE_UNITECONSENSUS_H
+#define UNITE_UNITECONSENSUS_H
 
 #include <stdint.h>
 
@@ -80,4 +80,4 @@ EXPORT_SYMBOL unsigned int uniteconsensus_version();
 
 #undef EXPORT_SYMBOL
 
-#endif // UNITE_SCRIPT_UNITECONSENSUS_H
+#endif // UNITE_UNITECONSENSUS_H

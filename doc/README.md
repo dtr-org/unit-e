@@ -14,7 +14,7 @@ platform. They are not complete guides, but include notes on the necessary
 libraries, compile flags, etc.
 
 - [Dependencies](dependencies.md)
-- [macOS Build Notes](build-osx.md)
+- [OS X Build Notes](build-osx.md)
 - [Unix Build Notes](build-unix.md)
 - [Windows Build Notes](build-windows.md)
 - [OpenBSD Build Notes](build-openbsd.md)
@@ -50,7 +50,6 @@ development process and automated testing.
 - [Tor Support](tor.md)
 - [Init Scripts (systemd/upstart/openrc)](init.md)
 - [ZMQ](zmq.md)
-- [PSBT support](psbt.md)
 
 ## License
 

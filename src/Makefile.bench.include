@@ -17,17 +17,17 @@ bench_bench_unite_SOURCES = \
   bench/bench.h \
   bench/checkblock.cpp \
   bench/checkqueue.cpp \
-  bench/examples.cpp \
+  bench/Examples.cpp \
   bench/rollingbloom.cpp \
   bench/crypto_hash.cpp \
   bench/ccoins_caching.cpp \
-  bench/merkle_root.cpp \
   bench/mempool_eviction.cpp \
   bench/verify_script.cpp \
   bench/base58.cpp \
-  bench/bech32.cpp \
   bench/lockedpool.cpp \
-  bench/prevector.cpp
+  bench/perf.cpp \
+  bench/perf.h \
+  bench/prevector_destructor.cpp
 
 nodist_bench_bench_unite_SOURCES = $(GENERATED_BENCH_FILES)
 
@@ -35,7 +35,6 @@ bench_bench_unite_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES) $(EVENT_CLFAGS) $(
 bench_bench_unite_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 bench_bench_unite_LDADD = \
   $(LIBUNITE_SERVER) \
-  $(LIBUNITE_WALLET) \
   $(LIBUNITE_COMMON) \
   $(LIBUNITE_UTIL) \
   $(LIBUNITE_CONSENSUS) \
@@ -57,9 +56,11 @@ bench_bench_unite_LDADD += \
 endif
 
 if ENABLE_WALLET
-bench_bench_unite_SOURCES += \
-  bench/block_assemble.cpp \
-  bench/coin_selection.cpp
+bench_bench_unite_SOURCES += bench/coin_selection.cpp
+bench_bench_unite_LDADD += \
+    $(LIBUNITE_WALLET) \
+    $(LIBUNITE_CRYPTO) \
+    $(LIBUNITE_UTIL)
 endif
 
 bench_bench_unite_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS)

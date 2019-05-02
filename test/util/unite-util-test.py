@@ -28,7 +28,7 @@ import sys
 def main():
     config = configparser.ConfigParser()
     config.optionxform = str
-    config.readfp(open(os.path.join(os.path.dirname(__file__), "../config.ini"), encoding="utf8"))
+    config.readfp(open(os.path.join(os.path.dirname(__file__), "../config.ini")))
     env_conf = dict(config.items('environment'))
 
     parser = argparse.ArgumentParser(description=__doc__)
@@ -44,12 +44,12 @@ def main():
     # Add the format/level to the logger
     logging.basicConfig(format=formatter, level=level)
 
-    bctester(os.path.join(env_conf["SRCDIR"], "test", "util", "data"), "unite-util-test.json", env_conf)
+    bctester(os.path.join(env_conf["SRCDIR"], "test/util/data"), "unite-util-test.json", env_conf)
 
 def bctester(testDir, input_basename, buildenv):
     """ Loads and parses the input file, runs all tests and reports results"""
     input_filename = os.path.join(testDir, input_basename)
-    raw_data = open(input_filename, encoding="utf8").read()
+    raw_data = open(input_filename).read()
     input_data = json.loads(raw_data)
 
     failed_testcases = []
@@ -80,14 +80,13 @@ def bctest(testDir, testObj, buildenv):
     execprog = os.path.join(buildenv["BUILDDIR"], "src", testObj["exec"] + buildenv["EXEEXT"])
     execargs = testObj['args']
     execrun = [execprog] + execargs
-    print(execrun)
 
     # Read the input data (if there is any)
     stdinCfg = None
     inputData = None
     if "input" in testObj:
         filename = os.path.join(testDir, testObj["input"])
-        inputData = open(filename, encoding="utf8").read()
+        inputData = open(filename).read()
         stdinCfg = subprocess.PIPE
 
     # Read the expected output data (if there is any)
@@ -98,7 +97,7 @@ def bctest(testDir, testObj, buildenv):
         outputFn = testObj['output_cmp']
         outputType = os.path.splitext(outputFn)[1][1:]  # output type from file extension (determines how to compare)
         try:
-            outputData = open(os.path.join(testDir, outputFn), encoding="utf8").read()
+            outputData = open(os.path.join(testDir, outputFn)).read()
         except:
             logging.error("Output file " + outputFn + " can not be opened")
             raise

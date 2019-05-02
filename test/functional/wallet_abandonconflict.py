@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2018 The Bitcoin Core developers
+# Copyright (c) 2014-2017 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the abandontransaction RPC.
@@ -8,20 +8,15 @@
  descendants as abandoned which allows their inputs to be respent. It can be
  used to replace "stuck" or evicted transactions. It only works on transactions
  which are not included in a block and are not currently in the mempool. It has
- no effect on transactions which are already abandoned.
+ no effect on transactions which are already conflicted or abandoned.
 """
-from decimal import Decimal
-
 from test_framework.test_framework import UnitETestFramework
-from test_framework.util import assert_equal, assert_raises_rpc_error, connect_nodes, disconnect_nodes, sync_blocks, sync_mempools
+from test_framework.util import *
 
 class AbandonConflictTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 2
         self.extra_args = [["-minrelaytxfee=0.00001"], []]
-
-    def skip_test_if_missing_module(self):
-        self.skip_if_no_wallet()
 
     def run_test(self):
         self.nodes[1].generate(100)
@@ -32,11 +27,6 @@ class AbandonConflictTest(UnitETestFramework):
         txC = self.nodes[0].sendtoaddress(self.nodes[0].getnewaddress(), Decimal("10"))
         sync_mempools(self.nodes)
         self.nodes[1].generate(1)
-
-        # Can not abandon non-wallet transaction
-        assert_raises_rpc_error(-5, 'Invalid or non-wallet transaction id', lambda: self.nodes[0].abandontransaction(txid='ff' * 32))
-        # Can not abandon confirmed transaction
-        assert_raises_rpc_error(-5, 'Transaction not eligible for abandonment', lambda: self.nodes[0].abandontransaction(txid=txA))
 
         sync_blocks(self.nodes)
         newbalance = self.nodes[0].getbalance()
@@ -59,7 +49,7 @@ class AbandonConflictTest(UnitETestFramework):
 
         outputs[self.nodes[0].getnewaddress()] = Decimal("14.99998")
         outputs[self.nodes[1].getnewaddress()] = Decimal("5")
-        signed = self.nodes[0].signrawtransactionwithwallet(self.nodes[0].createrawtransaction(inputs, outputs))
+        signed = self.nodes[0].signrawtransaction(self.nodes[0].createrawtransaction(inputs, outputs))
         txAB1 = self.nodes[0].sendrawtransaction(signed["hex"])
 
         # Identify the 14.99998btc output
@@ -71,14 +61,14 @@ class AbandonConflictTest(UnitETestFramework):
         inputs.append({"txid":txC, "vout":nC})
         outputs = {}
         outputs[self.nodes[0].getnewaddress()] = Decimal("24.9996")
-        signed2 = self.nodes[0].signrawtransactionwithwallet(self.nodes[0].createrawtransaction(inputs, outputs))
+        signed2 = self.nodes[0].signrawtransaction(self.nodes[0].createrawtransaction(inputs, outputs))
         txABC2 = self.nodes[0].sendrawtransaction(signed2["hex"])
 
         # Create a child tx spending ABC2
         signed3_change = Decimal("24.999")
         inputs = [ {"txid":txABC2, "vout":0} ]
         outputs = { self.nodes[0].getnewaddress(): signed3_change }
-        signed3 = self.nodes[0].signrawtransactionwithwallet(self.nodes[0].createrawtransaction(inputs, outputs))
+        signed3 = self.nodes[0].signrawtransaction(self.nodes[0].createrawtransaction(inputs, outputs))
         # note tx is never directly referenced, only abandoned as a child of the above
         self.nodes[0].sendrawtransaction(signed3["hex"])
 
@@ -121,7 +111,7 @@ class AbandonConflictTest(UnitETestFramework):
         assert_equal(len(self.nodes[0].getrawmempool()), 0)
         assert_equal(self.nodes[0].getbalance(), balance)
 
-        # But if it is received again then it is unabandoned
+        # But if its received again then it is unabandoned
         # And since now in mempool, the change is available
         # But its child tx remains abandoned
         self.nodes[0].sendrawtransaction(signed["hex"])
@@ -129,7 +119,7 @@ class AbandonConflictTest(UnitETestFramework):
         assert_equal(newbalance, balance - Decimal("20") + Decimal("14.99998"))
         balance = newbalance
 
-        # Send child tx again so it is unabandoned
+        # Send child tx again so its unabandoned
         self.nodes[0].sendrawtransaction(signed2["hex"])
         newbalance = self.nodes[0].getbalance()
         assert_equal(newbalance, balance - Decimal("10") - Decimal("14.99998") + Decimal("24.9996"))
@@ -150,7 +140,7 @@ class AbandonConflictTest(UnitETestFramework):
         outputs = {}
         outputs[self.nodes[1].getnewaddress()] = Decimal("9.9999")
         tx = self.nodes[0].createrawtransaction(inputs, outputs)
-        signed = self.nodes[0].signrawtransactionwithwallet(tx)
+        signed = self.nodes[0].signrawtransaction(tx)
         self.nodes[1].sendrawtransaction(signed["hex"])
         self.nodes[1].generate(1)
 

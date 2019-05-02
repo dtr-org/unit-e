@@ -28,7 +28,7 @@ def stake_p2wsh(node, staking_node, amount):
     bare = CScript(hex_str_to_bytes(multisig['redeemScript']))
     spending_script_hash = sha256(bare)
 
-    addr_info = staking_node.getaddressinfo(staking_node.getnewaddress('', 'legacy'))
+    addr_info = staking_node.validateaddress(staking_node.getnewaddress('', 'legacy'))
     staking_key_hash = hash160(hex_str_to_bytes(addr_info['pubkey']))
 
     rs_p2wsh = CScript([OP_2, staking_key_hash, spending_script_hash])

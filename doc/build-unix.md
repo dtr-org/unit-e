@@ -2,7 +2,7 @@ UNIX BUILD NOTES
 ====================
 Some notes on how to build unit-e in Unix.
 
-(For BSD specific instructions, see `build-*bsd.md` in this directory.)
+(for OpenBSD specific instructions, see [build-openbsd.md](build-openbsd.md))
 
 Note
 ---------------------
@@ -57,16 +57,23 @@ tuned to conserve memory with additional CXXFLAGS:
 
     ./configure CXXFLAGS="--param ggc-min-expand=1 --param ggc-min-heapsize=32768"
 
-
-## Linux Distribution Specific Instructions
-
-### Ubuntu & Debian
-
-#### Dependency Build Instructions
-
+Dependency Build Instructions: Ubuntu & Debian
+----------------------------------------------
 Build requirements:
 
-    sudo apt-get install build-essential libtool autotools-dev automake pkg-config libssl-dev libevent-dev bsdmainutils python3 libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-test-dev libboost-thread-dev
+    sudo apt-get install build-essential libtool autotools-dev automake pkg-config libssl-dev libevent-dev bsdmainutils python3
+
+Options when installing required Boost library files:
+
+1. On at least Ubuntu 14.04+ and Debian 7+ there are generic names for the
+individual boost development packages, so the following can be used to only
+install necessary parts of boost:
+
+        sudo apt-get install libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-program-options-dev libboost-test-dev libboost-thread-dev
+
+2. If that doesn't work, you can install all boost development packages with:
+
+        sudo apt-get install libboost-all-dev
 
 BerkeleyDB is required for the wallet.
 
@@ -95,13 +102,10 @@ ZMQ dependencies (provides ZMQ API 4.x):
 
 hidapi (provides USB HID device support):
 
-    sudo apt-get install libhidapi-dev libusb-1.0-0-dev libudev-dev
+    sudo apt-get install libhidapi-dev
 
-
-### Fedora
-
-#### Dependency Build Instructions
-
+Dependency Build Instructions: Fedora
+-------------------------------------
 Build requirements:
 
     sudo dnf install gcc-c++ libtool make autoconf automake openssl-devel libevent-devel boost-devel libdb4-devel libdb4-cxx-devel python3
@@ -169,7 +173,7 @@ Hardening enables the following features:
     Build position independent code to take advantage of Address Space Layout Randomization
     offered by some kernels. Attackers who can cause execution of code at an arbitrary memory
     location are thwarted if they don't know where anything useful is located.
-    The stack and heap are randomly located by default, but this allows the code section to be
+    The stack and heap are randomly located by default but this allows the code section to be
     randomly located as well.
 
     On an AMD64 processor where a library was not compiled with -fPIC, this will cause an error
@@ -194,7 +198,7 @@ Hardening enables the following features:
     To verify that the stack is non-executable after compiling use:
     `scanelf -e ./unit-e`
 
-    The output should contain:
+    the output should contain:
 	STK/REL/PTL
 	RW- R-- RW-
 
@@ -254,10 +258,38 @@ To build executables for ARM:
     cd depends
     make HOST=arm-linux-gnueabihf
     cd ..
-    ./autogen.sh
     ./configure --prefix=$PWD/depends/arm-linux-gnueabihf --enable-glibc-back-compat --enable-reduce-exports LDFLAGS=-static-libstdc++
     make
 
 
 For further documentation on the depends system see [README.md](../depends/README.md) in the depends directory.
 
+Building on FreeBSD
+--------------------
+
+(Updated as of FreeBSD 11.0)
+
+Clang is installed by default as `cc` compiler, this makes it easier to get
+started than on [OpenBSD](build-openbsd.md). Installing dependencies:
+
+    pkg install autoconf automake libtool pkgconf
+    pkg install boost-libs openssl libevent
+    pkg install gmake
+
+You need to use GNU make (`gmake`) instead of `make`.
+(`libressl` instead of `openssl` will also work)
+
+For the wallet (optional):
+
+    ./contrib/install_db4.sh `pwd`
+    setenv BDB_PREFIX $PWD/db4
+
+Then build using:
+
+    ./autogen.sh
+    ./configure BDB_CFLAGS="-I${BDB_PREFIX}/include" BDB_LIBS="-L${BDB_PREFIX}/lib -ldb_cxx"
+    gmake
+
+*Note on debugging*: The version of `gdb` installed by default is [ancient and considered harmful](https://wiki.freebsd.org/GdbRetirement).
+It is not suitable for debugging a multi-threaded C++ program, not even for getting backtraces. Please install the package `gdb` and
+use the versioned gdb command e.g. `gdb7111`.

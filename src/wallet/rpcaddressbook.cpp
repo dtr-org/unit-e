@@ -4,7 +4,7 @@
 
 #include <wallet/rpcaddressbook.h>
 
-#include <key_io.h>
+#include <rpc/safemode.h>
 #include <rpc/server.h>
 #include <univalue.h>
 #include <wallet/rpcwallet.h>
@@ -26,9 +26,7 @@ static bool StringCointainsI(const std::string &sString,
 }
 
 UniValue addressbookinfo(const JSONRPCRequest &request) {
-  std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-  CWallet * const pwallet = wallet.get();
-
+  CWallet *pwallet = GetWalletForJSONRPCRequest(request);
   if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
     return NullUniValue;
   }
@@ -38,6 +36,8 @@ UniValue addressbookinfo(const JSONRPCRequest &request) {
         "addressbookinfo\n"
         "Returns the number of entries in the address book\n");
   }
+
+  ObserveSafeMode();
 
   UniValue result(UniValue::VOBJ);
   int numReceive = 0, numSend = 0;
@@ -61,9 +61,7 @@ UniValue addressbookinfo(const JSONRPCRequest &request) {
 }
 
 UniValue filteraddresses(const JSONRPCRequest &request) {
-  std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-  CWallet * const pwallet = wallet.get();
-
+  CWallet *pwallet = GetWalletForJSONRPCRequest(request);
   if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
     return NullUniValue;
   }
@@ -82,6 +80,8 @@ UniValue filteraddresses(const JSONRPCRequest &request) {
         "5. \"match_owned\": (numeric, optional) 0 off, 1 owned, 2 non-owned,\n"
         "                  default 0\n");
   }
+
+  ObserveSafeMode();
 
   // Make sure the results are valid at least up to the most recent block
   // the user could have gotten from another RPC command prior to now
@@ -333,9 +333,7 @@ static UniValue AddressInfo(CWallet *pwallet, const std::string &address,
 }
 
 UniValue manageaddressbook(const JSONRPCRequest &request) {
-  std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-  CWallet * const pwallet = wallet.get();
-
+  CWallet *pwallet = GetWalletForJSONRPCRequest(request);
   if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
     return NullUniValue;
   }
@@ -351,6 +349,8 @@ UniValue manageaddressbook(const JSONRPCRequest &request) {
         "3. \"label\"       (string, optional) Optional label.\n"
         "4. \"purpose\"     (string, optional) Optional purpose label.\n");
   }
+
+  ObserveSafeMode();
 
   // Make sure the results are valid at least up to the most recent block
   // the user could have gotten from another RPC command prior to now

@@ -13,7 +13,7 @@ class ProposerMultiwalletTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.num_wallets = 3
-        args = list('-wallet=w%s' % i for i in range(0, self.num_wallets))
+        args = list('-wallet=w{0}.dat'.format(i) for i in range(0, self.num_wallets))
         args.append("-proposing=1")
         self.extra_args = [args]
 
@@ -24,7 +24,7 @@ class ProposerMultiwalletTest(UnitETestFramework):
 
         self.log.info("Checking that every wallet has a proposer")
         for i in range(0, self.num_wallets):
-            assert_equal(status[i]['wallet'], 'w%d' % i)
+            assert_equal(status[i]['wallet'], 'w{0}.dat'.format(i))
 
         # the following checks that the proposer has advanced each
         # wallet from NOT_PROPOSING to some other state (which may

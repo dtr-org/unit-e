@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -103,7 +103,7 @@ bool IsStandardTx(const CTransaction& tx, std::string& reason)
     // computing signature hashes is O(ninputs*txsize). Limiting transactions
     // to MAX_STANDARD_TX_WEIGHT mitigates CPU exhaustion attacks.
     unsigned int sz = GetTransactionWeight(tx);
-    if (sz > MAX_STANDARD_TX_WEIGHT) {
+    if (sz >= MAX_STANDARD_TX_WEIGHT) {
         reason = "tx-size";
         return false;
     }
@@ -268,9 +268,4 @@ int64_t GetVirtualTransactionSize(int64_t nWeight, int64_t nSigOpCost)
 int64_t GetVirtualTransactionSize(const CTransaction& tx, int64_t nSigOpCost)
 {
     return GetVirtualTransactionSize(GetTransactionWeight(tx), nSigOpCost);
-}
-
-int64_t GetVirtualTransactionInputSize(const CTxIn& txin, int64_t nSigOpCost)
-{
-    return GetVirtualTransactionSize(GetTransactionInputWeight(txin), nSigOpCost);
 }

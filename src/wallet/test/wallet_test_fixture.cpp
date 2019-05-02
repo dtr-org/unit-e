@@ -1,11 +1,10 @@
-// Copyright (c) 2016-2018 The Bitcoin Core developers
+// Copyright (c) 2016-2017 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <wallet/test/wallet_test_fixture.h>
 
 #include <injector.h>
-#include <key_io.h>
 #include <rpc/server.h>
 #include <validation.h>
 #include <wallet/db.h>
@@ -23,15 +22,20 @@ WalletTestingSetup::WalletTestingSetup(
     UnitEInjectorConfiguration config)
     : TestingSetup(chainName, config)
 {
+    bitdb.MakeMock();
+
     bool fFirstRun;
+    g_address_type = OUTPUT_TYPE_DEFAULT;
+    g_change_type = OUTPUT_TYPE_DEFAULT;
+    std::unique_ptr<CWalletDBWrapper> dbw(new CWalletDBWrapper(&bitdb, "wallet_test.dat"));
 
     f(settings);
     esperanza::WalletExtensionDeps deps(&settings, &stake_validator_mock);
 
-    m_wallet.reset(new CWallet("mock", WalletDatabase::CreateMock(), deps));
-    m_wallet->LoadWallet(fFirstRun);
-    RegisterValidationInterface(m_wallet.get());
-    AddWallet(m_wallet);
+    pwalletMain = MakeUnique<CWallet>(deps, std::move(dbw));
+    pwalletMain->LoadWallet(fFirstRun);
+    vpwallets.insert(vpwallets.begin(), &*pwalletMain);
+    RegisterValidationInterface(pwalletMain.get());
 
     RegisterWalletRPCCommands(tableRPC);
     RegisterValidatorRPCCommands(tableRPC);
@@ -40,23 +44,27 @@ WalletTestingSetup::WalletTestingSetup(
 
 WalletTestingSetup::~WalletTestingSetup()
 {
-    RemoveWallet(m_wallet);
-    UnregisterValidationInterface(m_wallet.get());
+    UnregisterValidationInterface(pwalletMain.get());
+    vpwallets.clear();
+    bitdb.Flush(true);
+    bitdb.Reset();
 }
 
 TestChain100Setup::TestChain100Setup(UnitEInjectorConfiguration config)
     : WalletTestingSetup(CBaseChainParams::REGTEST, config)
 {
-  coinbaseKey = DecodeSecret("cQTjnbHifWGuMhm9cRgQ23ip5KntTMfj3zwo6iQyxMVxSfJyptqL");
-  assert(coinbaseKey.IsValid());
+  CUnitESecret vchSecret;
+  bool fGood = vchSecret.SetString("cQTjnbHifWGuMhm9cRgQ23ip5KntTMfj3zwo6iQyxMVxSfJyptqL");
+  assert(fGood);
+  coinbaseKey = vchSecret.GetKey();
   {
-    LOCK(m_wallet->cs_wallet);
-    assert(m_wallet->AddKey(coinbaseKey));
+    LOCK(pwalletMain->cs_wallet);
+    assert(pwalletMain->AddKey(coinbaseKey));
   }
 
-  WalletRescanReserver reserver(m_wallet.get());
+  WalletRescanReserver reserver(pwalletMain.get());
   reserver.reserve();
-  m_wallet->ScanForWalletTransactions(chainActive.Genesis(), nullptr, reserver);
+  pwalletMain->ScanForWalletTransactions(chainActive.Genesis(), nullptr, reserver);
 
   // Generate a 100-block chain:
   GetComponent<Settings>()->stake_split_threshold = 0; // reset to 0
@@ -65,7 +73,7 @@ TestChain100Setup::TestChain100Setup(UnitEInjectorConfiguration config)
   {
     std::vector<CMutableTransaction> noTxns;
     CBlock b = CreateAndProcessBlock(noTxns, script_pubkey);
-    m_coinbase_txns.push_back(*b.vtx[0]);
+    coinbaseTxns.push_back(*b.vtx[0]);
     auto x = b.GetHash().ToString();
     assert(!x.empty());
   }
