@@ -14,7 +14,7 @@ from test_framework.util import (
 from test_framework.messages import CTransaction, msg_witness_tx, TxType
 from test_framework.test_framework import UnitETestFramework
 from test_framework.admin import Admin, AdminCommandType
-from test_framework.mininode import P2PInterface, network_thread_start
+from test_framework.mininode import P2PInterface
 from io import BytesIO
 
 
@@ -68,8 +68,8 @@ class AdminValidation(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 2
         self.extra_args = [
-            ['-permissioning=1', '-debug=all', '-whitelist=127.0.0.1'],
-            ['-permissioning=1', '-debug=all', '-whitelist=127.0.0.1']
+            ['-deprecatedrpc=signrawtransaction', '-deprecatedrpc=validateaddress', '-permissioning=1', '-debug=all', '-whitelist=127.0.0.1'],
+            ['-deprecatedrpc=signrawtransaction', '-deprecatedrpc=validateaddress', '-permissioning=1', '-debug=all', '-whitelist=127.0.0.1']
         ]
         self.setup_clean_chain = True
 
@@ -129,7 +129,6 @@ class AdminValidation(UnitETestFramework):
         self.admin = self.nodes[1]
         self.reject_tracker = TestNode()
         self.admin.add_p2p_connection(self.reject_tracker)
-        network_thread_start()
 
         self.setup_stake_coins(self.generator, self.admin)
 

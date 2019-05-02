@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2017 The Bitcoin Core developers
+# Copyright (c) 2014-2018 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test behavior of headers messages to announce blocks.
@@ -92,11 +92,10 @@ from test_framework.blocktools import (
     get_tip_snapshot_meta,
     update_snapshot_with_tx,
 )
+from test_framework.messages import CInv
 from test_framework.mininode import (
     CBlockHeader,
-    CInv,
     NODE_WITNESS,
-    network_thread_start,
     P2PInterface,
     mininode_lock,
     msg_block,
@@ -232,6 +231,9 @@ class SendHeadersTest(UnitETestFramework):
             coin = get_unspent_coins(self.nodes[0], 1)[0]
         return sign_coinbase(self.nodes[0], create_coinbase(height, coin, snapshot_hash))
 
+    def skip_test_if_missing_module(self):
+        self.skip_if_no_wallet()
+
     def mine_blocks(self, count):
         """Mine count blocks and return the new tip."""
 
@@ -261,17 +263,11 @@ class SendHeadersTest(UnitETestFramework):
         return [int(x, 16) for x in all_hashes]
 
     def run_test(self):
-        # Setup the p2p connections and start up the network thread.
+        # Setup the p2p connections
         inv_node = self.nodes[0].add_p2p_connection(BaseNode())
         # Make sure NODE_NETWORK is not set for test_node, so no block download
         # will occur outside of direct fetching
         test_node = self.nodes[0].add_p2p_connection(BaseNode(), services=NODE_WITNESS)
-
-        network_thread_start()
-
-        # Test logic begins here
-        inv_node.wait_for_verack()
-        test_node.wait_for_verack()
 
         # Ensure verack's have been processed by our peer
         inv_node.sync_with_ping()
@@ -314,6 +310,7 @@ class SendHeadersTest(UnitETestFramework):
         # 1. Mine a block; expect inv announcements each time
         self.log.info("Part 1: headers don't start before sendheaders message...")
         for i in range(4):
+            self.log.debug("Part 1.{}: starting...".format(i))
             old_tip = tip
             tip = self.mine_blocks(1)
             inv_node.check_last_inv_announcement(inv=[tip])
@@ -365,11 +362,13 @@ class SendHeadersTest(UnitETestFramework):
         block_time += 10  # Advance far enough ahead
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         for i in range(10):
+            self.log.debug("Part 2.{}: starting...".format(i))
             # Mine i blocks, and alternate announcing either via
             # inv (of tip) or via headers. After each, new blocks
             # mined by the node should successfully be announced
             # with block header, even though the blocks are never requested
             for j in range(2):
+                self.log.debug("Part 2.{}.{}: starting...".format(i, j))
                 blocks = []
 
                 coins = get_unspent_coins(self.nodes[0], i+1)
@@ -425,6 +424,7 @@ class SendHeadersTest(UnitETestFramework):
         # PART 3.  Headers announcements can stop after large reorg, and resume after
         # getheaders or inv from peer.
         for j in range(2):
+            self.log.debug("Part 3.{}: starting...".format(j))
             # First try mining a reorg that can propagate with header announcement
             new_block_hashes = self.mine_reorg(length=7)
             tip = new_block_hashes[-1]
@@ -451,6 +451,8 @@ class SendHeadersTest(UnitETestFramework):
             test_node.wait_for_block(new_block_hashes[-1])
 
             for i in range(3):
+                self.log.debug("Part 3.{}.{}: starting...".format(j, i))
+
                 # Mine another block, still should get only an inv
                 tip = self.mine_blocks(1)
                 inv_node.check_last_inv_announcement(inv=[tip])
@@ -466,11 +468,11 @@ class SendHeadersTest(UnitETestFramework):
                     test_node.send_get_data([tip])
                     test_node.wait_for_block(tip)
                 elif i == 2:
-                    test_node.send_get_data([tip])
-                    test_node.wait_for_block(tip)
                     # This time, try sending either a getheaders to trigger resumption
                     # of headers announcements, or mine a new block and inv it, also
                     # triggering resumption of headers announcements.
+                    test_node.send_get_data([tip])
+                    test_node.wait_for_block(tip)
                     if j == 0:
                         test_node.send_get_headers(locator=[tip], hashstop=0)
                         test_node.sync_with_ping()
@@ -588,6 +590,7 @@ class SendHeadersTest(UnitETestFramework):
         # chain sync.
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         for i in range(10):
+            self.log.debug("Part 5.{}: starting...".format(i))
             test_node.last_message.pop("getdata", None)
             blocks = []
             # Create two more blocks.

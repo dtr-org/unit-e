@@ -12,8 +12,8 @@ namespace proposer {
 class MultiWalletAdapter : public MultiWallet {
 
  public:
-  const std::vector<CWallet *> &GetWallets() const override {
-    return vpwallets;
+  const std::vector<std::shared_ptr<CWallet>> GetWallets() const override {
+    return ::GetWallets();
   }
 };
 

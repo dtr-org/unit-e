@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2017 The Bitcoin Core developers
+# Copyright (c) 2014-2018 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test descendant package tracking code."""
 
+from decimal import Decimal
+
+from test_framework.messages import UNIT
 from test_framework.test_framework import UnitETestFramework
-from test_framework.util import *
-from test_framework.mininode import UNIT
+from test_framework.util import assert_equal, assert_raises_rpc_error, satoshi_round, sync_blocks, sync_mempools
 
 MAX_ANCESTORS = 25
 MAX_DESCENDANTS = 25
@@ -15,6 +17,9 @@ class MempoolPackagesTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 2
         self.extra_args = [["-maxorphantx=1000"], ["-maxorphantx=1000", "-limitancestorcount=5"]]
+
+    def skip_test_if_missing_module(self):
+        self.skip_if_no_wallet()
 
     # Build a transaction that spends parent_txid:vout
     # Return amount sent
@@ -25,14 +30,14 @@ class MempoolPackagesTest(UnitETestFramework):
         for i in range(num_outputs):
             outputs[node.getnewaddress()] = send_value
         rawtx = node.createrawtransaction(inputs, outputs)
-        signedtx = node.signrawtransaction(rawtx)
+        signedtx = node.signrawtransactionwithwallet(rawtx)
         txid = node.sendrawtransaction(signedtx['hex'])
         fulltx = node.getrawtransaction(txid, 1)
         assert len(fulltx['vout']) == num_outputs # make sure we didn't generate a change output
         return (txid, send_value)
 
     def run_test(self):
-        ''' Mine some blocks and have them mature. '''
+        # Mine some blocks and have them mature.
         self.nodes[0].generate(101)
         utxo = self.nodes[0].listunspent(10)
         txid = utxo[0]['txid']
@@ -48,13 +53,17 @@ class MempoolPackagesTest(UnitETestFramework):
             vout = 0
             chain.append(txid)
 
-        # Check mempool has MAX_ANCESTORS transactions in it, and descendant
+        # Check mempool has MAX_ANCESTORS transactions in it, and descendant and ancestor
         # count and fees should look correct
         mempool = self.nodes[0].getrawmempool(True)
         assert_equal(len(mempool), MAX_ANCESTORS)
         descendant_count = 1
         descendant_fees = 0
         descendant_size = 0
+
+        ancestor_size = sum([mempool[tx]['size'] for tx in mempool])
+        ancestor_count = MAX_ANCESTORS
+        ancestor_fees = sum([mempool[tx]['fee'] for tx in mempool])
 
         descendants = []
         ancestors = list(chain)
@@ -67,18 +76,50 @@ class MempoolPackagesTest(UnitETestFramework):
             assert_equal(mempool[x]['descendantcount'], descendant_count)
             descendant_fees += mempool[x]['fee']
             assert_equal(mempool[x]['modifiedfee'], mempool[x]['fee'])
+            assert_equal(mempool[x]['fees']['base'], mempool[x]['fee'])
+            assert_equal(mempool[x]['fees']['modified'], mempool[x]['modifiedfee'])
             assert_equal(mempool[x]['descendantfees'], descendant_fees * UNIT)
+            assert_equal(mempool[x]['fees']['descendant'], descendant_fees)
             descendant_size += mempool[x]['size']
             assert_equal(mempool[x]['descendantsize'], descendant_size)
             descendant_count += 1
 
+            # Check that ancestor calculations are correct
+            assert_equal(mempool[x]['ancestorcount'], ancestor_count)
+            assert_equal(mempool[x]['ancestorfees'], ancestor_fees * UNIT)
+            assert_equal(mempool[x]['ancestorsize'], ancestor_size)
+            ancestor_size -= mempool[x]['size']
+            ancestor_fees -= mempool[x]['fee']
+            ancestor_count -= 1
+
+            # Check that parent/child list is correct
+            assert_equal(mempool[x]['spentby'], descendants[-1:])
+            assert_equal(mempool[x]['depends'], ancestors[-2:-1])
+
             # Check that getmempooldescendants is correct
             assert_equal(sorted(descendants), sorted(self.nodes[0].getmempooldescendants(x)))
+
+            # Check getmempooldescendants verbose output is correct
+            for descendant, dinfo in self.nodes[0].getmempooldescendants(x, True).items():
+                assert_equal(dinfo['depends'], [chain[chain.index(descendant)-1]])
+                if dinfo['descendantcount'] > 1:
+                    assert_equal(dinfo['spentby'], [chain[chain.index(descendant)+1]])
+                else:
+                    assert_equal(dinfo['spentby'], [])
             descendants.append(x)
 
             # Check that getmempoolancestors is correct
             ancestors.remove(x)
             assert_equal(sorted(ancestors), sorted(self.nodes[0].getmempoolancestors(x)))
+
+            # Check that getmempoolancestors verbose output is correct
+            for ancestor, ainfo in self.nodes[0].getmempoolancestors(x, True).items():
+                assert_equal(ainfo['spentby'], [chain[chain.index(ancestor)+1]])
+                if ainfo['ancestorcount'] > 1:
+                    assert_equal(ainfo['depends'], [chain[chain.index(ancestor)-1]])
+                else:
+                    assert_equal(ainfo['depends'], [])
+
 
         # Check that getmempoolancestors/getmempooldescendants correctly handle verbose=true
         v_ancestors = self.nodes[0].getmempoolancestors(chain[-1], True)
@@ -100,6 +141,7 @@ class MempoolPackagesTest(UnitETestFramework):
         ancestor_fees = 0
         for x in chain:
             ancestor_fees += mempool[x]['fee']
+            assert_equal(mempool[x]['fees']['ancestor'], ancestor_fees + Decimal('0.00001'))
             assert_equal(mempool[x]['ancestorfees'], ancestor_fees * UNIT + 1000)
 
         # Undo the prioritisetransaction for later tests
@@ -113,6 +155,7 @@ class MempoolPackagesTest(UnitETestFramework):
         descendant_fees = 0
         for x in reversed(chain):
             descendant_fees += mempool[x]['fee']
+            assert_equal(mempool[x]['fees']['descendant'], descendant_fees + Decimal('0.00001'))
             assert_equal(mempool[x]['descendantfees'], descendant_fees * UNIT + 1000)
 
         # Adding one more transaction on to the chain should fail.
@@ -138,7 +181,9 @@ class MempoolPackagesTest(UnitETestFramework):
             descendant_fees += mempool[x]['fee']
             if (x == chain[-1]):
                 assert_equal(mempool[x]['modifiedfee'], mempool[x]['fee']+satoshi_round(0.00002))
+                assert_equal(mempool[x]['fees']['modified'], mempool[x]['fee']+satoshi_round(0.00002))
             assert_equal(mempool[x]['descendantfees'], descendant_fees * UNIT + 2000)
+            assert_equal(mempool[x]['fees']['descendant'], descendant_fees+satoshi_round(0.00002))
 
         # TODO: check that node1's mempool is as expected
 
@@ -150,6 +195,7 @@ class MempoolPackagesTest(UnitETestFramework):
         vout = utxo[1]['vout']
 
         transaction_package = []
+        tx_children = []
         # First create one parent tx with 10 children
         (txid, sent_value) = self.chain_transaction(self.nodes[0], txid, vout, value, fee, 10)
         parent_transaction = txid
@@ -160,11 +206,17 @@ class MempoolPackagesTest(UnitETestFramework):
         for i in range(MAX_DESCENDANTS - 1):
             utxo = transaction_package.pop(0)
             (txid, sent_value) = self.chain_transaction(self.nodes[0], utxo['txid'], utxo['vout'], utxo['amount'], fee, 10)
+            if utxo['txid'] is parent_transaction:
+                tx_children.append(txid)
             for j in range(10):
                 transaction_package.append({'txid': txid, 'vout': j, 'amount': sent_value})
 
         mempool = self.nodes[0].getrawmempool(True)
         assert_equal(mempool[parent_transaction]['descendantcount'], MAX_DESCENDANTS)
+        assert_equal(sorted(mempool[parent_transaction]['spentby']), sorted(tx_children))
+
+        for child in tx_children:
+            assert_equal(mempool[child]['depends'], [parent_transaction])
 
         # Sending one more chained transaction will fail
         utxo = transaction_package.pop(0)
@@ -206,7 +258,7 @@ class MempoolPackagesTest(UnitETestFramework):
         for i in range(2):
             outputs[self.nodes[0].getnewaddress()] = send_value
         rawtx = self.nodes[0].createrawtransaction(inputs, outputs)
-        signedtx = self.nodes[0].signrawtransaction(rawtx)
+        signedtx = self.nodes[0].signrawtransactionwithwallet(rawtx)
         txid = self.nodes[0].sendrawtransaction(signedtx['hex'])
         tx0_id = txid
         value = send_value
@@ -230,7 +282,7 @@ class MempoolPackagesTest(UnitETestFramework):
         inputs = [ {'txid' : tx1_id, 'vout': 0}, {'txid' : txid, 'vout': 0} ]
         outputs = { self.nodes[0].getnewaddress() : send_value + value - 4*fee }
         rawtx = self.nodes[0].createrawtransaction(inputs, outputs)
-        signedtx = self.nodes[0].signrawtransaction(rawtx)
+        signedtx = self.nodes[0].signrawtransactionwithwallet(rawtx)
         txid = self.nodes[0].sendrawtransaction(signedtx['hex'])
         sync_mempools(self.nodes)
 

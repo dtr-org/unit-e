@@ -32,13 +32,13 @@ struct Fixture {
   blockchain::Parameters parameters = blockchain::Parameters::TestNet();
 
   struct MultiWalletMock : public proposer::MultiWallet {
-    std::vector<CWallet *> wallets;
-    const std::vector<CWallet *> &GetWallets() const override {
+    std::vector<std::shared_ptr<CWallet>> wallets;
+    const std::vector<std::shared_ptr<CWallet>> GetWallets() const override {
       return wallets;
     }
   };
 
-  CWallet wallet;
+  std::shared_ptr<CWallet> wallet;
   MultiWalletMock multi_wallet_mock;
   mocks::StakeValidatorMock stake_validator;
 
@@ -51,18 +51,19 @@ struct Fixture {
           for (const auto &arg : args) {
             argv[i++] = arg.c_str();
           }
-          argsman->ParseParameters(static_cast<int>(i), argv);
+          std::string error;
+          argsman->ParseParameters(static_cast<int>(i), argv, error);
           delete[] argv;
           return argsman;
         }()),
         settings(Settings::New(args_manager.get(), behavior.get())),
-        wallet([&] {
+        wallet(new CWallet("mock", WalletDatabase::CreateMock(), [&] {
           esperanza::WalletExtensionDeps deps(settings.get(), &stake_validator);
           return deps;
-        }()),
+        }())),
         multi_wallet_mock([&] {
           MultiWalletMock mock;
-          mock.wallets.emplace_back(&wallet);
+          mock.wallets.emplace_back(wallet);
           return mock;
         }()) {}
 
@@ -187,7 +188,7 @@ BOOST_AUTO_TEST_CASE(start_stop_and_status) {
   });
   // destroying the proposer stops it
   BOOST_CHECK(f.network_mock.GetNodeCount_invocations > 0);
-  BOOST_CHECK_EQUAL(f.wallet.GetWalletExtension().GetProposerState().m_status, +proposer::Status::NOT_PROPOSING_NO_PEERS);
+  BOOST_CHECK_EQUAL(f.wallet->GetWalletExtension().GetProposerState().m_status, +proposer::Status::NOT_PROPOSING_NO_PEERS);
 }
 
 BOOST_AUTO_TEST_CASE(advance_to_blockchain_sync) {
@@ -198,7 +199,7 @@ BOOST_AUTO_TEST_CASE(advance_to_blockchain_sync) {
     p->Start();
   });
   BOOST_CHECK(f.chain_mock.GetInitialBlockDownloadStatus_invocations > 0);
-  BOOST_CHECK_EQUAL(f.wallet.GetWalletExtension().GetProposerState().m_status, +proposer::Status::NOT_PROPOSING_SYNCING_BLOCKCHAIN);
+  BOOST_CHECK_EQUAL(f.wallet->GetWalletExtension().GetProposerState().m_status, +proposer::Status::NOT_PROPOSING_SYNCING_BLOCKCHAIN);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

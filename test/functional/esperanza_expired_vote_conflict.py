@@ -2,7 +2,7 @@
 # Copyright (c) 2018-2019 The Unit-e developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-from test_framework.mininode import P2PInterface, network_thread_start
+from test_framework.mininode import P2PInterface
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import json, sync_blocks, assert_equal, wait_until
 import os.path
@@ -56,7 +56,6 @@ class ExpiredVoteConflict(UnitETestFramework):
         relay.relay_txs = True
         relay.connect_nodes(proposer, validator)
 
-        network_thread_start()
         relay.wait_for_verack()
 
         # Exit IBD
@@ -123,23 +122,33 @@ class ExpiredVoteConflict(UnitETestFramework):
 # traffic between nodes. Can disable transactions relay while relaying blocks
 class MiniRelay:
     class Node(P2PInterface):
-        def __init__(self):
+        def __init__(self, network="regtest"):
             super().__init__()
             self.send_to = None
             self.relay_txs = True
             self.verack_received = False
+            self.network = network
 
         def on_data(self, command, raw_message):
             if not self.relay_txs and command == b'tx':
                 return
 
+            if command == b'version':
+                # do not relay version messages to avoid duplicates
+                return
+
             if command == b'verack':
                 self.verack_received = True
+                # relay veracks... but later.
+                return
 
             self.send_to.send_data(command, raw_message)
 
         def wait_for_verack(self):
             wait_until(lambda: self.verack_received, timeout=30)
+
+        def relay_verack(self):
+            self.send_to.send_data(b'verack', b'')
 
     def __init__(self):
         super().__init__()
@@ -163,6 +172,8 @@ class MiniRelay:
     def wait_for_verack(self):
         self.mininode1.wait_for_verack()
         self.mininode2.wait_for_verack()
+        self.mininode1.relay_verack()
+        self.mininode2.relay_verack()
 
     def connect_nodes(self, node1, node2):
         node1.add_p2p_connection(self.mininode1)

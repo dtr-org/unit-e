@@ -1,9 +1,9 @@
-// Copyright (c) 2016-2017 The Bitcoin Core developers
+// Copyright (c) 2016-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_WALLET_TEST_FIXTURE_H
-#define UNITE_WALLET_TEST_FIXTURE_H
+#ifndef UNITE_WALLET_TEST_WALLET_TEST_FIXTURE_H
+#define UNITE_WALLET_TEST_WALLET_TEST_FIXTURE_H
 
 #include <test/test_unite.h>
 #include <test/test_unite_mocks.h>
@@ -14,11 +14,6 @@
 
 //! Testing setup and teardown for wallet.
 struct WalletTestingSetup : public TestingSetup {
-
-  Settings settings;
-  mocks::StakeValidatorMock stake_validator_mock;
-  std::unique_ptr<CWallet> pwalletMain;
-
   explicit WalletTestingSetup(
       const std::string &chainName = CBaseChainParams::TESTNET,
       UnitEInjectorConfiguration config = UnitEInjectorConfiguration());
@@ -29,6 +24,10 @@ struct WalletTestingSetup : public TestingSetup {
       UnitEInjectorConfiguration config = UnitEInjectorConfiguration());
 
   ~WalletTestingSetup();
+
+  Settings settings;
+  std::shared_ptr<CWallet> m_wallet;
+  mocks::StakeValidatorMock stake_validator_mock;
 };
 
 //
@@ -49,7 +48,8 @@ struct TestChain100Setup : public WalletTestingSetup {
 
   ~TestChain100Setup();
 
-  std::vector<CTransaction> coinbaseTxns; // For convenience, coinbase transactions
+  std::vector<CTransaction> m_coinbase_txns; // For convenience, coinbase transactions
   CKey coinbaseKey; // private/public key needed to spend coinbase transactions
 };
-#endif
+
+#endif // UNITE_WALLET_TEST_WALLET_TEST_FIXTURE_H

@@ -45,7 +45,14 @@ class AdminCommand {
 
   template <typename Stream, typename Operation>
   void SerializationOp(Stream &s, Operation ser_action) {
-    READWRITE(FLATDATA(m_command_type));
+    uint8_t command_type = +m_command_type;
+    READWRITE(command_type);
+    if (ser_action.ForRead()) {
+      auto opt = AdminCommandType::_from_integral_nothrow(command_type);
+      if (opt) {
+        m_command_type = *opt;
+      }
+    }
     READWRITE(m_payload);
   }
 

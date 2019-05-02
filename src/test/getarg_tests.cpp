@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2017 The Bitcoin Core developers
+// Copyright (c) 2012-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -28,15 +28,25 @@ struct Fixture {
     for (std::string& s : vecArg)
       vecChar.push_back(s.c_str());
 
-    args.ParseParameters(vecChar.size(), vecChar.data());
+    std::string error;
+    args.ParseParameters(vecChar.size(), vecChar.data(), error);
+  }
+
+  void SetupArgs(const std::vector<std::string>& arg_names)
+  {
+    args.ClearArgs();
+    for (const std::string& arg : arg_names) {
+      args.AddArg(arg, "", false, OptionsCategory::OPTIONS);
+    }
   }
 };
 }
 
-BOOST_FIXTURE_TEST_SUITE(getarg_tests, Fixture)
 
+BOOST_FIXTURE_TEST_SUITE(getarg_tests, Fixture)
 BOOST_AUTO_TEST_CASE(boolarg)
 {
+    SetupArgs({"-foo"});
     ResetArgs("-foo");
     BOOST_CHECK(args.GetBoolArg("-foo", false));
     BOOST_CHECK(args.GetBoolArg("-foo", true));
@@ -89,6 +99,7 @@ BOOST_AUTO_TEST_CASE(boolarg)
 
 BOOST_AUTO_TEST_CASE(stringarg)
 {
+    SetupArgs({"-foo", "-bar"});
     ResetArgs("");
     BOOST_CHECK_EQUAL(args.GetArg("-foo", ""), "");
     BOOST_CHECK_EQUAL(args.GetArg("-foo", "eleven"), "eleven");
@@ -113,6 +124,7 @@ BOOST_AUTO_TEST_CASE(stringarg)
 
 BOOST_AUTO_TEST_CASE(intarg)
 {
+    SetupArgs({"-foo", "-bar"});
     ResetArgs("");
     BOOST_CHECK_EQUAL(args.GetArg("-foo", 11), 11);
     BOOST_CHECK_EQUAL(args.GetArg("-foo", 0), 0);
@@ -132,6 +144,7 @@ BOOST_AUTO_TEST_CASE(intarg)
 
 BOOST_AUTO_TEST_CASE(doubledash)
 {
+    SetupArgs({"-foo", "-bar"});
     ResetArgs("--foo");
     BOOST_CHECK_EQUAL(args.GetBoolArg("-foo", false), true);
 
@@ -142,6 +155,7 @@ BOOST_AUTO_TEST_CASE(doubledash)
 
 BOOST_AUTO_TEST_CASE(boolargno)
 {
+    SetupArgs({"-foo", "-bar"});
     ResetArgs("-nofoo");
     BOOST_CHECK(!args.GetBoolArg("-foo", true));
     BOOST_CHECK(!args.GetBoolArg("-foo", false));

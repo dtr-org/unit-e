@@ -21,7 +21,6 @@ but also in the orphan pool
 from test_framework.mininode import (
     GrapheneTx,
     P2PInterface,
-    network_thread_start,
     mininode_lock,
     msg_block,
     msg_tx,
@@ -54,7 +53,6 @@ class Graphene(UnitETestFramework):
 
     def run_test(self):
         relay = BlockingRelay(self.nodes[0], self.nodes[1], self.log)
-        network_thread_start()
         relay.wait_for_verack()
 
         self.setup_stake_coins(self.nodes[0], self.nodes[1])
@@ -210,6 +208,7 @@ class BlockingRelay:
             self.send_to = None
             self.allowed_keys = set()
             self.log = log
+            self.network = 'regtest'
 
             self.name = name
             self.seen_messages = dict()

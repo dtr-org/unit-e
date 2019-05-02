@@ -1,9 +1,15 @@
-// Copyright (c) 2017 The Bitcoin Core developers
+// Copyright (c) 2017-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef UNITE_RPC_UTIL_H
 #define UNITE_RPC_UTIL_H
+
+#include <pubkey.h>
+#include <script/standard.h>
+#include <univalue.h>
+
+#include <boost/variant/static_visitor.hpp>
 
 #include <blockchain/blockchain_genesis.h>
 #include <blockchain/blockchain_parameters.h>
@@ -28,7 +34,7 @@ class Coin;
 
 CPubKey HexToPubKey(const std::string &hex_in);
 CPubKey AddrToPubKey(CKeyStore *keystore, const std::string &addr_in);
-CScript CreateMultisigRedeemscript(int required, const std::vector<CPubKey> &pubkeys);
+CScript CreateMultisigRedeemscript(const int required, const std::vector<CPubKey> &pubkeys);
 
 template <typename T>
 UniValue ToUniValue(const T &value) {
@@ -56,5 +62,7 @@ UniValue ToUniValue(const staking::Coin &coin);
 UniValue ToUniValue(const uint256 &hash);
 UniValue ToUniValue(const blockchain::GenesisBlock &value);
 UniValue ToUniValue(const std::vector<unsigned char> base58_prefixes[blockchain::Base58Type::_size_constant]);
+
+UniValue DescribeAddress(const CTxDestination& dest);
 
 #endif  // UNITE_RPC_UTIL_H

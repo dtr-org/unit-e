@@ -4,9 +4,10 @@
 
 DIST_SUBDIRS = secp256k1 univalue
 
-AM_LDFLAGS = $(PTHREAD_CFLAGS) $(LIBTOOL_LDFLAGS) $(HARDENED_LDFLAGS)
-AM_CXXFLAGS = $(HARDENED_CXXFLAGS) $(ERROR_CXXFLAGS)
-AM_CPPFLAGS = $(HARDENED_CPPFLAGS)
+AM_LDFLAGS = $(PTHREAD_CFLAGS) $(LIBTOOL_LDFLAGS) $(HARDENED_LDFLAGS) $(GPROF_LDFLAGS) $(SANITIZER_LDFLAGS)
+AM_CXXFLAGS = $(DEBUG_CXXFLAGS) $(HARDENED_CXXFLAGS) $(WARN_CXXFLAGS) $(NOWARN_CXXFLAGS) $(ERROR_CXXFLAGS) $(GPROF_CXXFLAGS) $(SANITIZER_CXXFLAGS)
+AM_CPPFLAGS = $(DEBUG_CPPFLAGS) $(HARDENED_CPPFLAGS)
+AM_LIBTOOLFLAGS = --preserve-dup-deps
 EXTRA_LIBRARIES =
 
 if EMBEDDED_UNIVALUE
@@ -27,7 +28,7 @@ LIBUNITE_SERVER=libunite_server.a
 LIBUNITE_COMMON=libunite_common.a
 LIBUNITE_CONSENSUS=libunite_consensus.a
 LIBUNITE_UTIL=libunite_util.a
-LIBUNITE_CRYPTO=crypto/libunite_crypto.a
+LIBUNITE_CRYPTO_BASE=crypto/libunite_crypto_base.a
 LIBSECP256K1=secp256k1/libsecp256k1.la
 
 if ENABLE_ZMQ
@@ -43,7 +44,21 @@ if ENABLE_USBDEVICE
 LIBUNITE_USBDEVICE=libunite_usbdevice.a
 endif
 
-$(LIBSECP256K1): $(wildcard secp256k1/src/*) $(wildcard secp256k1/include/*)
+LIBUNITE_CRYPTO= $(LIBUNITE_CRYPTO_BASE)
+if ENABLE_SSE41
+LIBUNITE_CRYPTO_SSE41 = crypto/libunite_crypto_sse41.a
+LIBUNITE_CRYPTO += $(LIBUNITE_CRYPTO_SSE41)
+endif
+if ENABLE_AVX2
+LIBUNITE_CRYPTO_AVX2 = crypto/libunite_crypto_avx2.a
+LIBUNITE_CRYPTO += $(LIBUNITE_CRYPTO_AVX2)
+endif
+if ENABLE_SHANI
+LIBUNITE_CRYPTO_SHANI = crypto/libunite_crypto_shani.a
+LIBUNITE_CRYPTO += $(LIBUNITE_CRYPTO_SHANI)
+endif
+
+$(LIBSECP256K1): $(wildcard secp256k1/src/*.h) $(wildcard secp256k1/src/*.c) $(wildcard secp256k1/include/*)
 	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C $(@D) $(@F)
 
 # Make is not made aware of per-object dependencies to avoid limiting building parallelization
@@ -54,6 +69,7 @@ EXTRA_LIBRARIES += \
   $(LIBUNITE_COMMON) \
   $(LIBUNITE_CONSENSUS) \
   $(LIBUNITE_SERVER) \
+  $(LIBUNITE_CLI) \
   $(LIBUNITE_USBDEVICE) \
   $(LIBUNITE_WALLET) \
   $(LIBUNITE_ZMQ)
@@ -139,10 +155,15 @@ UNITE_CORE_H = \
   iblt.h \
   iblt_params.h \
   iblt_params.table \
+  index/base.h \
+  index/txindex.h \
   indirectmap.h \
   init.h \
   injector.h \
   injector_config.h \
+  interfaces/handler.h \
+  interfaces/node.h \
+  interfaces/wallet.h \
   key.h \
   key/mnemonic/mnemonic.h \
   key/mnemonic/chinese_simplified.h \
@@ -153,9 +174,11 @@ UNITE_CORE_H = \
   key/mnemonic/spanish.h \
   key/mnemonic/italian.h \
   key/mnemonic/korean.h \
+  key_io.h \
   keystore.h \
   dbwrapper.h \
   limitedmap.h \
+  logging.h \
   memusage.h \
   merkleblock.h \
   miner.h \
@@ -165,6 +188,7 @@ UNITE_CORE_H = \
   netbase.h \
   netmessagemaker.h \
   noui.h \
+  outputtype.h \
   p2p/embargoman.h \
   p2p/embargoman_init.h \
   p2p/finalizer_commits_handler.h \
@@ -201,16 +225,18 @@ UNITE_CORE_H = \
   rpc/mining.h \
   rpc/proposing.h \
   rpc/protocol.h \
-  rpc/safemode.h \
   rpc/server.h \
   rpc/staking.h \
+  rpc/rawtransaction.h \
   rpc/register.h \
   rpc/util.h \
   scheduler.h \
+  script/descriptor.h \
+  script/ismine.h \
   script/sigcache.h \
   script/sign.h \
   script/standard.h \
-  script/ismine.h \
+  shutdown.h \
   snapshot/chainstate_iterator.h \
   snapshot/creator.h \
   snapshot/indexer.h \
@@ -260,6 +286,7 @@ UNITE_CORE_H = \
   unilib/utf8.h \
   util.h \
   util/scope_stopwatch.h \
+  utilmemory.h \
   utilmoneystr.h \
   utiltime.h \
   utiltypetags.h \
@@ -267,12 +294,12 @@ UNITE_CORE_H = \
   validation_flags.h \
   validationinterface.h \
   versionbits.h \
+  walletinitinterface.h \
   wallet/coincontrol.h \
   wallet/crypter.h \
   wallet/db.h \
   wallet/feebumper.h \
   wallet/fees.h \
-  wallet/init.h \
   wallet/rpcaddressbook.h \
   wallet/rpcadmin.h \
   wallet/rpcmnemonic.h \
@@ -282,11 +309,14 @@ UNITE_CORE_H = \
   wallet/wallet.h \
   wallet/walletdb.h \
   wallet/walletutil.h \
+  wallet/coinselection.h \
   warnings.h \
   zmq/zmqabstractnotifier.h \
   zmq/zmqconfig.h\
   zmq/zmqnotificationinterface.h \
-  zmq/zmqpublishnotifier.h
+  zmq/zmqpublishnotifier.h \
+  zmq/zmqrpc.h
+
 
 obj/build.h: FORCE
 	@$(MKDIR_P) $(builddir)/obj
@@ -322,12 +352,15 @@ libunite_server_a_SOURCES = \
   httprpc.cpp \
   httpserver.cpp \
   iblt_params.cpp \
+  index/base.cpp \
+  index/txindex.cpp \
   init.cpp \
   injector.cpp \
   merkleblock.cpp \
   net.cpp \
   net_processing.cpp \
   noui.cpp \
+  outputtype.cpp \
   p2p/embargoman.cpp \
   p2p/embargoman_init.cpp \
   p2p/finalizer_commits_handler.cpp \
@@ -347,11 +380,11 @@ libunite_server_a_SOURCES = \
   rpc/misc.cpp \
   rpc/net.cpp \
   rpc/rawtransaction.cpp \
-  rpc/safemode.cpp \
   rpc/server.cpp \
   rpc/staking.cpp \
+  rpc/util.cpp \
   script/sigcache.cpp \
-  script/ismine.cpp \
+  shutdown.cpp \
   snapshot/chainstate_iterator.cpp \
   snapshot/creator.cpp \
   snapshot/indexer.cpp \
@@ -392,8 +425,10 @@ libunite_zmq_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_zmq_a_SOURCES = \
   zmq/zmqabstractnotifier.cpp \
   zmq/zmqnotificationinterface.cpp \
-  zmq/zmqpublishnotifier.cpp
+  zmq/zmqpublishnotifier.cpp \
+  zmq/zmqrpc.cpp
 endif
+
 
 # wallet: only linked when wallet enabled
 libunite_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
@@ -402,6 +437,7 @@ libunite_wallet_a_SOURCES = \
   esperanza/init.cpp \
   esperanza/walletextension.cpp \
   esperanza/walletextension_deps.cpp \
+  interfaces/wallet.cpp \
   key/mnemonic/mnemonic.cpp \
   miner.cpp \
   proposer/block_builder.cpp \
@@ -416,6 +452,7 @@ libunite_wallet_a_SOURCES = \
   rpc/proposing.cpp \
   unilib/uninorms.cpp \
   unilib/utf8.cpp \
+  wallet/coincontrol.cpp \
   wallet/crypter.cpp \
   wallet/db.cpp \
   wallet/feebumper.cpp \
@@ -431,6 +468,7 @@ libunite_wallet_a_SOURCES = \
   wallet/wallet.cpp \
   wallet/walletdb.cpp \
   wallet/walletutil.cpp \
+  wallet/coinselection.cpp \
   $(UNITE_CORE_H)
 
 if ENABLE_USBDEVICE
@@ -457,9 +495,9 @@ libunite_usbdevice_a_SOURCES = \
 endif
 
 # crypto primitives library
-crypto_libunite_crypto_a_CPPFLAGS = $(AM_CPPFLAGS)
-crypto_libunite_crypto_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-crypto_libunite_crypto_a_SOURCES = \
+crypto_libunite_crypto_base_a_CPPFLAGS = $(AM_CPPFLAGS)
+crypto_libunite_crypto_base_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+crypto_libunite_crypto_base_a_SOURCES = \
   crypto/aes.cpp \
   crypto/aes.h \
   crypto/chacha20.h \
@@ -479,8 +517,26 @@ crypto_libunite_crypto_a_SOURCES = \
   crypto/sha512.h
 
 if USE_ASM
-crypto_libunite_crypto_a_SOURCES += crypto/sha256_sse4.cpp
+crypto_libunite_crypto_base_a_SOURCES += crypto/sha256_sse4.cpp
 endif
+
+crypto_libunite_crypto_sse41_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+crypto_libunite_crypto_sse41_a_CPPFLAGS = $(AM_CPPFLAGS)
+crypto_libunite_crypto_sse41_a_CXXFLAGS += $(SSE41_CXXFLAGS)
+crypto_libunite_crypto_sse41_a_CPPFLAGS += -DENABLE_SSE41
+crypto_libunite_crypto_sse41_a_SOURCES = crypto/sha256_sse41.cpp
+
+crypto_libunite_crypto_avx2_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+crypto_libunite_crypto_avx2_a_CPPFLAGS = $(AM_CPPFLAGS)
+crypto_libunite_crypto_avx2_a_CXXFLAGS += $(AVX2_CXXFLAGS)
+crypto_libunite_crypto_avx2_a_CPPFLAGS += -DENABLE_AVX2
+crypto_libunite_crypto_avx2_a_SOURCES = crypto/sha256_avx2.cpp
+
+crypto_libunite_crypto_shani_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+crypto_libunite_crypto_shani_a_CPPFLAGS = $(AM_CPPFLAGS)
+crypto_libunite_crypto_shani_a_CXXFLAGS += $(SHANI_CXXFLAGS)
+crypto_libunite_crypto_shani_a_CPPFLAGS += -DENABLE_SHANI
+crypto_libunite_crypto_shani_a_SOURCES = crypto/sha256_shani.cpp
 
 # consensus: shared between all executables that validate any consensus rules.
 libunite_consensus_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
@@ -514,6 +570,7 @@ libunite_consensus_a_SOURCES = \
   script/script_error.cpp \
   script/script_error.h \
   serialize.h \
+  span.h \
   tinyformat.h \
   uint256.cpp \
   uint256.h \
@@ -540,12 +597,15 @@ libunite_common_a_SOURCES = \
   core_write.cpp \
   finalization/params.cpp \
   key.cpp \
+  key_io.cpp \
   keystore.cpp \
   netaddress.cpp \
   netbase.cpp \
   policy/feerate.cpp \
   protocol.cpp \
   scheduler.cpp \
+  script/descriptor.cpp \
+  script/ismine.cpp \
   script/sign.cpp \
   script/standard.cpp \
   snapshot/messages.cpp \
@@ -569,6 +629,9 @@ libunite_util_a_SOURCES = \
   compat/glibcxx_sanity.cpp \
   compat/strnlen.cpp \
   fs.cpp \
+  interfaces/handler.cpp \
+  interfaces/node.cpp \
+  logging.cpp \
   random.cpp \
   rpc/parameter_conversion.cpp \
   rpc/protocol.cpp \
@@ -585,6 +648,7 @@ libunite_util_a_SOURCES = \
 
 if GLIBC_BACK_COMPAT
 libunite_util_a_SOURCES += compat/glibc_compat.cpp
+AM_LDFLAGS += $(COMPAT_LDFLAGS)
 endif
 
 nodist_libunite_util_a_SOURCES = $(srcdir)/obj/build.h
@@ -602,11 +666,11 @@ endif
 
 unit_e_LDADD = \
   $(LIBUNITE_SERVER) \
-  $(LIBUNITE_UTIL) \
   $(LIBUNITE_USBDEVICE) \
   $(LIBUNITE_WALLET) \
   $(LIBUNITE_COMMON) \
   $(LIBUNIVALUE) \
+  $(LIBUNITE_UTIL) \
   $(LIBUNITE_ZMQ) \
   $(LIBUNITE_CONSENSUS) \
   $(LIBUNITE_CRYPTO) \
@@ -648,8 +712,8 @@ unit_e_tx_SOURCES += unit-e-tx-res.rc
 endif
 
 unit_e_tx_LDADD = \
-  $(LIBUNITE_COMMON) \
   $(LIBUNIVALUE) \
+  $(LIBUNITE_COMMON) \
   $(LIBUNITE_UTIL) \
   $(LIBUNITE_CONSENSUS) \
   $(LIBUNITE_CRYPTO) \
@@ -662,7 +726,7 @@ unit_e_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) \
 # uniteconsensus library #
 if BUILD_UNITE_LIBS
 include_HEADERS = script/uniteconsensus.h
-libuniteconsensus_la_SOURCES = $(crypto_libunite_crypto_a_SOURCES) $(libunite_consensus_a_SOURCES)
+libuniteconsensus_la_SOURCES = $(crypto_libunite_crypto_base_a_SOURCES) $(libunite_consensus_a_SOURCES)
 
 if GLIBC_BACK_COMPAT
   libuniteconsensus_la_SOURCES += compat/glibc_compat.cpp

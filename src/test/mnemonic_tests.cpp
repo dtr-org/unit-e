@@ -146,7 +146,7 @@ BOOST_AUTO_TEST_CASE(mnemonic_seed_english)
     key::mnemonic::Seed seed("leopard cycle economy main denial rebuild local panther dentist raise cry story trade agree despair");
     BOOST_CHECK_EQUAL(seed.GetLanguageTag(), "english");
     BOOST_CHECK_EQUAL(seed.GetHexSeed(), "030eda9ac4bc2ed71cc55b41c2b9d735c93dae05e0316b07b2bd66abdc851af0f0c0309d4be8c63788f88f4ae6d509f4d60302bf5319bf1968b173995514628f");
-    BOOST_CHECK_EQUAL(seed.GetExtKey58().ToString(), "tprv8ZgxMBicQKsPdxLP4cbwzCA2zKNYjz65oqs1hwMRZLG5MTNuk2Wo7BJmor823gvMXFr8MBLNQGQkC7G7mAjoLDHHD8RHRrGKhW77YXxc5XP");
+    BOOST_CHECK_EQUAL(seed.GetExtKey58(), "tprv8ZgxMBicQKsPdxLP4cbwzCA2zKNYjz65oqs1hwMRZLG5MTNuk2Wo7BJmor823gvMXFr8MBLNQGQkC7G7mAjoLDHHD8RHRrGKhW77YXxc5XP");
 }
 
 BOOST_AUTO_TEST_CASE(mnemonic_seed_english_with_passphrase)
@@ -155,7 +155,7 @@ BOOST_AUTO_TEST_CASE(mnemonic_seed_english_with_passphrase)
 
     BOOST_CHECK_EQUAL(seed.GetLanguageTag(), "english");
     BOOST_CHECK_EQUAL(seed.GetHexSeed(), "0d063ec29046dc315a1ce49773b2b126e0038a0f0f0d3eb9f752c28d7aa041034e1ec6f30e8af2afb6f1f8673f0303aca0b1333be4041211284c4e7a659ee96d");
-    BOOST_CHECK_EQUAL(seed.GetExtKey58().ToString(), "tprv8ZgxMBicQKsPeVRpWxS5NyrGMv68sgPMiPDnyavifjcU2FQcmRzKyqiGm5Q9r6GqYkx5f4cFxr8jrGSQBojTx1ej5LUABCofKmpZRr7gZVb");
+    BOOST_CHECK_EQUAL(seed.GetExtKey58(), "tprv8ZgxMBicQKsPeVRpWxS5NyrGMv68sgPMiPDnyavifjcU2FQcmRzKyqiGm5Q9r6GqYkx5f4cFxr8jrGSQBojTx1ej5LUABCofKmpZRr7gZVb");
 }
 
 BOOST_AUTO_TEST_CASE(mnemonic_seed_spanish)
@@ -164,7 +164,7 @@ BOOST_AUTO_TEST_CASE(mnemonic_seed_spanish)
 
     BOOST_CHECK_EQUAL(seed.GetLanguageTag(), "spanish");
     BOOST_CHECK_EQUAL(seed.GetHexSeed(), "f88d237dfba9c4b440bf75eece3430a6ded113565c839fe29b9f0c0efa46cfe972d8cb35be7d43f0f8000fb7f8d7de085a2f4ab8c71d96249d48e2532fe7a245");
-    BOOST_CHECK_EQUAL(seed.GetExtKey58().ToString(), "tprv8ZgxMBicQKsPd4yzHL5wai1rWGX615ghCzUn55P4f9xR2puCmqzenPkR9onpXsqGes2taURwYkPUESpshN5Mke6BGhHNnBuXEyr5XUokv15");
+    BOOST_CHECK_EQUAL(seed.GetExtKey58(), "tprv8ZgxMBicQKsPd4yzHL5wai1rWGX615ghCzUn55P4f9xR2puCmqzenPkR9onpXsqGes2taURwYkPUESpshN5Mke6BGhHNnBuXEyr5XUokv15");
 }
 
 BOOST_AUTO_TEST_CASE(mnemonic_seed_spanish_with_passphrase)
@@ -173,7 +173,7 @@ BOOST_AUTO_TEST_CASE(mnemonic_seed_spanish_with_passphrase)
 
     BOOST_CHECK_EQUAL(seed.GetLanguageTag(), "spanish");
     BOOST_CHECK_EQUAL(seed.GetHexSeed(), "c5b03b324e35b950928e7d62bcae6354c2a5292036edfca3600611f680fa1d0608f95b800731bd827a1c2c7f681b188f8cbeebcd9122689d009f3bd1818df355");
-    BOOST_CHECK_EQUAL(seed.GetExtKey58().ToString(), "tprv8ZgxMBicQKsPeBJU393EuaUxAvH3cvX42ZXniwcYFBbVE5b8ccnJU9ZSRjpE6drTp7n8mC8DUrFwxy1VHmFLsmk5KgzRe33YxtUj1yzE6H3");
+    BOOST_CHECK_EQUAL(seed.GetExtKey58(), "tprv8ZgxMBicQKsPeBJU393EuaUxAvH3cvX42ZXniwcYFBbVE5b8ccnJU9ZSRjpE6drTp7n8mC8DUrFwxy1VHmFLsmk5KgzRe33YxtUj1yzE6H3");
 }
 
 void runTests(key::mnemonic::Language language, UniValue &tests)

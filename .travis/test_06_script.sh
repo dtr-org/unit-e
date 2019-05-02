@@ -4,6 +4,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+export LC_ALL=C
 
 TRAVIS_COMMIT_LOG=$(git log --format=fuller -1)
 export TRAVIS_COMMIT_LOG
@@ -16,29 +17,47 @@ OUTDIR=$BASE_OUTDIR/$TRAVIS_PULL_REQUEST/$TRAVIS_JOB_NUMBER-$HOST
 UNITE_CONFIG_ALL="--disable-dependency-tracking --prefix=$TRAVIS_BUILD_DIR/depends/$HOST --bindir=$OUTDIR/bin --libdir=$OUTDIR/lib"
 
 if [ -z "$NO_DEPENDS" ]; then
-  depends/$HOST/native/bin/ccache --max-size=$CCACHE_SIZE
+  DOCKER_EXEC ccache --max-size=$CCACHE_SIZE
 fi
 
-test -n "$USE_SHELL" && eval '"$USE_SHELL" -c "./autogen.sh"' || ./autogen.sh
+BEGIN_FOLD autogen
+if [ -n "$CONFIG_SHELL" ] ; then
+  DOCKER_EXEC "$CONFIG_SHELL" -c "./autogen.sh"
+else
+  DOCKER_EXEC ./autogen.sh
+fi
+END_FOLD
 
 mkdir build && cd build
 
-../configure --cache-file=config.cache $UNITE_CONFIG_ALL $UNITE_CONFIG || ( cat config.log && false)
+BEGIN_FOLD configure
+DOCKER_EXEC ../configure --cache-file=config.cache $UNITE_CONFIG_ALL $UNITE_CONFIG || ( cat config.log && false)
+END_FOLD
 
-make distdir VERSION=$HOST
+BEGIN_FOLD distdir
+DOCKER_EXEC make distdir VERSION=$HOST
+END_FOLD
 
 cd unit-e-$HOST
 
-./configure --cache-file=../config.cache $UNITE_CONFIG_ALL $UNITE_CONFIG || ( cat config.log && false)
+BEGIN_FOLD configure
+DOCKER_EXEC ./configure --cache-file=../config.cache $UNITE_CONFIG_ALL $UNITE_CONFIG || ( cat config.log && false)
+END_FOLD
 
-make $MAKEJOBS $GOAL || ( echo "Build failure. Verbose build follows." && make $GOAL V=1 ; false )
-
-export LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/depends/$HOST/lib
+BEGIN_FOLD build
+DOCKER_EXEC make $MAKEJOBS $GOAL || ( echo "Build failure. Verbose build follows." && DOCKER_EXEC make $GOAL V=1 ; false )
+END_FOLD
 
 if [ "$RUN_TESTS" = "true" ]; then
-  while sleep 9m; do echo "=====[ $SECONDS seconds still running ]====="; done &
-  make $MAKEJOBS check VERBOSE=1
-  kill %1
+  BEGIN_FOLD unit-tests
+  DOCKER_EXEC LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/depends/$HOST/lib make $MAKEJOBS check VERBOSE=1
+  END_FOLD
+fi
+
+if [ "$RUN_BENCH" = "true" ]; then
+  BEGIN_FOLD bench
+  DOCKER_EXEC LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/depends/$HOST/lib $OUTDIR/bin/bench_unite -scaling=0.001
+  END_FOLD
 fi
 
 if [ "$TRAVIS_EVENT_TYPE" = "cron" ]; then
@@ -46,5 +65,7 @@ if [ "$TRAVIS_EVENT_TYPE" = "cron" ]; then
 fi
 
 if [ "$RUN_TESTS" = "true" ]; then
-  test/functional/test_runner.py --combinedlogslen=4000 --coverage --quiet ${extended}
+  BEGIN_FOLD functional-tests
+  DOCKER_EXEC test/functional/test_runner.py --combinedlogslen=4000 --coverage --quiet --failfast ${extended}
+  END_FOLD
 fi

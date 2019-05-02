@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2009-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -15,7 +15,7 @@
  *
  *  Contains the prevout's CTxOut being spent, and its metadata as well
  *  (coinbase or not, height). The serialization contains a dummy value of
- *  zero. This is be compatible with older versions which expect to see
+ *  zero. This is compatible with older versions which expect to see
  *  the transaction version there.
  */
 class TxInUndoSerializer
@@ -60,7 +60,7 @@ public:
         uint64_t count = vprevout.size();
         ::Serialize(s, COMPACTSIZE(REF(count)));
         for (const auto& prevout : vprevout) {
-            ::Serialize(s, REF(TxInUndoSerializer(&prevout)));
+            ::Serialize(s, TxInUndoSerializer(&prevout));
         }
     }
 
@@ -74,7 +74,7 @@ public:
         }
         vprevout.resize(count);
         for (auto& prevout : vprevout) {
-            ::Unserialize(s, REF(TxInUndoDeserializer(&prevout)));
+            ::Unserialize(s, TxInUndoDeserializer(&prevout));
         }
     }
 };

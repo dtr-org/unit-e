@@ -36,9 +36,11 @@ class ArgsManagerMock : public ArgsManager {
     for (const std::string &arg : args) {
       argv[i++] = arg.c_str();
     }
-    ParseParameters(static_cast<int>(i), argv);
+    std::string error;
+    ParseParameters(static_cast<int>(i), argv, error);
     delete[] argv;
   }
+  bool IsArgKnown(const std::string& ) const override { return true; }
 };
 
 class NetworkMock : public staking::Network {

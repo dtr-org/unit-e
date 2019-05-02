@@ -61,7 +61,7 @@ UniValue mnemonicnew(const JSONRPCRequest &request) {
   const key::mnemonic::Seed seedInfo(mnemonic, passphrase);
   UniValue response(UniValue::VOBJ);
   response.pushKV("mnemonic", UniValue(mnemonic));
-  response.pushKV("master", UniValue(seedInfo.GetExtKey58().ToString()));
+  response.pushKV("master", UniValue(seedInfo.GetExtKey58()));
   response.pushKV("entropy", UniValue(seedInfo.GetHexEntropy()));
   return response;
 }
@@ -82,7 +82,7 @@ UniValue mnemonicinfo(const JSONRPCRequest &request) {
   response.pushKV("language", UniValue(seed.GetHumandReadableLanguage()));
   response.pushKV("language_tag", UniValue(seed.GetLanguageTag()));
   response.pushKV("bip39_seed", UniValue(seed.GetHexSeed()));
-  response.pushKV("bip32_root", UniValue(seed.GetExtKey58().ToString()));
+  response.pushKV("bip32_root", UniValue(seed.GetExtKey58()));
   response.pushKV("entropy", UniValue(seed.GetHexEntropy()));
   return response;
 }
@@ -128,6 +128,8 @@ UniValue mnemonic(const JSONRPCRequest &request) {
   }
 }
 
+static const int64_t TIMESTAMP_MIN = 0;
+
 UniValue importmasterkey(const JSONRPCRequest &request) {
   static const std::string help =
       "importmasterkey\n"
@@ -151,8 +153,9 @@ UniValue importmasterkey(const JSONRPCRequest &request) {
   if (request.fHelp || request.params.size() > 4 || request.params.empty()) {
     throw std::runtime_error(help);
   }
-  CWallet *wallet = GetWalletForJSONRPCRequest(request);
-  if (!EnsureWalletIsAvailable(wallet, request.fHelp)) {
+  std::shared_ptr<CWallet> wallet = GetWalletForJSONRPCRequest(request);
+  CWallet * pwallet = wallet.get();
+  if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
     throw std::runtime_error("no unlocked wallet open!");
   }
   bool shouldRescan = true;
@@ -183,7 +186,7 @@ UniValue importmasterkey(const JSONRPCRequest &request) {
       throw std::runtime_error(error);
     }
 
-    WalletRescanReserver reserver(wallet);
+    WalletRescanReserver reserver(pwallet);
     if(!reserver.reserve()) {
       throw JSONRPCError(
           RPC_WALLET_ERROR,
@@ -193,7 +196,7 @@ UniValue importmasterkey(const JSONRPCRequest &request) {
     if(shouldRescan) {
       const int64_t rescanned_till = wallet->RescanFromTime(TIMESTAMP_MIN, reserver, /* update */ true);
       if (rescanned_till > TIMESTAMP_MIN) {
-        warnings.emplace_back("could not read before " + DateTimeToString(rescanned_till));
+        warnings.emplace_back("could not read before " + FormatISO8601DateTime(rescanned_till));
       }
     }
 
@@ -205,7 +208,7 @@ UniValue importmasterkey(const JSONRPCRequest &request) {
   response.pushKV("language", UniValue(seed.GetHumandReadableLanguage()));
   response.pushKV("language_tag", UniValue(seed.GetLanguageTag()));
   response.pushKV("bip39_seed", UniValue(seed.GetHexSeed()));
-  response.pushKV("bip32_root", UniValue(seed.GetExtKey58().ToString()));
+  response.pushKV("bip32_root", UniValue(seed.GetExtKey58()));
   UniValue warningsValue(UniValue::VARR);
   for (const auto &warning : warnings) {
     warningsValue.push_back(UniValue(warning));
@@ -222,8 +225,8 @@ UniValue importmasterkey(const JSONRPCRequest &request) {
  * wallet deterministically.
  */
 UniValue listreservekeys(const JSONRPCRequest &request) {
-  CWallet *const wallet = GetWalletForJSONRPCRequest(request);
-  if (!EnsureWalletIsAvailable(wallet, request.fHelp)) {
+  std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+  if (!EnsureWalletIsAvailable(wallet.get(), request.fHelp)) {
     throw std::runtime_error("no unlocked wallet open!");
   }
   const std::map<CKeyID, int64_t> allReserveKeys = wallet->GetAllReserveKeys();

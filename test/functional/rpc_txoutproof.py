@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2017 The Bitcoin Core developers
+# Copyright (c) 2014-2018 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test gettxoutproof and verifytxoutproof RPCs."""
 
+from test_framework.messages import CMerkleBlock, FromHex, ToHex
 from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
-from test_framework.util import *
-from test_framework.mininode import FromHex, ToHex
-from test_framework.messages import CMerkleBlock
+from test_framework.util import assert_equal, assert_raises_rpc_error, connect_nodes
 
 from decimal import Decimal
-
 
 class MerkleBlockTest(UnitETestFramework):
     def set_test_params(self):
@@ -18,6 +16,9 @@ class MerkleBlockTest(UnitETestFramework):
         self.setup_clean_chain = True
         # Nodes 0/1 are "wallet" nodes, Nodes 2/3 are used for testing
         self.extra_args = [[], [], [], ["-txindex"]]
+
+    def skip_test_if_missing_module(self):
+        self.skip_if_no_wallet()
 
     def setup_network(self):
         self.setup_nodes()
@@ -43,12 +44,12 @@ class MerkleBlockTest(UnitETestFramework):
             [self.find_utxo_with_amount(self.nodes[0], PROPOSER_REWARD)],
             {self.nodes[1].getnewaddress(): PROPOSER_REWARD - Decimal('0.01')}
         )
-        txid1 = self.nodes[0].sendrawtransaction(self.nodes[0].signrawtransaction(tx1)["hex"])
+        txid1 = self.nodes[0].sendrawtransaction(self.nodes[0].signrawtransactionwithwallet(tx1)["hex"])
         tx2 = self.nodes[0].createrawtransaction(
             [self.find_utxo_with_amount(self.nodes[0], PROPOSER_REWARD)],
             {self.nodes[1].getnewaddress(): PROPOSER_REWARD - Decimal('0.01')}
         )
-        txid2 = self.nodes[0].sendrawtransaction(self.nodes[0].signrawtransaction(tx2)["hex"])
+        txid2 = self.nodes[0].sendrawtransaction(self.nodes[0].signrawtransactionwithwallet(tx2)["hex"])
         # This will raise an exception because the transaction is not yet in a block
         assert_raises_rpc_error(-5, "Transaction not yet in block", self.nodes[0].gettxoutproof, [txid1])
 
@@ -67,7 +68,7 @@ class MerkleBlockTest(UnitETestFramework):
 
         txin_spent = self.nodes[1].listunspent(1).pop()
         tx3 = self.nodes[1].createrawtransaction([txin_spent], {self.nodes[0].getnewaddress(): PROPOSER_REWARD - Decimal('0.02')})
-        txid3 = self.nodes[0].sendrawtransaction(self.nodes[1].signrawtransaction(tx3)["hex"])
+        txid3 = self.nodes[0].sendrawtransaction(self.nodes[1].signrawtransactionwithwallet(tx3)["hex"])
         self.nodes[0].generate(1)
         self.sync_all()
 
