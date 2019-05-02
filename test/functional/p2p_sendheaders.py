@@ -24,36 +24,36 @@ test_nonnull_locators
 =====================
 
 Part 1: No headers announcements before "sendheaders"
-a. node mines a block [expect: inv]
+a. node porposes a block [expect: inv]
    send getdata for the block [expect: block]
-b. node mines another block [expect: inv]
+b. node porposes another block [expect: inv]
    send getheaders and getdata [expect: headers, then block]
-c. node mines another block [expect: inv]
-   peer mines a block, announces with header [expect: getdata]
-d. node mines another block [expect: inv]
+c. node porposes another block [expect: inv]
+   peer porposes a block, announces with header [expect: getdata]
+d. node porposes another block [expect: inv]
 
 Part 2: After "sendheaders", headers announcements should generally work.
 a. peer sends sendheaders [expect: no response]
    peer sends getheaders with current tip [expect: no response]
-b. node mines a block [expect: tip header]
+b. node porposes a block [expect: tip header]
 c. for N in 1, ..., 10:
    * for announce-type in {inv, header}
-     - peer mines N blocks, announces with announce-type
+     - peer porposes N blocks, announces with announce-type
        [ expect: getheaders/getdata or getdata, deliver block(s) ]
-     - node mines a block [ expect: 1 header ]
+     - node porposes a block [ expect: 1 header ]
 
 Part 3: Headers announcements stop after large reorg and resume after getheaders or inv from peer.
 - For response-type in {inv, getheaders}
-  * node mines a 7 block reorg [ expect: headers announcement of 8 blocks ]
-  * node mines an 8-block reorg [ expect: inv at tip ]
+  * node porposes a 7 block reorg [ expect: headers announcement of 8 blocks ]
+  * node porposes an 8-block reorg [ expect: inv at tip ]
   * peer responds with getblocks/getdata [expect: inv, blocks ]
-  * node mines another block [ expect: inv at tip, peer sends getdata, expect: block ]
-  * node mines another block at tip [ expect: inv ]
+  * node porposes another block [ expect: inv at tip, peer sends getdata, expect: block ]
+  * node porposes another block at tip [ expect: inv ]
   * peer responds with getheaders with an old hashstop more than 8 blocks back [expect: headers]
   * peer requests block [ expect: block ]
-  * node mines another block at tip [ expect: inv, peer sends getdata, expect: block ]
+  * node porposes another block at tip [ expect: inv, peer sends getdata, expect: block ]
   * peer sends response-type [expect headers if getheaders, getheaders/getdata if mining new block]
-  * node mines 1 block [expect: 1 header, peer responds with getdata]
+  * node porposes 1 block [expect: 1 header, peer responds with getdata]
 
 Part 4: Test direct fetch behavior
 a. Announce 2 old block headers.
@@ -232,8 +232,8 @@ class SendHeadersTest(UnitETestFramework):
             coin = get_unspent_coins(self.nodes[0], 1)[0]
         return sign_coinbase(self.nodes[0], create_coinbase(height, coin, snapshot_hash))
 
-    def mine_blocks(self, count):
-        """Mine count blocks and return the new tip."""
+    def propose_blocks(self, count):
+        """Porpose count blocks and return the new tip."""
 
         # Clear out block announcements from each p2p listener
         [x.clear_block_announcements() for x in self.nodes[0].p2ps]
@@ -241,11 +241,11 @@ class SendHeadersTest(UnitETestFramework):
         return int(self.nodes[0].getbestblockhash(), 16)
 
     def mine_reorg(self, length):
-        """Mine a reorg that invalidates length blocks (replacing them with # length+1 blocks).
+        """Porpose a reorg that invalidates length blocks (replacing them with # length+1 blocks).
 
         Note: we clear the state of our p2p connections after the
-        to-be-reorged-out blocks are mined, so that we don't break later tests.
-        return the list of block hashes newly mined."""
+        to-be-reorged-out blocks are proposed, so that we don't break later tests.
+        return the list of block hashes newly proposed."""
 
         self.nodes[0].generate(length)  # make sure all invalidated blocks are node0's
         sync_blocks(self.nodes, wait=0.1)
@@ -311,11 +311,11 @@ class SendHeadersTest(UnitETestFramework):
         tip = int(self.nodes[0].getbestblockhash(), 16)
 
         # PART 1
-        # 1. Mine a block; expect inv announcements each time
+        # 1. Porpose a block; expect inv announcements each time
         self.log.info("Part 1: headers don't start before sendheaders message...")
         for i in range(4):
             old_tip = tip
-            tip = self.mine_blocks(1)
+            tip = self.propose_blocks(1)
             inv_node.check_last_inv_announcement(inv=[tip])
             test_node.check_last_inv_announcement(inv=[tip])
             # Try a few different responses; none should affect next announcement
@@ -357,7 +357,7 @@ class SendHeadersTest(UnitETestFramework):
         test_node.sync_with_ping()
 
         # Now that we've synced headers, headers announcements should work
-        tip = self.mine_blocks(1)
+        tip = self.propose_blocks(1)
         inv_node.check_last_inv_announcement(inv=[tip])
         test_node.check_last_headers_announcement(headers=[tip])
 
@@ -365,9 +365,9 @@ class SendHeadersTest(UnitETestFramework):
         block_time += 10  # Advance far enough ahead
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         for i in range(10):
-            # Mine i blocks, and alternate announcing either via
+            # Propose i blocks, and alternate announcing either via
             # inv (of tip) or via headers. After each, new blocks
-            # mined by the node should successfully be announced
+            # proposed by the node should successfully be announced
             # with block header, even though the blocks are never requested
             for j in range(2):
                 blocks = []
@@ -411,7 +411,7 @@ class SendHeadersTest(UnitETestFramework):
                 # broadcast it)
                 assert "inv" not in inv_node.last_message
                 assert "headers" not in inv_node.last_message
-                tip = self.mine_blocks(1)
+                tip = self.propose_blocks(1)
                 snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
                 inv_node.check_last_inv_announcement(inv=[tip])
                 test_node.check_last_headers_announcement(headers=[tip])
@@ -433,7 +433,7 @@ class SendHeadersTest(UnitETestFramework):
 
             block_time += 8
 
-            # Mine a too-large reorg, which should be announced with a single inv
+            # Porpose a too-large reorg, which should be announced with a single inv
             new_block_hashes = self.mine_reorg(length=8)
             tip = new_block_hashes[-1]
             inv_node.check_last_inv_announcement(inv=[tip])
@@ -451,8 +451,8 @@ class SendHeadersTest(UnitETestFramework):
             test_node.wait_for_block(new_block_hashes[-1])
 
             for i in range(3):
-                # Mine another block, still should get only an inv
-                tip = self.mine_blocks(1)
+                # Porpose another block, still should get only an inv
+                tip = self.propose_blocks(1)
                 inv_node.check_last_inv_announcement(inv=[tip])
                 test_node.check_last_inv_announcement(inv=[tip])
                 if i == 0:
@@ -469,7 +469,7 @@ class SendHeadersTest(UnitETestFramework):
                     test_node.send_get_data([tip])
                     test_node.wait_for_block(tip)
                     # This time, try sending either a getheaders to trigger resumption
-                    # of headers announcements, or mine a new block and inv it, also
+                    # of headers announcements, or porpose a new block and inv it, also
                     # triggering resumption of headers announcements.
                     if j == 0:
                         test_node.send_get_headers(locator=[tip], hashstop=0)
@@ -478,14 +478,14 @@ class SendHeadersTest(UnitETestFramework):
                         test_node.send_block_inv(tip)
                         test_node.sync_with_ping()
             # New blocks should now be announced with header
-            tip = self.mine_blocks(1)
+            tip = self.propose_blocks(1)
             inv_node.check_last_inv_announcement(inv=[tip])
             test_node.check_last_headers_announcement(headers=[tip])
 
         self.log.info("Part 3: success!")
 
         self.log.info("Part 4: Testing direct fetch behavior...")
-        tip = self.mine_blocks(1)
+        tip = self.propose_blocks(1)
         height = self.nodes[0].getblockcount() + 1
         last_time = self.nodes[0].getblock(self.nodes[0].getbestblockhash())['time']
         block_time = last_time + 1
