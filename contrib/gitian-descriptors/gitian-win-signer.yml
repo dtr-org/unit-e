@@ -1,12 +1,13 @@
 ---
 name: "unite-win-signer"
 suites:
-- "bionic"
+- "trusty"
 architectures:
 - "amd64"
 packages:
-# Once osslsigncode supports openssl 1.1, we can change this back to libssl-dev
-- "libssl1.0-dev"
+# In trusty (current build distro) libssl-dev points to libssl 1.0.2, which is correct
+# If we change the build distro also remember to change libssl to libssl1.0-dev
+- "libssl-dev"
 - "autoconf"
 remotes:
 - "url": "git@github.com:dtr-org/unit-e-sigs.git"

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2018 The Bitcoin Core developers
+# Copyright (c) 2014-2017 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test logic for skipping signature validation on old blocks.
@@ -40,20 +40,18 @@ from test_framework.blocktools import (
     update_snapshot_with_tx,
 )
 from test_framework.keytools import KeyTool
-from test_framework.messages import (
-    COutPoint,
-    CBlockHeader,
-    CTransaction,
-    CTxIn,
-    CTxOut,
-    TxType,
-    UTXO,
-    msg_block,
-    msg_headers,
-)
-from test_framework.mininode import (
-    P2PInterface,
-)
+from test_framework.mininode import (CBlockHeader,
+                                     COutPoint,
+                                     CTransaction,
+                                     CTxIn,
+                                     CTxOut,
+                                     UTXO,
+                                     TxType,
+                                     network_thread_join,
+                                     network_thread_start,
+                                     P2PInterface,
+                                     msg_block,
+                                     msg_headers)
 from test_framework.script import (CScript, OP_TRUE)
 from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.util import assert_equal, connect_nodes_bi
@@ -73,12 +71,12 @@ class AssumeValidTest(UnitETestFramework):
     def send_blocks_until_disconnected(self, p2p_conn):
         """Keep sending blocks to the node until we're disconnected."""
         for i in range(len(self.blocks)):
-            if not p2p_conn.is_connected:
+            if p2p_conn.state != "connected":
                 break
             try:
                 p2p_conn.send_message(msg_block(self.blocks[i]))
             except IOError as e:
-                assert not p2p_conn.is_connected
+                assert str(e) == 'Not connected, no pushbuf'
                 break
 
     def assert_blockchain_height(self, node, height):
@@ -138,6 +136,9 @@ class AssumeValidTest(UnitETestFramework):
 
         # Connect to node0
         p2p0 = self.nodes[0].add_p2p_connection(BaseNode())
+
+        network_thread_start()
+        self.nodes[0].p2p.wait_for_verack()
 
         # Build the blockchain
         self.tip = int(self.nodes[0].getbestblockhash(), 16)
@@ -218,7 +219,9 @@ class AssumeValidTest(UnitETestFramework):
             snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta, height, coinbase)
             height += 1
 
+        # We're adding new connections so terminate the network thread
         self.nodes[0].disconnect_p2ps()
+        network_thread_join()
 
         self.log.info("Start node1 and node2 with assumevalid so they accept a block with a bad signature.")
         self.start_node(1, extra_args=["-assumevalid=" + hex(block102.sha256)])
@@ -228,7 +231,13 @@ class AssumeValidTest(UnitETestFramework):
         p2p1 = self.nodes[1].add_p2p_connection(BaseNode())
         p2p2 = self.nodes[2].add_p2p_connection(BaseNode())
 
-        # send header lists to all three nodes
+        network_thread_start()
+
+        p2p0.wait_for_verack()
+        p2p1.wait_for_verack()
+        p2p2.wait_for_verack()
+
+        self.log.info("send header lists to all three nodes")
         p2p0.send_header_for_blocks(self.blocks[0:2000])
         p2p0.send_header_for_blocks(self.blocks[2000:])
         p2p1.send_header_for_blocks(self.blocks[0:2000])

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2016-2018 The Bitcoin Core developers
+# Copyright (c) 2016-2017 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test version bits warning system.
@@ -12,7 +12,7 @@ import re
 
 from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta, sign_coinbase
 from test_framework.messages import msg_block
-from test_framework.mininode import P2PInterface, mininode_lock
+from test_framework.mininode import P2PInterface, network_thread_start, mininode_lock
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import wait_until
 
@@ -30,9 +30,6 @@ class VersionBitsWarningTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 1
-
-    def skip_test_if_missing_module(self):
-        self.skip_if_no_wallet()
 
     def setup_network(self):
         self.alert_filename = os.path.join(self.options.tmpdir, "alert.txt")
@@ -73,10 +70,13 @@ class VersionBitsWarningTest(UnitETestFramework):
         return VB_PATTERN.search(alert_text) is not None
 
     def run_test(self):
+        # Handy alias
         node = self.nodes[0]
         self.setup_stake_coins(node)
 
         node.add_p2p_connection(P2PInterface())
+        network_thread_start()
+        node.p2p.wait_for_verack()
 
         # Mine one period worth of blocks
         node.generate(VB_PERIOD)

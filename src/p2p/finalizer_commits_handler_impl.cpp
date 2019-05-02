@@ -381,15 +381,15 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
 
       last_index = new_index;
     }
-
-    // At this point we must either:
-    // * process commits and find last_index;
-    // * return if one of the commits is broken;
-    // * return if we receive empty commits set.
-    assert(last_index != nullptr);
-
-    UpdateBlockAvailability(node.GetId(), last_index->GetBlockHash());
   }
+
+  // At this point we must either:
+  // * process commits and find last_index;
+  // * return if one of the commits is broken;
+  // * return if we receive empty commits set.
+  assert(last_index != nullptr);
+
+  UpdateBlockAvailability(node.GetId(), last_index->GetBlockHash());
 
   blockchain::Height download_until = 0;
 

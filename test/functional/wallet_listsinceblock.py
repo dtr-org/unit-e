@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2018 The Bitcoin Core developers
+# Copyright (c) 2017 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the listsincelast RPC."""
@@ -7,7 +7,7 @@
 from test_framework.test_framework import (UnitETestFramework, DISABLE_FINALIZATION)
 from test_framework.util import assert_equal, assert_array_result, assert_raises_rpc_error
 from test_framework.blocktools import generate
-from test_framework.mininode import P2PInterface
+from test_framework.mininode import P2PInterface, network_thread_start
 
 
 class ListSinceBlockTest (UnitETestFramework):
@@ -16,11 +16,9 @@ class ListSinceBlockTest (UnitETestFramework):
         self.extra_args = [[DISABLE_FINALIZATION]] * 4
         self.setup_clean_chain = True
 
-    def skip_test_if_missing_module(self):
-        self.skip_if_no_wallet()
-
     def run_test(self):
         p2p = self.nodes[2].add_p2p_connection(P2PInterface())
+        network_thread_start()
         p2p.wait_for_verack()
 
         self.setup_stake_coins(self.nodes[1], self.nodes[2])
@@ -160,26 +158,26 @@ class ListSinceBlockTest (UnitETestFramework):
 
         # send from nodes[1] using utxo to nodes[0]
         change = '%.8f' % (float(utxo['amount']) - 1.0003)
-        recipient_dict = {
+        recipientDict = {
             self.nodes[0].getnewaddress(): 1,
             self.nodes[1].getnewaddress(): change,
         }
-        utxo_dicts = [{
+        utxoDicts = [{
             'txid': utxo['txid'],
             'vout': utxo['vout'],
         }]
         txid1 = self.nodes[1].sendrawtransaction(
-            self.nodes[1].signrawtransactionwithwallet(
-                self.nodes[1].createrawtransaction(utxo_dicts, recipient_dict))['hex'])
+            self.nodes[1].signrawtransaction(
+                self.nodes[1].createrawtransaction(utxoDicts, recipientDict))['hex'])
 
         # send from nodes[2] using utxo to nodes[3]
-        recipient_dict2 = {
+        recipientDict2 = {
             self.nodes[3].getnewaddress(): 1,
             self.nodes[2].getnewaddress(): change,
         }
         self.nodes[2].sendrawtransaction(
-            self.nodes[2].signrawtransactionwithwallet(
-                self.nodes[2].createrawtransaction(utxo_dicts, recipient_dict2))['hex'])
+            self.nodes[2].signrawtransaction(
+                self.nodes[2].createrawtransaction(utxoDicts, recipientDict2))['hex'])
 
         # generate on both sides
         lastblockhash = self.nodes[1].generate(3)[2]
@@ -222,7 +220,7 @@ class ListSinceBlockTest (UnitETestFramework):
         1. tx1 is listed in listsinceblock.
         2. It is included in 'removed' as it was removed, even though it is now
            present in a different block.
-        3. It is listed with a confirmation count of 2 (bb3, bb4), not
+        3. It is listed with a confirmations count of 2 (bb3, bb4), not
            3 (aa1, aa2, aa3).
         '''
 
@@ -235,16 +233,16 @@ class ListSinceBlockTest (UnitETestFramework):
         utxos = self.nodes[2].listunspent()
         utxo = utxos[0]
         change = '%.8f' % (float(utxo['amount']) - 1.0003)
-        recipient_dict = {
+        recipientDict = {
             self.nodes[0].getnewaddress(): 1,
             self.nodes[2].getnewaddress(): change,
         }
-        utxo_dicts = [{
+        utxoDicts = [{
             'txid': utxo['txid'],
             'vout': utxo['vout'],
         }]
-        signedtxres = self.nodes[2].signrawtransactionwithwallet(
-            self.nodes[2].createrawtransaction(utxo_dicts, recipient_dict))
+        signedtxres = self.nodes[2].signrawtransaction(
+                self.nodes[2].createrawtransaction(utxoDicts, recipientDict))
         assert signedtxres['complete']
 
         signedtx = signedtxres['hex']
@@ -253,7 +251,7 @@ class ListSinceBlockTest (UnitETestFramework):
         txid1 = self.nodes[1].sendrawtransaction(signedtx)
 
         # generate bb1-bb2 on right side
-        generate(self.nodes[2], 2, preserve_utxos=utxo_dicts, send_witness=True)
+        generate(self.nodes[2], 2, preserve_utxos=utxoDicts, send_witness=True)
 
         # send from nodes[2]; this will end up in bb3
         txid2 = self.nodes[2].sendrawtransaction(signedtx)

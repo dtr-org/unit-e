@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -15,12 +15,12 @@
 #include <rpc/server.h>
 #include <init.h>
 #include <noui.h>
-#include <shutdown.h>
 #include <util.h>
 #include <httpserver.h>
 #include <httprpc.h>
 #include <utilstrencodings.h>
-#include <walletinitinterface.h>
+
+#include <boost/thread.hpp>
 
 #include <stdio.h>
 
@@ -36,17 +36,18 @@
  *
  * The software is a community-driven open source project, released under the MIT license.
  *
- * See https://github.com/unite/unite and https://bitcoincore.org/ for further information about the project.
- *
  * \section Navigation
  * Use the buttons <code>Namespaces</code>, <code>Classes</code> or <code>Files</code> at the top of the page to start navigating the code.
  */
 
-static void WaitForShutdown()
+void WaitForShutdown()
 {
-    while (!ShutdownRequested())
+    bool fShutdown = ShutdownRequested();
+    // Tell the main threads to shutdown.
+    while (!fShutdown)
     {
         MilliSleep(200);
+        fShutdown = ShutdownRequested();
     }
     Interrupt();
 }
@@ -55,23 +56,19 @@ static void WaitForShutdown()
 //
 // Start
 //
-static bool AppInit(int argc, char* argv[])
+bool AppInit(int argc, char* argv[])
 {
     bool fRet = false;
 
     //
     // Parameters
     //
-    SetupServerArgs();
-    std::string error;
-    if (!gArgs.ParseParameters(argc, argv, error)) {
-        fprintf(stderr, "Error parsing command line arguments: %s\n", error.c_str());
-        return false;
-    }
+    gArgs.ParseParameters(argc, argv);
 
     // Process help and version before taking care about datadir
-    if (HelpRequested(gArgs) || gArgs.IsArgSet("-version")) {
-        std::string strUsage = PACKAGE_NAME " Daemon version " + FormatFullVersion() + "\n";
+    if (gArgs.IsArgSet("-?") || gArgs.IsArgSet("-h") ||  gArgs.IsArgSet("-help") || gArgs.IsArgSet("-version"))
+    {
+        std::string strUsage = strprintf(_("%s Daemon"), _(PACKAGE_NAME)) + " " + _("version") + " " + FormatFullVersion() + "\n";
 
         if (gArgs.IsArgSet("-version"))
         {
@@ -79,8 +76,10 @@ static bool AppInit(int argc, char* argv[])
         }
         else
         {
-            strUsage += "\nUsage:  unit-e [options]                     Start " PACKAGE_NAME " Daemon\n";
-            strUsage += "\n" + gArgs.GetHelpMessage();
+            strUsage += "\n" + _("Usage:") + "\n" +
+                  "  unit-e [options]                     " + strprintf(_("Start %s Daemon"), _(PACKAGE_NAME)) + "\n";
+
+            strUsage += "\n" + HelpMessage(HelpMessageMode::UNIT_E);
         }
 
         fprintf(stdout, "%s", strUsage.c_str());
@@ -94,13 +93,16 @@ static bool AppInit(int argc, char* argv[])
             fprintf(stderr, "Error: Specified data directory \"%s\" does not exist.\n", gArgs.GetArg("-datadir", "").c_str());
             return false;
         }
-        if (!gArgs.ReadConfigFiles(error, true)) {
-            fprintf(stderr, "Error reading configuration file: %s\n", error.c_str());
+        try
+        {
+            gArgs.ReadConfigFile(gArgs.GetArg("-conf", UNITE_CONF_FILENAME));
+        } catch (const std::exception& e) {
+            fprintf(stderr,"Error reading configuration file: %s\n", e.what());
             return false;
         }
         // Check for -testnet or -regtest parameter (Params() calls are only valid after this clause)
         try {
-            SelectParams(blockchain::Behavior::MakeGlobal(&gArgs), gArgs.GetChainName());
+            SelectParams(blockchain::Behavior::MakeGlobal(&gArgs), ChainNameFromCommandLine());
         } catch (const std::exception& e) {
             fprintf(stderr, "Error: %s\n", e.what());
             return false;

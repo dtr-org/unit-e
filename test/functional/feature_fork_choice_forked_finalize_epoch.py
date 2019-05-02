@@ -45,13 +45,13 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
 
         esperanza_config = '-esperanzaconfig={"epochLength":5}'
         self.extra_args = [
-            ['-deprecatedrpc=accounts', '-proposing=0', esperanza_config],
-            ['-deprecatedrpc=accounts', '-proposing=0', esperanza_config],
-            ['-deprecatedrpc=accounts', '-proposing=0', esperanza_config, '-validating=1'],
+            ['-proposing=0', esperanza_config],
+            ['-proposing=0', esperanza_config],
+            ['-proposing=0', esperanza_config, '-validating=1'],
 
-            ['-deprecatedrpc=accounts', '-proposing=0', esperanza_config],
-            ['-deprecatedrpc=accounts', '-proposing=0', esperanza_config],
-            ['-deprecatedrpc=accounts', '-proposing=0', esperanza_config, '-validating=1'],
+            ['-proposing=0', esperanza_config],
+            ['-proposing=0', esperanza_config],
+            ['-proposing=0', esperanza_config, '-validating=1'],
         ]
 
     def setup_network(self):

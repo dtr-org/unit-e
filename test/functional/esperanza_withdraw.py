@@ -248,7 +248,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         #      d2
         spent_w1_raw = finalizer1.createrawtransaction(
             [{'txid': w1, 'vout': 0}], {finalizer1_address: Decimal('1499.999')})
-        spent_w1_signed = finalizer1.signrawtransactionwithwallet(spent_w1_raw)
+        spent_w1_signed = finalizer1.signrawtransaction(spent_w1_raw)
         spent_w1 = finalizer1.sendrawtransaction(spent_w1_signed['hex'])
         self.wait_for_transaction(spent_w1, nodes=[proposer])
 

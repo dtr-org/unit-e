@@ -15,13 +15,13 @@ Or mathematically, it is:
 * Commutative: H(a,b) = H(b,a)
 * Associative: H(H(a,b),c) = H(a,H(b,c))
 
-Hence it behaves similar to XORing the hashes of the individual elements,
+Hence it behaves similar to XORing the hashes of the individual elements, 
 but without the cryptographic weakness of XOR.
 
 Motivation
 ----------
 
-The multiset can be used by cryptocurrencies to cheaply create and
+The multiset can be used by cryptocurrencies to cheaply create and 
 maintain a commitment to the full UTXO set as proposed by Pieter Wiulle [1]
 
 It can also be used with a bucketed approach to enable cheap UTXO-proofs as
@@ -54,8 +54,8 @@ Algorithm
 Using Elliptic Curves as multisets is described in [3].
 
 This implementation uses trial-and-hash [4] to convert the hash into
-point on the secp256k1 curve which serves as multiset. The curve's
-group operations are then used to add and remove multisets.
+point on the secp256k1 curve which serves as multiset. The curve's 
+group operations are then used to add and remove multisets. 
 Associativity and Commutativity then follow.
 
 Security

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2015-2018 The Bitcoin Core developers
+# Copyright (c) 2015-2017 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test processing of unrequested blocks.
@@ -51,41 +51,22 @@ Node1 is unused in tests 3-7:
    work on its chain).
 """
 
-import os
+from test_framework.mininode import *
+from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY
+from test_framework.util import *
 import time
-
 from test_framework.blocktools import (
     create_block,
     sign_coinbase,
     create_coinbase,
     create_transaction,
-    create_tx_with_script,
     get_tip_snapshot_meta,
     calc_snapshot_hash,
     TxType,
     UTXO,
     COutPoint,
 )
-from test_framework.messages import (
-    CBlockHeader,
-    CInv,
-    UNIT,
-    msg_block,
-    msg_headers,
-    msg_inv,
-)
-from test_framework.mininode import mininode_lock, P2PInterface
-from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY
-from test_framework.util import (
-    assert_equal,
-    assert_raises_rpc_error,
-    connect_nodes,
-    get_unspent_coins,
-    hex_str_to_bytes,
-    sync_blocks,
-)
 from test_framework.script import (CScript, CTxOut)
-
 
 class UTXOManager:
     def __init__(self, node, snapshot_meta):
@@ -138,17 +119,14 @@ class UTXOManager:
 
 class AcceptBlockTest(UnitETestFramework):
     def add_options(self, parser):
-        parser.add_argument("--testbinary", dest="testbinary",
-                            default=os.getenv("UNIT_E", "unit-e"),
-                            help="unit-e binary to test")
+        parser.add_option("--testbinary", dest="testbinary",
+                          default=os.getenv("UNIT_E", "unit-e"),
+                          help="unit-e binary to test")
 
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 2
         self.extra_args = [[], ["-minimumchainwork=0x10"]]
-
-    def skip_test_if_missing_module(self):
-        self.skip_if_no_wallet()
 
     def setup_network(self):
         # Node0 will be used to test behavior of processing unrequested blocks
@@ -161,11 +139,17 @@ class AcceptBlockTest(UnitETestFramework):
     def run_test(self):
         self.setup_stake_coins(*self.nodes)
 
-        # Setup the p2p connections
+        # Setup the p2p connections and start up the network thread.
         # test_node connects to node0 (not whitelisted)
         test_node = self.nodes[0].add_p2p_connection(P2PInterface())
         # min_work_node connects to node1 (whitelisted)
         min_work_node = self.nodes[1].add_p2p_connection(P2PInterface())
+
+        network_thread_start()
+
+        # Test logic begins here
+        test_node.wait_for_verack()
+        min_work_node.wait_for_verack()
 
         fork_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         utxo_manager = UTXOManager(self.nodes[0], fork_snapshot_meta)
@@ -261,7 +245,7 @@ class AcceptBlockTest(UnitETestFramework):
 
         self.log.info("4c. Now mine 288 more blocks and deliver")
         # all should be processed but
-        # the last (height-too-high) on node (as long as it is not missing any headers)
+        # the last (height-too-high) on node (as long as its not missing any headers)
         tip = block_h3
         all_blocks = []
         for height in range(4, 292):
@@ -305,8 +289,11 @@ class AcceptBlockTest(UnitETestFramework):
 
         self.nodes[0].disconnect_p2ps()
         self.nodes[1].disconnect_p2ps()
+        network_thread_join()
 
         test_node = self.nodes[0].add_p2p_connection(P2PInterface())
+        network_thread_start()
+        test_node.wait_for_verack()
 
         test_node.send_message(msg_block(block_h1f))
 
@@ -364,7 +351,7 @@ class AcceptBlockTest(UnitETestFramework):
         coinbase = utxo_fork_manager.get_coinbase(292)
         block_292f = create_block(block_291f.sha256, coinbase, block_291f.nTime+1)
         # block_292f spends a coinbase below maturity!
-        block_292f.vtx.append(create_tx_with_script(block_291f.vtx[0], 0, script_sig=b"42", amount=1))
+        block_292f.vtx.append(create_transaction(block_291f.vtx[0], 0, b"42", 1))
         block_292f.compute_merkle_trees()
         block_292f.solve()
         utxo_fork_manager.process(coinbase, 292)
@@ -408,6 +395,9 @@ class AcceptBlockTest(UnitETestFramework):
 
             self.nodes[0].disconnect_p2ps()
             test_node = self.nodes[0].add_p2p_connection(P2PInterface())
+
+            network_thread_start()
+            test_node.wait_for_verack()
 
         # We should have failed reorg and switched back to 290 (but have block 291)
         assert_equal(self.nodes[0].getblockcount(), 291)

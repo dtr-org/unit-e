@@ -131,7 +131,7 @@ class WalletExtension : public staking::StakingWallet {
   //! \param[in] amount
   //! \param[out] wtxOut the transaction created
   //! \returns true if the operation was successful, false otherwise.
-  bool SendDeposit(const CKeyID &keyID, CAmount amount, CTransactionRef &wtxOut);
+  bool SendDeposit(const CKeyID &keyID, CAmount amount, CWalletTx &wtxOut);
 
   //! \brief Creates a vote transaction starting from a Vote object and a
   //! previous transaction (vote or deposit  reference. It fills inputs,
@@ -143,20 +143,20 @@ class WalletExtension : public staking::StakingWallet {
   //! \param[in] vote the vote data
   //! \param[out] wtxNew the vote transaction committed
   bool SendVote(const CTransactionRef &depositRef, const Vote &vote,
-                CTransactionRef &wtxNewOut);
+                CWalletTx &wtxNewOut);
 
   //! \brief Creates and sends a logout transaction.
   //!
   //! \param wtxNewOut[out] the logout transaction created.
   //! \returns true if the operation was successful, false otherwise.
-  bool SendLogout(CTransactionRef &wtxNewOut);
+  bool SendLogout(CWalletTx &wtxNewOut);
 
   //! \brief Creates and sends a withdraw transaction.
   //!
   //! \param address to which withdraw the amount
   //! \param wtxNewOut[out] the withdraw transaction created.
   //! \returns true if the operation was successful, false otherwise.
-  bool SendWithdraw(const CTxDestination &address, CTransactionRef &wtxNewOut);
+  bool SendWithdraw(const CTxDestination &address, CWalletTx &wtxNewOut);
 
   //! \brief Creates and send a slash transaction.
   //!
@@ -170,7 +170,7 @@ class WalletExtension : public staking::StakingWallet {
   //!
   //! The arguments mirror the ones for CWallet::CreateTransaction.
   //! \returns true if the operation was successful, false otherwise.
-  bool CreateRemoteStakingTransaction(const CRecipient &recipient, CTransactionRef *wtx_out,
+  bool CreateRemoteStakingTransaction(const CRecipient &recipient, CWalletTx *wtx_out,
                                       CReserveKey *key_change_out, CAmount *fee_out,
                                       std::string *error_out,
                                       const CCoinControl &coin_control);

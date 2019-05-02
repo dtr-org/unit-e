@@ -1,9 +1,9 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
-#ifndef UNITE_POLICY_FEES_H
-#define UNITE_POLICY_FEES_H
+#ifndef UNITE_POLICYESTIMATOR_H
+#define UNITE_POLICYESTIMATOR_H
 
 #include <amount.h>
 #include <policy/feerate.h>
@@ -224,7 +224,7 @@ public:
     bool Read(CAutoFile& filein);
 
     /** Empty mempool transactions on shutdown to record failure to confirm for txs still in mempool */
-    void FlushUnconfirmed();
+    void FlushUnconfirmed(CTxMemPool& pool);
 
     /** Calculation of highest target that estimates are tracked for */
     unsigned int HighestTargetTracked(FeeEstimateHorizon horizon) const;
@@ -295,4 +295,4 @@ private:
     FastRandomContext insecure_rand;
 };
 
-#endif // UNITE_POLICY_FEES_H
+#endif /*UNITE_POLICYESTIMATOR_H */

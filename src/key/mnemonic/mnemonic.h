@@ -74,7 +74,7 @@ class Seed final {
   std::string m_hexSeed;
   std::string m_hexEntropy;
   CExtKey m_extKey;
-  std::string m_extKey58;
+  CUnitEExtKey m_extKey58;
 
  public:
   explicit Seed(const std::string &mnemonic,
@@ -96,7 +96,7 @@ class Seed final {
   const CExtKey &GetExtKey() const;
 
   //! A Base58 representation of the extended key (including checksum etc.)
-  const std::string &GetExtKey58() const;
+  const CUnitEExtKey &GetExtKey58() const;
 };
 
 }  // namespace mnemonic

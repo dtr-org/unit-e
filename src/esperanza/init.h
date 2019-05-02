@@ -7,11 +7,9 @@
 
 #include <string>
 
-class ArgsManager;
-
 namespace esperanza {
 
-void AddOptions(ArgsManager &args);
+std::string GetHelpString(bool showDebug);
 
 }  // namespace esperanza
 

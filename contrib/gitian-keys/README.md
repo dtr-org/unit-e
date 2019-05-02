@@ -1,7 +1,6 @@
 ## PGP keys of Gitian builders and Developers
 
-The file `keys.txt` contains fingerprints of the public keys of Gitian builders
-and active developers.
+The file keys.txt contains the public keys of unit-e Gitian builders and active developers.
 
 The keys are used to sign the results of unit-e Gitian builds.
 

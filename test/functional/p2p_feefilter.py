@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
-# Copyright (c) 2016-2018 The Bitcoin Core developers
+# Copyright (c) 2016-2017 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test processing of feefilter messages."""
 
-from decimal import Decimal
+from test_framework.mininode import *
+from test_framework.test_framework import UnitETestFramework
+from test_framework.util import *
 import time
 
-from test_framework.messages import msg_feefilter
-from test_framework.mininode import mininode_lock, P2PInterface
-from test_framework.test_framework import UnitETestFramework
-from test_framework.util import sync_blocks, sync_mempools
 
 def hashToHex(hash):
     return format(hash, '064x')
@@ -24,7 +22,7 @@ def allInvsMatch(invsExpected, testnode):
         time.sleep(1)
     return False
 
-class TestP2PConn(P2PInterface):
+class TestNode(P2PInterface):
     def __init__(self):
         super().__init__()
         self.txinvs = []
@@ -42,9 +40,6 @@ class FeeFilterTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 2
 
-    def skip_test_if_missing_module(self):
-        self.skip_if_no_wallet()
-
     def run_test(self):
         node1 = self.nodes[1]
         node0 = self.nodes[0]
@@ -52,7 +47,10 @@ class FeeFilterTest(UnitETestFramework):
         node1.generate(1)
         sync_blocks(self.nodes)
 
-        self.nodes[0].add_p2p_connection(TestP2PConn())
+        # Setup the p2p connections and start up the network thread.
+        self.nodes[0].add_p2p_connection(TestNode())
+        network_thread_start()
+        self.nodes[0].p2p.wait_for_verack()
 
         # Test that invs are received for all txs at feerate of 20 sat/byte
         node1.settxfee(Decimal("0.00020000"))

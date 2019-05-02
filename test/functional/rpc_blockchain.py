@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2018 The Bitcoin Core developers
+# Copyright (c) 2014-2017 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test RPCs related to blockchainstate.
@@ -30,33 +30,15 @@ from test_framework.util import (
     assert_raises_rpc_error,
     assert_is_hex_string,
     assert_is_hash_string,
-    get_unspent_coins,
 )
-from test_framework.blocktools import (
-    create_block,
-    create_coinbase,
-    get_tip_snapshot_meta,
-    sign_coinbase,
-)
-from test_framework.messages import (
-    msg_block,
-)
-from test_framework.mininode import (
-    P2PInterface,
-)
-
 
 class BlockchainTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 1
+        self.extra_args = [['-stopatheight=207', '-prune=1', DISABLE_FINALIZATION]]
         self.setup_clean_chain = True
 
-    def skip_test_if_missing_module(self):
-        self.skip_if_no_wallet()
-
     def run_test(self):
-        self.restart_node(0, extra_args=['-stopatheight=207', '-prune=1', DISABLE_FINALIZATION])  # Set extra args with pruning after rescan is complete
-
         self.setup_stake_coins(self.nodes[0], rescan=False)
 
         genesis = self.nodes[0].getblock(self.nodes[0].getbestblockhash())
@@ -73,7 +55,6 @@ class BlockchainTest(UnitETestFramework):
         self._test_getblockheader()
         self._test_getdifficulty()
         self._test_stopatheight()
-        self._test_waitforblockheight()
         assert self.nodes[0].verifychain(4, 0)
 
     def _test_getblockchaininfo(self):
@@ -128,26 +109,6 @@ class BlockchainTest(UnitETestFramework):
         assert_greater_than(res['size_on_disk'], 0)
 
     def _test_getchaintxstats(self):
-        # UNIT-E: FIXME: Re-enable after we've updated to latest master
-        self.log.info("Skipping: Test getchaintxstats")
-        return
-
-        # Test `getchaintxstats` invalid extra parameters
-        assert_raises_rpc_error(-1, 'getchaintxstats', self.nodes[0].getchaintxstats, 0, '', 0)
-
-        # Test `getchaintxstats` invalid `nblocks`
-        assert_raises_rpc_error(-1, "JSON value is not an integer as expected", self.nodes[0].getchaintxstats, '')
-        assert_raises_rpc_error(-8, "Invalid block count: should be between 0 and the block's height - 1", self.nodes[0].getchaintxstats, -1)
-        assert_raises_rpc_error(-8, "Invalid block count: should be between 0 and the block's height - 1", self.nodes[0].getchaintxstats, self.nodes[0].getblockcount())
-
-        # Test `getchaintxstats` invalid `blockhash`
-        assert_raises_rpc_error(-1, "JSON value is not a string as expected", self.nodes[0].getchaintxstats, blockhash=0)
-        assert_raises_rpc_error(-5, "Block not found", self.nodes[0].getchaintxstats, blockhash='0')
-        blockhash = self.nodes[0].getblockhash(200)
-        self.nodes[0].invalidateblock(blockhash)
-        assert_raises_rpc_error(-8, "Block is not in main chain", self.nodes[0].getchaintxstats, blockhash=blockhash)
-        self.nodes[0].reconsiderblock(blockhash)
-
         chaintxstats = self.nodes[0].getchaintxstats(1)
         # 200 txs plus genesis tx
         assert_equal(chaintxstats['txcount'], 201)
@@ -155,29 +116,27 @@ class BlockchainTest(UnitETestFramework):
         # all transactions are created with the rate lower than 1 sec
         assert 'txrate' not in chaintxstats
 
-        b1_hash = self.nodes[0].getblockhash(1)
-        b1 = self.nodes[0].getblock(b1_hash)
-        b200_hash = self.nodes[0].getblockhash(200)
-        b200 = self.nodes[0].getblock(b200_hash)
+        b1 = self.nodes[0].getblock(self.nodes[0].getblockhash(1))
+        b200 = self.nodes[0].getblock(self.nodes[0].getblockhash(200))
         time_diff = b200['mediantime'] - b1['mediantime']
 
         chaintxstats = self.nodes[0].getchaintxstats()
         assert_equal(chaintxstats['time'], b200['time'])
         assert_equal(chaintxstats['txcount'], 201)
-        assert_equal(chaintxstats['window_final_block_hash'], b200_hash)
         assert_equal(chaintxstats['window_block_count'], 199)
         assert_equal(chaintxstats['window_tx_count'], 199)
         assert_equal(chaintxstats['window_interval'], time_diff)
         assert_equal(round(chaintxstats['txrate'] * time_diff, 10), Decimal(199))
 
-        chaintxstats = self.nodes[0].getchaintxstats(blockhash=b1_hash)
+        chaintxstats = self.nodes[0].getchaintxstats(blockhash=b1['hash'])
         assert_equal(chaintxstats['time'], b1['time'])
         assert_equal(chaintxstats['txcount'], 2)
-        assert_equal(chaintxstats['window_final_block_hash'], b1_hash)
         assert_equal(chaintxstats['window_block_count'], 0)
         assert 'window_tx_count' not in chaintxstats
         assert 'window_interval' not in chaintxstats
         assert 'txrate' not in chaintxstats
+
+        assert_raises_rpc_error(-8, "Invalid block count: should be between 0 and the block's height - 1", self.nodes[0].getchaintxstats, 201)
 
     def _test_gettxoutsetinfo(self):
         node = self.nodes[0]
@@ -218,16 +177,20 @@ class BlockchainTest(UnitETestFramework):
         node.reconsiderblock(b1hash)
 
         res3 = node.gettxoutsetinfo()
-        # The field 'disk_size' is non-deterministic and can thus not be
-        # compared between res and res3.  Everything else should be the same.
-        del res['disk_size'], res3['disk_size']
-        assert_equal(res, res3)
+        assert_equal(res['total_amount'], res3['total_amount'])
+        assert_equal(res['transactions'], res3['transactions'])
+        assert_equal(res['height'], res3['height'])
+        assert_equal(res['txouts'], res3['txouts'])
+        assert_equal(res['bogosize'], res3['bogosize'])
+        assert_equal(res['bestblock'], res3['bestblock'])
+        assert_equal(res['hash_serialized_2'], res3['hash_serialized_2'])
 
     def _test_getblockheader(self):
         node = self.nodes[0]
         self.log.info("Test getblockheader")
 
-        assert_raises_rpc_error(-5, "Block not found", node.getblockheader, "nonsense")
+        assert_raises_rpc_error(-5, "Block not found",
+                              node.getblockheader, "nonsense")
 
         besthash = node.getbestblockhash()
         secondbesthash = node.getblockhash(199)
@@ -271,49 +234,8 @@ class BlockchainTest(UnitETestFramework):
             pass  # The node already shut down before response
         self.log.debug('Node should stop at this height...')
         self.nodes[0].wait_until_stopped()
-        self.start_node(0, extra_args=[DISABLE_FINALIZATION])
+        self.start_node(0)
         assert_equal(self.nodes[0].getblockcount(), 207)
-
-    def _test_waitforblockheight(self):
-        self.log.info("Test waitforblockheight")
-        node = self.nodes[0]
-        node.add_p2p_connection(P2PInterface())
-
-        current_height = node.getblock(node.getbestblockhash())['height']
-
-        # Create a fork somewhere below our current height, invalidate the tip
-        # of that fork, and then ensure that waitforblockheight still
-        # works as expected.
-        #
-        # (Previously this was broken based on setting
-        # `rpc/blockchain.cpp:latestblock` incorrectly.)
-        #
-        b20hash = node.getblockhash(20)
-        b20 = node.getblock(b20hash)
-
-        def solve_and_send_block(prevhash, height, time):
-            snapshot_hash = get_tip_snapshot_meta(node).hash
-            stake = get_unspent_coins(node, 1)[0]
-            b = create_block(prevhash, sign_coinbase(node, create_coinbase(height, stake, snapshot_hash)), time)
-            b.solve()
-            node.p2p.send_message(msg_block(b))
-            node.p2p.sync_with_ping()
-            return b
-
-        b21f = solve_and_send_block(int(b20hash, 16), 21, b20['time'] + 1)
-        b22f = solve_and_send_block(b21f.sha256, 22, b21f.nTime + 1)
-
-        node.invalidateblock(b22f.hash)
-
-        def assert_waitforheight(height, timeout=2):
-            assert_equal(
-                node.waitforblockheight(height, timeout)['height'],
-                current_height)
-
-        assert_waitforheight(0)
-        assert_waitforheight(current_height - 1)
-        assert_waitforheight(current_height)
-        assert_waitforheight(current_height + 1)
 
 
 if __name__ == '__main__':

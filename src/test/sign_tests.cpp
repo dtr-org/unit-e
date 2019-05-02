@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE(producesignature_vote) {
   SignatureData sigdata;
 
   BOOST_CHECK(ProduceSignature(
-      keystore, MutableTransactionSignatureCreator(&txn, 0, amount, SIGHASH_ALL),
+      keystore, TransactionSignatureCreator(&txToConst, 0, amount, SIGHASH_ALL),
       prevScriptPubKey, sigdata, &txToConst));
 
   ScriptError serror;
@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(producesignature_logout) {
 
   BOOST_CHECK(ProduceSignature(
       keystore,
-      MutableTransactionSignatureCreator(&txn, nIn, amount, SIGHASH_ALL),
+      TransactionSignatureCreator(&txToConst, nIn, amount, SIGHASH_ALL),
       prevScriptPubKey, sigdata, &txToConst));
 
   txn.vin[0].scriptSig = sigdata.scriptSig;
@@ -148,7 +148,7 @@ BOOST_AUTO_TEST_CASE(producesignature_withdraw) {
 
   BOOST_CHECK(ProduceSignature(
       keystore,
-      MutableTransactionSignatureCreator(&txn, nIn, amount, SIGHASH_ALL),
+      TransactionSignatureCreator(&txToConst, nIn, amount, SIGHASH_ALL),
       prevScriptPubKey, sigdata, &txToConst));
 
   txn.vin[0].scriptSig = sigdata.scriptSig;

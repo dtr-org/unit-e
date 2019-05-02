@@ -16,6 +16,7 @@ from test_framework.util import (
     disconnect_nodes,
     assert_equal,
     sync_blocks,
+    sync_chain,
     wait_until,
     JSONRPCException,
 )
@@ -146,6 +147,7 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
         assert_equal(node0.getblockcount(), 28)
 
         connect_nodes(node0, node2.index)
+        sync_chain([node0, node2], timeout=10)
         sync_blocks([node0, node2], timeout=10)
 
         assert_equal(node0.getblockcount(), 28)

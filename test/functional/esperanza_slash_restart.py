@@ -76,7 +76,7 @@ class EsperanzaSlashRestart(UnitETestFramework):
         vote['target_hash'] = "".join(target_hash)
         prev_tx = proposer.decoderawtransaction(ToHex(input_tx))
         vtx = finalizer.createvotetransaction(vote, prev_tx['txid'])
-        vtx = finalizer.signrawtransactionwithwallet(vtx)
+        vtx = finalizer.signrawtransaction(vtx)
         vtx = FromHex(CTransaction(), vtx['hex'])
         return vtx
 

@@ -10,7 +10,7 @@ and is the platform used to build the unit-e Windows release binaries.
 * On Windows using [Windows
 Subsystem for Linux (WSL)](https://msdn.microsoft.com/commandline/wsl/about) and the Mingw-w64 cross compiler tool chain.
 
-Other options which may work, but which have not been extensively tested are (please contribute instructions):
+Other options which may work but which have not been extensively tested are (please contribute instructions):
 
 * On Windows using a POSIX compatibility layer application such as [cygwin](http://www.cygwin.com/) or [msys2](http://www.msys2.org/).
 * On Windows using a native compiler tool chain such as [Visual Studio](https://www.visualstudio.com).
@@ -34,9 +34,10 @@ Full instructions to install WSL are available on the above link.
 To install WSL on Windows 10 with Fall Creators Update installed (version >= 16215.0) do the following:
 
 1. Enable the Windows Subsystem for Linux feature
-  * Open the Windows Features dialog (`OptionalFeatures.exe`)
-  * Enable 'Windows Subsystem for Linux'
-  * Click 'OK' and restart if necessary
+  * From Start, search for "Turn Windows features on or off" (type 'turn')
+  * Select Windows Subsystem for Linux
+  * Click OK
+  * Restart if necessary
 2. Install Ubuntu
   * Open Microsoft Store and search for "Ubuntu 18.04" or use [this link](https://www.microsoft.com/store/productId/9N9TNGVNDL3Q)
   * Click Install
@@ -46,7 +47,7 @@ To install WSL on Windows 10 with Fall Creators Update installed (version >= 162
 
 After the bash shell is active, you can follow the instructions below, starting
 with the "Cross-compilation" section. Compiling the 64-bit version is
-recommended, but it is possible to compile the 32-bit version.
+recommended but it is possible to compile the 32-bit version.
 
 Cross-compilation for Ubuntu and Windows Subsystem for Linux
 ------------------------------------------------------------
@@ -57,8 +58,6 @@ installing the toolchain will be different.
 
 First, install the general dependencies:
 
-    sudo apt update
-    sudo apt upgrade
     sudo apt install build-essential libtool autotools-dev automake pkg-config bsdmainutils curl git
 
 A host toolchain (`build-essential`) is necessary because some dependency
@@ -76,13 +75,13 @@ Ubuntu Bionic 18.04 <sup>[1](#footnote1)</sup>:
 
     sudo update-alternatives --config x86_64-w64-mingw32-g++ # Set the default mingw32 g++ compiler option to posix.
 
-Once the toolchain is installed the build steps are common:
+Once the tool chain is installed the build steps are common:
 
 Note that for WSL the unit-e source path MUST be somewhere in the default mount file system, for
 example /usr/src/unite, AND not under /mnt/d/. If this is not the case the dependency autoconf scripts will fail.
 This means you cannot use a directory that located directly on the host Windows file system to perform the build.
 
-Acquire the source in the usual way:
+The next three steps are an example of how to acquire the source in an appropriate way.
 
     cd /usr/src
     sudo git clone https://github.com/dtr-org/unit-e.git
@@ -112,7 +111,7 @@ Note that for WSL the unit-e source path MUST be somewhere in the default mount 
 example /usr/src/unite, AND not under /mnt/d/. If this is not the case the dependency autoconf scripts will fail.
 This means you cannot use a directory that located directly on the host Windows file system to perform the build.
 
-Acquire the source in the usual way:
+The next three steps are an example of how to acquire the source in an appropriate way.
 
     cd /usr/src
     sudo git clone https://github.com/dtr-org/unit-e.git

@@ -574,8 +574,7 @@ bool P2PState::InFlightSnapshotDiscovery(const CNode &node) {
   }
 
   // node has been already asked for the snapshot data
-  auto min = time_point::min();
-  if (node.m_requested_snapshot_at != min) {
+  if (node.m_requested_snapshot_at != time_point::min()) {
     return false;
   }
 

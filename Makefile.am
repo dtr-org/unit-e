@@ -168,8 +168,7 @@ EXTRA_DIST += \
     test/util/data/txcreatescript4.json \
     test/util/data/txcreatesignv1.hex \
     test/util/data/txcreatesignv1.json \
-    test/util/data/txcreatesignv2.hex \
-    test/util/rpcauth-test.py
+    test/util/data/txcreatesignv2.hex
 
 CLEANFILES = $(OSX_DMG) $(UNITE_WIN_INSTALLER)
 
@@ -189,10 +188,6 @@ docs:
 	@echo "error: doxygen not found"
 endif
 
-clean-docs:
-	rm -rf doc/doxygen
-
-clean-local: clean-docs
+clean-local:
 	rm -rf coverage_percent.txt test_unite.coverage/ total.coverage/ test/tmp/ cache/ $(OSX_APP)
 	rm -rf test/functional/__pycache__ test/functional/test_framework/__pycache__ test/cache
-

@@ -5,7 +5,6 @@
 #ifndef UNITE_FINALIZATION_STATE_REPOSITORY
 #define UNITE_FINALIZATION_STATE_REPOSITORY
 
-#include <chain.h>
 #include <dependency.h>
 #include <esperanza/finalizationstate.h>
 

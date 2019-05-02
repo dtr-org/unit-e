@@ -8,8 +8,8 @@
 #include <esperanza/finalizationstate.h>
 #include <esperanza/validatorstate.h>
 #include <injector.h>
-#include <key_io.h>
 #include <rpc/server.h>
+#include <rpc/safemode.h>
 #include <validation.h>
 #include <wallet/rpcwallet.h>
 #include <wallet/wallet.h>
@@ -17,8 +17,8 @@
 
 UniValue deposit(const JSONRPCRequest &request)
 {
-  const std::shared_ptr<CWallet> wallet = GetWalletForJSONRPCRequest(request);
-  CWallet* const pwallet = wallet.get();
+
+  CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
   if (!EnsureWalletIsAvailable(pwallet, request.fHelp)){
     return NullUniValue;
   }
@@ -79,19 +79,18 @@ UniValue deposit(const JSONRPCRequest &request)
     }
   }
 
-  CTransactionRef tx;
+  CWalletTx tx;
   if (!extWallet.SendDeposit(*keyID, amount, tx)) {
     throw JSONRPCError(RPC_TRANSACTION_ERROR, "Cannot create deposit.");
   }
 
-  return tx->GetHash().GetHex();
+  return tx.GetHash().GetHex();
 }
 
 UniValue withdraw(const JSONRPCRequest &request)
 {
-  const std::shared_ptr<CWallet> wallet = GetWalletForJSONRPCRequest(request);
-  CWallet* const pwallet = wallet.get();
 
+  CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
   if (!EnsureWalletIsAvailable(pwallet, request.fHelp)){
     return NullUniValue;
   }
@@ -164,18 +163,17 @@ UniValue withdraw(const JSONRPCRequest &request)
     throw JSONRPCError(RPC_INVALID_PARAMETER, "Already withdrawn.");
   }
 
-  CTransactionRef tx;
+  CWalletTx tx;
   if (!extWallet.SendWithdraw(address, tx)) {
     throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot send withdraw transaction.");
   }
 
-  return tx->GetHash().GetHex();
+  return tx.GetHash().GetHex();
 }
 
 UniValue logout(const JSONRPCRequest& request) {
-  const std::shared_ptr<CWallet> wallet = GetWalletForJSONRPCRequest(request);
-  CWallet* const pwallet = wallet.get();
 
+  CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
   if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
     return NullUniValue;
   }
@@ -217,19 +215,18 @@ UniValue logout(const JSONRPCRequest& request) {
     }
   }
 
-  CTransactionRef tx;
+  CWalletTx tx;
 
   if (!extWallet.SendLogout(tx)) {
     throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot send logout transaction.");
   }
 
-  return tx->GetHash().GetHex();
+  return tx.GetHash().GetHex();
 }
 
 UniValue getvalidatorinfo(const JSONRPCRequest &request){
-  const std::shared_ptr<CWallet> wallet = GetWalletForJSONRPCRequest(request);
-  CWallet* const pwallet = wallet.get();
 
+  CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
   if (!EnsureWalletIsAvailable(pwallet, request.fHelp)){
     return NullUniValue;
   }
@@ -248,6 +245,8 @@ UniValue getvalidatorinfo(const JSONRPCRequest &request){
         "\nExamples:\n"
             + HelpExampleCli("getvalidatorinfo", "")
             + HelpExampleRpc("getvalidatorinfo", ""));
+
+  ObserveSafeMode();
 
   pwallet->BlockUntilSyncedToCurrentChain();
 
@@ -290,8 +289,7 @@ UniValue createvotetransaction(const JSONRPCRequest &request) {
       + HelpExampleRpc("createvotetransaction", "{\"validator_address\": xxxx, \"target_hash\": xxxx, \"source_epoch\": xxxx, \"target_epoch\": xxxx} txid"));
   }
 
-  std::shared_ptr<CWallet> wallet = GetWalletForJSONRPCRequest(request);
-  CWallet* const pwallet = wallet.get();
+  CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
   if (!EnsureWalletIsAvailable(pwallet, request.fHelp)){
     return NullUniValue;
   }

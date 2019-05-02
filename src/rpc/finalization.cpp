@@ -5,6 +5,7 @@
 #include <chainparams.h>
 #include <esperanza/finalizationstate.h>
 #include <injector.h>
+#include <rpc/safemode.h>
 #include <rpc/server.h>
 #include <rpc/util.h>
 #include <ufp64.h>
@@ -29,6 +30,8 @@ UniValue getfinalizationstate(const JSONRPCRequest &request) {
         HelpExampleCli("getfinalizationstate", "") +
         HelpExampleRpc("getfinalizationstate", ""));
   }
+
+  ObserveSafeMode();
 
   LOCK(GetComponent<finalization::StateRepository>()->GetLock());
   const finalization::FinalizationState *fin_state =
@@ -65,6 +68,8 @@ UniValue getfinalizationconfig(const JSONRPCRequest &request) {
         "\nExamples:\n" +
         HelpExampleRpc("getfinalizationconfig", ""));
   }
+
+  ObserveSafeMode();
 
   const finalization::Params &params = *GetComponent<finalization::Params>();
   UniValue obj(UniValue::VOBJ);
