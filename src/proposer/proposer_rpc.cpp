@@ -196,8 +196,13 @@ class ProposerRPCImpl : public ProposerRPC {
                              "Not proposing, not enough balance.");
         }
 
+        // We don't want to combine coins when we use the rpc, so we don't need
+        // to pass all of them.
+        staking::CoinSet first_coin;
+        first_coin.insert(*stakeable_coins.begin());
+
         block = proposer->GenerateBlock(wallet,
-                                        stakeable_coins,
+                                        first_coin,
                                         coinbase_script);
         if (!block) {
           throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to generate a block.");
