@@ -44,7 +44,8 @@ class LogicImpl final : public Logic {
   boost::optional<proposer::EligibleCoin> TryPropose(const staking::CoinSet &eligible_coins) override {
     AssertLockHeld(m_active_chain->GetLock());
 
-    const CBlockIndex *current_tip = m_active_chain->GetTip();
+    const CBlockIndex *current_tip =
+        m_active_chain->GetTip();
     if (!current_tip) {
       return boost::none;
     }
