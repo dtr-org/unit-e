@@ -198,8 +198,7 @@ class ProposerRPCImpl : public ProposerRPC {
 
         // We don't want to combine coins when we use the rpc, so we don't need
         // to pass all of them.
-        staking::CoinSet first_coin;
-        first_coin.insert(*stakeable_coins.begin());
+        const staking::CoinSet first_coin = {*stakeable_coins.begin()};
 
         block = proposer->GenerateBlock(wallet,
                                         first_coin,
