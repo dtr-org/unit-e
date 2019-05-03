@@ -113,6 +113,7 @@ class WalletLabelsTest(UnitETestFramework):
 
         # connect that other node
         connect_nodes_bi(self.nodes, node_index, some_other_node_index)
+        sync_blocks([node, some_other_node])
 
         # send everything (0 + 3.75 + 10003.75 = 10007.5)
         common_address = some_other_node.getnewaddress('', 'bech32')
@@ -149,18 +150,10 @@ class WalletLabelsTest(UnitETestFramework):
         # at some_other_node
         assert_equal(node.getbalance(), 0)
 
-        # common_address_privkey = some_other_node.dumpprivkey(common_address)
-        # # take back our funds
-        # node.importprivkey(common_address_privkey)
-        # assert_equal(node.getbalance(), Decimal(10007.5) - fee)
-        # # these coins should not be stakeable as they do not have any confirmations
-        # assert_equal(node.proposerstatus()['wallets'][0]['stakeable_balance'], 0)
-        # assert_raises_rpc_error(-1, "no stakeable coins.", node.generate, 1)
-
         # the other node should have funds to generate a block
-        sync_blocks([node, some_other_node])
         sync_mempools([node, some_other_node])
         some_other_node.generatetoaddress(1, common_address)
+        sync_blocks([node, some_other_node])
 
         assert_equal(some_other_node.getbalance(), Decimal(20007.5) - fee)
 
