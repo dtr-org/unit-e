@@ -218,7 +218,7 @@ BOOST_AUTO_TEST_CASE(is_stakeable_by_me_remote_staking_watchonly) {
 
 BOOST_AUTO_TEST_CASE(is_stakeable_by_me_destinations) {
 
-  // Test that the P2PSH output type is NOT stakeable
+  // Test that the P2SH output type is NOT stakeable
   {
     CKey key;
     key.MakeNewKey(true);
