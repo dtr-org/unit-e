@@ -220,7 +220,7 @@ class ProposerRPCImpl : public ProposerRPC {
     return block_hashes;
   }
 
-  UniValue propose(const JSONRPCRequest &request) const {
+  UniValue propose(const JSONRPCRequest &request) const override {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     CWallet *const pwallet = wallet.get();
 
@@ -252,7 +252,7 @@ class ProposerRPCImpl : public ProposerRPC {
     return ProposeBlocks(*pwallet, boost::none, num_generate);
   }
 
-  UniValue proposetoaddress(const JSONRPCRequest &request) const {
+  UniValue proposetoaddress(const JSONRPCRequest &request) const override {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     CWallet *const pwallet = wallet.get();
 
