@@ -48,8 +48,11 @@ class LogicImpl final : public Logic {
     if (!current_tip) {
       return boost::none;
     }
-    const blockchain::Height current_height = m_active_chain->GetHeight();
-    const blockchain::Height target_height = current_height + 1;
+
+    const blockchain::Height current_height =
+        m_active_chain->GetHeight();
+    const blockchain::Height target_height =
+        current_height + 1;
 
     int64_t best_time = std::max(m_active_chain->GetTip()->GetMedianTimePast() + 1, m_network->GetTime());
     const blockchain::Time target_time =
