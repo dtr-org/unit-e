@@ -177,11 +177,6 @@ class ProposerRPCImpl : public ProposerRPC {
 
     proposer::Proposer *proposer = GetComponent<proposer::Proposer>();
 
-    staking::ActiveChain *active_chain;
-    {  // Don't keep cs_main locked
-      LOCK(cs_main);
-      active_chain = GetComponent<staking::ActiveChain>();
-    }
     UniValue block_hashes(UniValue::VARR);
 
     // To pick up to date coins for staking we need to make sure that the wallet is synced to the current chain.
@@ -229,7 +224,7 @@ class ProposerRPCImpl : public ProposerRPC {
     }
     assert(pwallet);
 
-    if (request.fHelp || request.params.size() < 1 || request.params.size() > 2) {
+    if (request.fHelp || request.params.size() != 1) {
       throw std::runtime_error(
           "propose nblocks ( maxtries )\n"
           "\nPropose up to nblocks blocks immediately (before the RPC call returns) to an address in the wallet.\n"
@@ -261,7 +256,7 @@ class ProposerRPCImpl : public ProposerRPC {
     }
     assert(pwallet);
 
-    if (request.fHelp || request.params.size() < 2 || request.params.size() > 3)
+    if (request.fHelp || request.params.size() != 2)
       throw std::runtime_error(
           "proposetoaddress nblocks address (maxtries)\n"
           "\nProposer blocks immediately to a specified address (before the RPC call returns)\n"
