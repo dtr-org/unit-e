@@ -55,7 +55,7 @@ class LogicImpl final : public Logic {
     const blockchain::Height target_height =
         current_height + 1;
 
-    int64_t best_time = std::max(m_active_chain->GetTip()->GetMedianTimePast() + 1, m_network->GetTime());
+    int64_t best_time = std::max(current_tip->GetMedianTimePast() + 1, m_network->GetTime());
     const blockchain::Time target_time =
         m_blockchain_behavior->CalculateProposingTimestampAfter(best_time);
     const blockchain::Difficulty target_difficulty =
