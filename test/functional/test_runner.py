@@ -204,6 +204,7 @@ BASE_SCRIPTS = [
     'rpc_named_arguments.py',
     'rpc_addressbook.py',
     'feature_dersig.py',
+    'rpc_propose.py',
     'feature_cltv.py',
     'rpc_uptime.py',
     'feature_remote_staking.py',
