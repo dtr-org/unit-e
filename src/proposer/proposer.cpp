@@ -66,8 +66,8 @@ static std::shared_ptr<const CBlock> GenerateBlock(staking::ActiveChain &active_
 class PassiveProposerImpl : public Proposer {
  private:
   const Dependency<staking::ActiveChain> m_active_chain;
-  const Dependency<staking::TransactionPicker> m_transaction_picker;
   const Dependency<proposer::BlockBuilder> m_block_builder;
+  const Dependency<staking::TransactionPicker> m_transaction_picker;
   const Dependency<proposer::Logic> m_proposer_logic;
 
  public:
@@ -166,7 +166,6 @@ class ActiveProposerImpl : public Proposer {
           // To pick up to date coins for staking we need to make sure that the wallet is synced to the current chain.
           wallet->BlockUntilSyncedToCurrentChain();
           LOCK2(m_active_chain->GetLock(), wallet_ext.GetLock());
-          const CBlockIndex &tip = *m_active_chain->GetTip();
           const staking::CoinSet coins = wallet_ext.GetStakeableCoins();
           if (coins.empty()) {
             LogPrint(BCLog::PROPOSING, "Not proposing, not enough balance (wallet=%s)\n", wallet_name);
@@ -185,7 +184,7 @@ class ActiveProposerImpl : public Proposer {
           LogPrint(BCLog::PROPOSING, "Failed to assemble block.\n");
           continue;
         }
-        const std::string &hash = block->GetHash().GetHex();
+        const std::string hash = block->GetHash().GetHex();
         if (!m_active_chain->ProposeBlock(block)) {
           LogPrint(BCLog::PROPOSING, "Failed to propose block (hash=%s).\n", hash);
           continue;
