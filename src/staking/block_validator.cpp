@@ -159,12 +159,7 @@ class BlockValidatorImpl : public AbstractBlockValidator {
 
     const int64_t block_time = block_header.GetBlockTime();
 
-    if (block_time < previous_block.GetMedianTimePast()) {
-      result.AddError(Error::BLOCKTIME_TOO_EARLY);
-    }
-
-    const bool on_demand = m_blockchain_behavior->GetParameters().mine_blocks_on_demand;
-    if (!on_demand && block_time == previous_block.GetMedianTimePast()) {
+    if (block_time <= previous_block.GetMedianTimePast()) {
       result.AddError(Error::BLOCKTIME_TOO_EARLY);
     }
 
