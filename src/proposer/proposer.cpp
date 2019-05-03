@@ -30,23 +30,21 @@
 
 namespace proposer {
 
-bool GenerateBlock(staking::ActiveChain &active_chain,
-                   staking::TransactionPicker &transaction_picker,
-                   proposer::BlockBuilder &block_builder,
-                   proposer::Logic &logic,
-                   CWallet *wallet,
-                   const CBlockIndex &tip,
-                   const staking::CoinSet &coins,
-                   const boost::optional<CScript> &coinbase_script,
-                   std::shared_ptr<const CBlock> &block_out) {
+static std::shared_ptr<const CBlock> GenerateBlock(staking::ActiveChain &active_chain,
+                                                   staking::TransactionPicker &transaction_picker,
+                                                   proposer::BlockBuilder &block_builder,
+                                                   proposer::Logic &logic,
+                                                   CWallet &wallet,
+                                                   const staking::CoinSet &coins,
+                                                   const boost::optional<CScript> &coinbase_script) {
 
-  auto &wallet_ext = wallet->GetWalletExtension();
-  const auto wallet_name = wallet->GetName();
+  esperanza::WalletExtension &wallet_ext = wallet.GetWalletExtension();
+  const auto wallet_name = wallet.GetName();
 
-  const boost::optional<EligibleCoin> &winning_ticket = logic.TryPropose(coins);
+  const boost::optional<EligibleCoin> winning_ticket = logic.TryPropose(coins);
   if (!winning_ticket) {
     LogPrint(BCLog::PROPOSING, "Not proposing this time (wallet=%s)\n", wallet_name);
-    return false;
+    return nullptr;
   }
   const EligibleCoin &coin = winning_ticket.get();
   LogPrint(BCLog::PROPOSING, "Proposing... (wallet=%s, coin=%s)\n",
@@ -61,10 +59,8 @@ bool GenerateBlock(staking::ActiveChain &active_chain,
   const CAmount fees = std::accumulate(result.fees.begin(), result.fees.end(), CAmount(0));
   const uint256 snapshot_hash = active_chain.ComputeSnapshotHash();
 
-  block_out = block_builder.BuildBlock(
-      tip, snapshot_hash, coin, coins, result.transactions, fees, coinbase_script, wallet_ext);
-
-  return block_out != nullptr;
+  return block_builder.BuildBlock(
+      *active_chain.GetTip(), snapshot_hash, coin, coins, result.transactions, fees, coinbase_script, wallet_ext);
 }
 
 class PassiveProposerImpl : public Proposer {
@@ -88,21 +84,17 @@ class PassiveProposerImpl : public Proposer {
   void Start() override {}
   void Stop() override {}
   bool IsStarted() override { return false; }
-  bool GenerateBlock(CWallet *wallet,
-                     const CBlockIndex &tip,
-                     const staking::CoinSet &coins,
-                     const boost::optional<CScript> &coinbase_script,
-                     std::shared_ptr<const CBlock> &block_out) override {
+  std::shared_ptr<const CBlock> GenerateBlock(CWallet &wallet,
+                                              const staking::CoinSet &coins,
+                                              const boost::optional<CScript> &coinbase_script) override {
 
     return proposer::GenerateBlock(*m_active_chain,
                                    *m_transaction_picker,
                                    *m_block_builder,
                                    *m_proposer_logic,
                                    wallet,
-                                   tip,
                                    coins,
-                                   coinbase_script,
-                                   block_out);
+                                   coinbase_script);
   }
 };
 
@@ -158,9 +150,9 @@ class ActiveProposerImpl : public Proposer {
         SetStatusOfAllWallets(Status::NOT_PROPOSING_SYNCING_BLOCKCHAIN);
         continue;
       }
-      for (const auto &wallet : m_multi_wallet->GetWallets()) {
-        auto &wallet_ext = wallet->GetWalletExtension();
-        const auto wallet_name = wallet->GetName();
+      for (const std::shared_ptr<CWallet> &wallet : m_multi_wallet->GetWallets()) {
+        esperanza::WalletExtension &wallet_ext = wallet->GetWalletExtension();
+        const std::string wallet_name = wallet->GetName();
         if (wallet->IsLocked()) {
           LogPrint(BCLog::PROPOSING, "Not proposing, wallet locked (wallet=%s)\n", wallet_name);
           wallet_ext.GetProposerState().m_status = Status::NOT_PROPOSING_WALLET_LOCKED;
@@ -183,7 +175,7 @@ class ActiveProposerImpl : public Proposer {
           }
           wallet_ext.GetProposerState().m_status = Status::IS_PROPOSING;
           wallet_ext.GetProposerState().m_number_of_search_attempts += 1;
-          GenerateBlock(wallet.get(), tip, coins, boost::none, block);
+          block = GenerateBlock(*wallet, coins, boost::none);
         }
         wallet_ext.GetProposerState().m_number_of_searches += 1;
         if (m_interrupted) {
@@ -193,7 +185,7 @@ class ActiveProposerImpl : public Proposer {
           LogPrint(BCLog::PROPOSING, "Failed to assemble block.\n");
           continue;
         }
-        const auto &hash = block->GetHash().GetHex();
+        const std::string &hash = block->GetHash().GetHex();
         if (!m_active_chain->ProposeBlock(block)) {
           LogPrint(BCLog::PROPOSING, "Failed to propose block (hash=%s).\n", hash);
           continue;
@@ -228,21 +220,17 @@ class ActiveProposerImpl : public Proposer {
     m_waiter.Wake();
   }
 
-  bool GenerateBlock(CWallet *wallet,
-                     const CBlockIndex &tip,
-                     const staking::CoinSet &coins,
-                     const boost::optional<CScript> &coinbase_script,
-                     std::shared_ptr<const CBlock> &block_out) override {
+  std::shared_ptr<const CBlock> GenerateBlock(CWallet &wallet,
+                                              const staking::CoinSet &coins,
+                                              const boost::optional<CScript> &) override {
 
     return proposer::GenerateBlock(*m_active_chain,
                                    *m_transaction_picker,
                                    *m_block_builder,
                                    *m_proposer_logic,
                                    wallet,
-                                   tip,
                                    coins,
-                                   boost::none,
-                                   block_out);
+                                   boost::none);
   }
 
   void Start() override {

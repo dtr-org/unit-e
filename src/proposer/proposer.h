@@ -42,11 +42,9 @@ class Proposer {
 
   virtual bool IsStarted() = 0;
 
-  virtual bool GenerateBlock(CWallet *wallet,
-                             const CBlockIndex &tip,
-                             const staking::CoinSet &coins,
-                             const boost::optional<CScript> &coinbase_script,
-                             std::shared_ptr<const CBlock> &block_out) = 0;
+  virtual std::shared_ptr<const CBlock> GenerateBlock(CWallet &wallet,
+                                                      const staking::CoinSet &coins,
+                                                      const boost::optional<CScript> &coinbase_script) = 0;
 
   virtual ~Proposer() = default;
 

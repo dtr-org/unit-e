@@ -171,12 +171,9 @@ class ProposerRPCImpl : public ProposerRPC {
     return obj;
   }
 
-  UniValue PorposeBlocks(CWallet *const wallet,
+  UniValue ProposeBlocks(CWallet &wallet,
                          const boost::optional<CScript> &coinbase_script,
-                         int num_generate) const {
-    assert(wallet);
-    blockchain::Height height = 0;
-    blockchain::Height height_end = 0;
+                         const int num_generate) const {
 
     proposer::Proposer *proposer = GetComponent<proposer::Proposer>();
 
@@ -184,17 +181,15 @@ class ProposerRPCImpl : public ProposerRPC {
     {  // Don't keep cs_main locked
       LOCK(cs_main);
       active_chain = GetComponent<staking::ActiveChain>();
-      height = active_chain->GetHeight();
-      height_end = height + num_generate;
     }
     UniValue block_hashes(UniValue::VARR);
 
     // To pick up to date coins for staking we need to make sure that the wallet is synced to the current chain.
-    wallet->BlockUntilSyncedToCurrentChain();
+    wallet.BlockUntilSyncedToCurrentChain();
 
-    esperanza::WalletExtension &wallet_ext = wallet->GetWalletExtension();
+    esperanza::WalletExtension &wallet_ext = wallet.GetWalletExtension();
 
-    while (height < height_end) {
+    for (int i = 0; i < num_generate; ++i) {
 
       std::shared_ptr<const CBlock> block;
       {
@@ -205,14 +200,11 @@ class ProposerRPCImpl : public ProposerRPC {
           throw JSONRPCError(RPC_INTERNAL_ERROR,
                              "Not proposing, not enough balance.");
         }
-        staking::CoinSet coins;
-        coins.insert(*stakeable_coins.begin());
 
-        if (!proposer->GenerateBlock(wallet,
-                                     *active_chain->GetTip(),
-                                     coins,
-                                     coinbase_script,
-                                     block)) {
+        block = proposer->GenerateBlock(wallet,
+                                        stakeable_coins,
+                                        coinbase_script);
+        if (!block) {
           throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to generate a block.");
         }
       }
@@ -221,10 +213,9 @@ class ProposerRPCImpl : public ProposerRPC {
         throw JSONRPCError(RPC_INTERNAL_ERROR, "ProcessNewBlock, block not accepted");
       }
 
-      ++height;
       block_hashes.push_back(block->GetHash().GetHex());
 
-      wallet->BlockUntilSyncedToCurrentChain();
+      wallet.BlockUntilSyncedToCurrentChain();
     }
     return block_hashes;
   }
@@ -236,6 +227,7 @@ class ProposerRPCImpl : public ProposerRPC {
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
       return NullUniValue;
     }
+    assert(pwallet);
 
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2) {
       throw std::runtime_error(
@@ -257,7 +249,7 @@ class ProposerRPCImpl : public ProposerRPC {
 
     int num_generate = request.params[0].get_int();
 
-    return PorposeBlocks(pwallet, boost::none, num_generate);
+    return ProposeBlocks(*pwallet, boost::none, num_generate);
   }
 
   UniValue proposetoaddress(const JSONRPCRequest &request) const {
@@ -267,6 +259,7 @@ class ProposerRPCImpl : public ProposerRPC {
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
       return NullUniValue;
     }
+    assert(pwallet);
 
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 3)
       throw std::runtime_error(
@@ -293,10 +286,9 @@ class ProposerRPCImpl : public ProposerRPC {
       throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Error: Invalid address");
     }
 
-    std::shared_ptr<CReserveScript> coinbaseScript = std::make_shared<CReserveScript>();
-    coinbaseScript->reserveScript = GetScriptForDestination(destination);
-
-    return PorposeBlocks(pwallet, coinbaseScript.get()->reserveScript, nGenerate);
+    return ProposeBlocks(*pwallet,
+                         GetScriptForDestination(destination),
+                         nGenerate);
   }
 };
 
