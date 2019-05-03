@@ -3522,11 +3522,13 @@ DBErrors CWallet::ZapWalletTx(std::vector<CWalletTx>& vWtx)
 bool CWallet::SetAddressBook(const CTxDestination& address, const std::string& strName, const std::string& strPurpose)
 {
     bool fUpdated = false;
+    std::time_t timestamp = GetTime();
     {
         LOCK(cs_wallet); // mapAddressBook
         std::map<CTxDestination, CAddressBookData>::iterator mi = mapAddressBook.find(address);
         fUpdated = mi != mapAddressBook.end();
         mapAddressBook[address].name = strName;
+        mapAddressBook[address].timestamp = timestamp;
         if (!strPurpose.empty()) { /* update purpose only if requested */
             mapAddressBook[address].purpose = strPurpose;
         }
@@ -3534,6 +3536,9 @@ bool CWallet::SetAddressBook(const CTxDestination& address, const std::string& s
     NotifyAddressBookChanged(this, address, strName, ::IsMine(*this, address) != ISMINE_NO,
                              strPurpose, (fUpdated ? CT_UPDATED : CT_NEW) );
     if (!strPurpose.empty() && !WalletBatch(*database).WritePurpose(EncodeDestination(address), strPurpose)) {
+        return false;
+    }
+    if (!WalletBatch(*database).WriteTimestamp(EncodeDestination(address), timestamp)) {
         return false;
     }
     return WalletBatch(*database).WriteName(EncodeDestination(address), strName);
@@ -3556,6 +3561,7 @@ bool CWallet::DelAddressBook(const CTxDestination& address)
     NotifyAddressBookChanged(this, address, "", ::IsMine(*this, address) != ISMINE_NO, "", CT_DELETED);
 
     WalletBatch(*database).ErasePurpose(EncodeDestination(address));
+    WalletBatch(*database).EraseTimestamp(EncodeDestination(address));
     return WalletBatch(*database).EraseName(EncodeDestination(address));
 }
 
