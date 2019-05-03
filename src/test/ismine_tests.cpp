@@ -218,7 +218,7 @@ BOOST_AUTO_TEST_CASE(is_stakeable_by_me_remote_staking_watchonly) {
 
 BOOST_AUTO_TEST_CASE(is_stakeable_by_me_destinations) {
 
-  // Test that the default output type is stakeable
+  // Test that the P2PSH output type is NOT stakeable
   {
     CKey key;
     key.MakeNewKey(true);
@@ -228,10 +228,10 @@ BOOST_AUTO_TEST_CASE(is_stakeable_by_me_destinations) {
     CTxDestination dest = GetDestinationForKey(key.GetPubKey(), OutputType::P2SH_SEGWIT);
     CScript script = GetScriptForDestination(dest);
 
-    BOOST_CHECK(IsStakeableByMe(keystore, script));
+    BOOST_CHECK(!IsStakeableByMe(keystore, script));
   }
 
-  // Test that the legacy output type is NOT stakeable
+  // Test that the legacy output type is stakeable
   {
     CKey key;
     key.MakeNewKey(true);
@@ -241,7 +241,7 @@ BOOST_AUTO_TEST_CASE(is_stakeable_by_me_destinations) {
     CTxDestination dest = GetDestinationForKey(key.GetPubKey(), OutputType::LEGACY);
     CScript script = GetScriptForDestination(dest);
 
-    BOOST_CHECK(!IsStakeableByMe(keystore, script));
+    BOOST_CHECK(IsStakeableByMe(keystore, script));
   }
 
   // Test that the bech32 output type is stakeable
