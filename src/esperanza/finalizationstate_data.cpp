@@ -12,7 +12,6 @@ FinalizationStateData::FinalizationStateData(const AdminParams &adminParams)
 
 bool FinalizationStateData::operator==(const FinalizationStateData &other) const {
   return m_checkpoints == other.m_checkpoints &&
-         m_epoch_to_dynasty == other.m_epoch_to_dynasty &&
          m_dynasty_start_epoch == other.m_dynasty_start_epoch &&
          m_validators == other.m_validators &&
          m_dynasty_deltas == other.m_dynasty_deltas &&
@@ -37,7 +36,6 @@ std::string FinalizationStateData::ToString() const {
   return strprintf(
       "FinalizationState{\n"
       "m_checkpoints=%s\n"
-      "m_epoch_to_dynasty=%s\n"
       "m_dynasty_start_epoch=%s\n"
       "m_validators=%s\n"
       "m_dynasty_deltas=%s\n"
@@ -57,7 +55,6 @@ std::string FinalizationStateData::ToString() const {
       "m_reward_factor=%d\n"
       "m_admin_state=%s}",
       util::to_string(m_checkpoints),
-      util::to_string(m_epoch_to_dynasty),
       util::to_string(m_dynasty_start_epoch),
       util::to_string(m_validators),
       util::to_string(m_dynasty_deltas),

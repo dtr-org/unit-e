@@ -19,6 +19,7 @@ UniValue getfinalizationstate(const JSONRPCRequest &request) {
         "\nResult:\n"
         "{\n"
         "  \"currentDynasty\": xxxxxxx          (numeric) currentDynasty\n"
+        "  \"currentDynastyStartsAtEpoch\": xxxxxxx    (numeric) epoch of the current dynasty\n"
         "  \"currentEpoch\": xxxxxxx            (numeric) currentEpoch\n"
         "  \"lastJustifiedEpoch\": xxxxxxx      (numeric) lastJustifiedEpoch\n"
         "  \"lastFinalizedEpoch\": xxxxxxx      (numeric) lastFinalizedEpoch\n"
@@ -38,6 +39,7 @@ UniValue getfinalizationstate(const JSONRPCRequest &request) {
   UniValue obj(UniValue::VOBJ);
 
   obj.pushKV("currentDynasty", ToUniValue(fin_state->GetCurrentDynasty()));
+  obj.pushKV("currentDynastyStartsAtEpoch", ToUniValue(fin_state->GetCurrentDynastyEpochStart()));
   obj.pushKV("currentEpoch", ToUniValue(fin_state->GetCurrentEpoch()));
   obj.pushKV("lastJustifiedEpoch", ToUniValue(fin_state->GetLastJustifiedEpoch()));
   obj.pushKV("lastFinalizedEpoch", ToUniValue(fin_state->GetLastFinalizedEpoch()));

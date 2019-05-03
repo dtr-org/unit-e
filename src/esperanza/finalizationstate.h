@@ -192,6 +192,9 @@ class FinalizationState : public FinalizationStateData {
   //! \brief Calculate the epoch at which finalizer can start withdrawing
   uint32_t CalculateWithdrawEpoch(const Validator &finalizer) const;
 
+  //! Return the epoch when the current dynasty started
+  uint32_t GetCurrentDynastyEpochStart() const;
+
  private:
   //!In case there is nobody available to justify we justify automatically.
   void InstaJustify();

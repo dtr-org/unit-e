@@ -49,9 +49,6 @@ void FinalizationStateSpy::shuffle() {
     }
   }
   for (size_t i = 0; i < ConstRand(5); ++i) {
-    m_epoch_to_dynasty[i] = Rand<uint32_t>();
-  }
-  for (size_t i = 0; i < ConstRand(5); ++i) {
     m_dynasty_start_epoch[i] = Rand<uint32_t>();
   }
   for (size_t i = 0; i < ConstRand(5); ++i) {

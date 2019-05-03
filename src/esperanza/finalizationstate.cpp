@@ -49,6 +49,7 @@ FinalizationState::FinalizationState(const finalization::Params &params)
   cp.m_is_justified = true;
   cp.m_is_finalized = true;
   m_checkpoints[0] = cp;
+  m_dynasty_start_epoch[0] = 1;
 }
 
 FinalizationState::FinalizationState(const FinalizationState &parent, InitStatus status)
@@ -168,13 +169,12 @@ void FinalizationState::IncrementDynasty() {
     m_current_dynasty += 1;
     m_prev_dyn_deposits = m_cur_dyn_deposits;
     m_cur_dyn_deposits += GetDynastyDelta(m_current_dynasty);
-    m_dynasty_start_epoch[m_current_dynasty] = m_current_epoch;
+    m_dynasty_start_epoch[m_current_dynasty] = m_current_epoch + 1;
 
     LogPrint(BCLog::FINALIZATION, "%s: New current dynasty=%d\n", __func__,
              m_current_dynasty);
     // UNIT-E: we can clear old checkpoints (up to m_last_finalized_epoch - 1)
   }
-  m_epoch_to_dynasty[m_current_epoch] = m_current_dynasty;
 }
 
 ufp64::ufp64_t FinalizationState::GetCollectiveRewardFactor() {
@@ -1125,6 +1125,12 @@ uint32_t FinalizationState::CalculateWithdrawEpoch(const Validator &finalizer) c
   const uint32_t end_epoch = it->second;
   const uint32_t withdraw_epoch = end_epoch + m_settings.withdrawal_epoch_delay;
   return withdraw_epoch;
+}
+
+uint32_t FinalizationState::GetCurrentDynastyEpochStart() const {
+  const auto &it = m_dynasty_start_epoch.find(m_current_dynasty);
+  assert(it != m_dynasty_start_epoch.end());
+  return it->second;
 }
 
 }  // namespace esperanza
