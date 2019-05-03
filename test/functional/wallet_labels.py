@@ -150,14 +150,6 @@ class WalletLabelsTest(UnitETestFramework):
         # at some_other_node
         assert_equal(node.getbalance(), 0)
 
-        # common_address_privkey = some_other_node.dumpprivkey(common_address)
-        # # take back our funds
-        # node.importprivkey(common_address_privkey)
-        # assert_equal(node.getbalance(), Decimal(10007.5) - fee)
-        # # these coins should not be stakeable as they do not have any confirmations
-        # assert_equal(node.proposerstatus()['wallets'][0]['stakeable_balance'], 0)
-        # assert_raises_rpc_error(-1, "no stakeable coins.", node.generate, 1)
-
         # the other node should have funds to generate a block
         sync_mempools([node, some_other_node])
         some_other_node.generatetoaddress(1, common_address)
