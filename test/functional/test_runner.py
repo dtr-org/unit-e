@@ -15,7 +15,7 @@ For a description of arguments recognized by test scripts, see
 """
 
 import argparse
-from collections import deque
+from collections import (deque, Counter)
 import configparser
 import datetime
 import os
@@ -149,7 +149,6 @@ BASE_SCRIPTS = [
     'rpc_finalization.py',
     'feature_logging.py',
     'rpc_preciousblock.py',
-    'esperanza_finalizationstate.py',
     'finalization_state_restoration.py',
     'interface_zmq.py',
     'wallet_txn_doublespend.py --mineblock',
@@ -215,7 +214,6 @@ BASE_SCRIPTS = [
     'wallet_mnemonicnew.py',
     'wallet_importmasterkey.py',
     'proposer_multiwallet.py',
-    'feature_minchainwork.py',
     'rpc_getblockstats.py',
     'feature_includeconf.py',
     'rpc_scantxoutset.py',
@@ -240,7 +238,6 @@ EXTENDED_SCRIPTS = [
     # vv Tests less than 5m vv
     # vv Tests less than 2m vv
     # vv Tests less than 60s vv
-    'p2p_feefilter.py',
     'rpc_bind.py',
     # vv Tests less than 30s vv
 ]
@@ -321,6 +318,15 @@ def main():
         print("No functional tests to run. Wallet, utils, and unit-e must all be enabled")
         print("Rerun ./configure with --enable-wallet, --with-utils and --with-daemon and then make")
         sys.exit(0)
+
+    unique_scripts = Counter(ALL_SCRIPTS)
+    if len(ALL_SCRIPTS) != len(unique_scripts):
+        print("{}WARNING!{} There are duplicate tests in the test list:".format(BOLD[1], BOLD[0]))
+        for s in unique_scripts:
+            if unique_scripts.get(s) > 1:
+                print('-', s)
+
+        sys.exit(1)
 
     # Build list of tests
     test_list = []
