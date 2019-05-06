@@ -61,6 +61,8 @@ FULL_FINALIZATION_REWARD = Decimal(15)  # Proposers' reward for finalization
 
 BLOCK_HEADER_LENGTH = 140
 
+DEFAULT_EPOCH_LENGTH = 5
+
 # This parameter simulates the scenario that the node "never" reaches finalization.
 # The purpose of it is to adapt Bitcoin tests to Unit-e which contradict with the finalization
 # so the existing tests will perform the check within one dynasty.

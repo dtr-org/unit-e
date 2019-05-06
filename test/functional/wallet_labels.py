@@ -19,7 +19,11 @@ from collections import defaultdict
 from decimal import Decimal
 
 from test_framework.regtest_mnemonics import regtest_mnemonics
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import (
+    UnitETestFramework,
+    FULL_FINALIZATION_REWARD,
+    PROPOSER_REWARD,
+)
 from test_framework.util import (
     assert_equal,
     connect_nodes_bi,
@@ -217,10 +221,10 @@ class WalletLabelsTest(UnitETestFramework):
             label.verify(node)
         node.generate(101)
         expected_account_balances = {label.name: 0 for label in labels}
-        expected_account_balances[""] = 20397.5  # 20k + 397.5, no blocks reward
+        expected_account_balances[""] = 20000 + 106 * PROPOSER_REWARD + 105 * FULL_FINALIZATION_REWARD
         if accounts_api:
             assert_equal(node.listaccounts(), expected_account_balances)
-            assert_equal(node.getbalance(""), 20397.5)
+            assert_equal(node.getbalance(""), expected_account_balances[""])
 
         self.log.info('- Check that setlabel can assign a label to a new unused address.')
         for label in labels:

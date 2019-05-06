@@ -4,7 +4,13 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test transaction signing using the signrawtransaction* RPCs."""
 
-from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
+from test_framework.test_framework import (
+    UnitETestFramework,
+    PROPOSER_REWARD,
+    FULL_FINALIZATION_REWARD,
+    DEFAULT_EPOCH_LENGTH,
+    COINBASE_MATURITY
+)
 import decimal
 
 class RpcCreateMultiSigTest(UnitETestFramework):
@@ -51,7 +57,9 @@ class RpcCreateMultiSigTest(UnitETestFramework):
 
         height = node0.getblockchaininfo()["blocks"]
         assert 150 < height < 350
-        total = node0.initial_stake + 149 * PROPOSER_REWARD + (height - 149 - 100) * PROPOSER_REWARD
+        num_fin_rewards = (height - COINBASE_MATURITY - 1) // DEFAULT_EPOCH_LENGTH * DEFAULT_EPOCH_LENGTH
+        print(height, num_fin_rewards)
+        total = node0.initial_stake + (height - COINBASE_MATURITY) * PROPOSER_REWARD + num_fin_rewards * FULL_FINALIZATION_REWARD
         assert bal1 == 0
         assert bal2 == self.moved
         assert bal0+bal1+bal2 == total
