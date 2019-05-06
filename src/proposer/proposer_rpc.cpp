@@ -6,7 +6,6 @@
 
 #include <chainparams.h>
 #include <core_io.h>
-#include <injector.h>
 #include <key_io.h>
 #include <proposer/multiwallet.h>
 #include <proposer/proposer.h>
@@ -175,8 +174,6 @@ class ProposerRPCImpl : public ProposerRPC {
                          const boost::optional<CScript> &coinbase_script,
                          const int num_generate) const {
 
-    proposer::Proposer *proposer = GetComponent<proposer::Proposer>();
-
     UniValue block_hashes(UniValue::VARR);
 
     // To pick up to date coins for staking we need to make sure that the wallet is synced to the current chain.
@@ -200,9 +197,9 @@ class ProposerRPCImpl : public ProposerRPC {
         // to pass all of them.
         const staking::CoinSet first_coin = {*stakeable_coins.begin()};
 
-        block = proposer->GenerateBlock(wallet,
-                                        first_coin,
-                                        coinbase_script);
+        block = m_proposer->GenerateBlock(wallet,
+                                          first_coin,
+                                          coinbase_script);
         if (!block) {
           throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to generate a block.");
         }
@@ -220,17 +217,15 @@ class ProposerRPCImpl : public ProposerRPC {
   }
 
   UniValue propose(const JSONRPCRequest &request) const override {
-    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    CWallet *const pwallet = wallet.get();
+    CWallet *const pwallet = GetWalletForJSONRPCRequest(request).get();
 
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
       return NullUniValue;
     }
-    assert(pwallet);
 
     if (request.fHelp || request.params.size() != 1) {
       throw std::runtime_error(
-          "propose nblocks ( maxtries )\n"
+          "propose nblocks\n"
           "\nPropose up to nblocks blocks immediately (before the RPC call returns) to an address in the wallet.\n"
           "\nNote: this function can only be used on the regtest network.\n"
           "\nArguments:\n"
@@ -239,7 +234,7 @@ class ProposerRPCImpl : public ProposerRPC {
           "[ blockhashes ]     (array) hashes of blocks proposed\n"
           "\nExamples:\n"
           "\nGenerate 11 blocks\n" +
-          HelpExampleCli("proposed", "11"));
+          HelpExampleCli("propose", "11"));
     }
 
     if (!Params().MineBlocksOnDemand()) {
@@ -252,18 +247,16 @@ class ProposerRPCImpl : public ProposerRPC {
   }
 
   UniValue proposetoaddress(const JSONRPCRequest &request) const override {
-    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    CWallet *const pwallet = wallet.get();
+    CWallet *const pwallet = GetWalletForJSONRPCRequest(request).get();
 
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
       return NullUniValue;
     }
-    assert(pwallet);
 
     if (request.fHelp || request.params.size() != 2)
       throw std::runtime_error(
-          "proposetoaddress nblocks address (maxtries)\n"
-          "\nProposer blocks immediately to a specified address (before the RPC call returns)\n"
+          "proposetoaddress nblocks address\n"
+          "\nProposes up to nBlocks immediately to a specified address (before the RPC call returns)\n"
           "\nNote: this function can only be used on the regtest network.\n"
           "\nArguments:\n"
           "1. nblocks      (numeric, required) How many blocks are proposed immediately.\n"

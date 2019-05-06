@@ -55,7 +55,7 @@ class LogicImpl final : public Logic {
     const blockchain::Height target_height =
         current_height + 1;
 
-    int64_t best_time = std::max(current_tip->GetMedianTimePast() + 1, m_network->GetTime());
+    const int64_t best_time = std::max(current_tip->GetMedianTimePast() + 1, m_network->GetTime());
     const blockchain::Time target_time =
         m_blockchain_behavior->CalculateProposingTimestampAfter(best_time);
     const blockchain::Difficulty target_difficulty =
@@ -66,7 +66,7 @@ class LogicImpl final : public Logic {
 
       if (!m_stake_validator->CheckKernel(coin.GetAmount(), kernel_hash, target_difficulty)) {
         if (m_blockchain_behavior->GetParameters().mine_blocks_on_demand) {
-          LogPrint(BCLog::VALIDATION, "Letting artificial block generation succeed nevertheless (mine_blocks_on_demand=true)\n");
+          LogPrint(BCLog::PROPOSING, "Letting artificial block generation succeed nevertheless (mine_blocks_on_demand=true)\n");
         } else {
           continue;
         }

@@ -30,16 +30,17 @@
 
 namespace proposer {
 
-static std::shared_ptr<const CBlock> GenerateBlock(staking::ActiveChain &active_chain,
-                                                   staking::TransactionPicker &transaction_picker,
-                                                   proposer::BlockBuilder &block_builder,
-                                                   proposer::Logic &logic,
-                                                   CWallet &wallet,
-                                                   const staking::CoinSet &coins,
-                                                   const boost::optional<CScript> &coinbase_script) {
+namespace {
+std::shared_ptr<const CBlock> GenerateBlock(staking::ActiveChain &active_chain,
+                                            staking::TransactionPicker &transaction_picker,
+                                            proposer::BlockBuilder &block_builder,
+                                            proposer::Logic &logic,
+                                            CWallet &wallet,
+                                            const staking::CoinSet &coins,
+                                            const boost::optional<CScript> &coinbase_script) {
 
   esperanza::WalletExtension &wallet_ext = wallet.GetWalletExtension();
-  const auto wallet_name = wallet.GetName();
+  const std::string &wallet_name = wallet.GetName();
 
   const boost::optional<EligibleCoin> winning_ticket = logic.TryPropose(coins);
   if (!winning_ticket) {
@@ -63,6 +64,7 @@ static std::shared_ptr<const CBlock> GenerateBlock(staking::ActiveChain &active_
       *active_chain.GetTip(), snapshot_hash, coin, coins, result.transactions, fees, coinbase_script, wallet_ext);
 }
 
+}  // namespace
 class PassiveProposerImpl : public Proposer {
  private:
   const Dependency<staking::ActiveChain> m_active_chain;
@@ -102,13 +104,13 @@ class ActiveProposerImpl : public Proposer {
  private:
   static constexpr const char *THREAD_NAME = "unite-proposer";
 
-  const Dependency<blockchain::Behavior> m_blockchain_behavior;
-  const Dependency<MultiWallet> m_multi_wallet;
-  const Dependency<staking::Network> m_network;
   const Dependency<staking::ActiveChain> m_active_chain;
   const Dependency<staking::TransactionPicker> m_transaction_picker;
   const Dependency<proposer::BlockBuilder> m_block_builder;
   const Dependency<proposer::Logic> m_proposer_logic;
+  const Dependency<blockchain::Behavior> m_blockchain_behavior;
+  const Dependency<MultiWallet> m_multi_wallet;
+  const Dependency<staking::Network> m_network;
 
   mutable CCriticalSection m_startstop_lock;
 
@@ -198,21 +200,21 @@ class ActiveProposerImpl : public Proposer {
   }
 
  public:
-  ActiveProposerImpl(const Dependency<blockchain::Behavior> blockchain_behavior,
-                     const Dependency<MultiWallet> multi_wallet,
-                     const Dependency<staking::Network> network,
-                     const Dependency<staking::ActiveChain> active_chain,
+  ActiveProposerImpl(const Dependency<staking::ActiveChain> active_chain,
                      const Dependency<staking::TransactionPicker> transaction_picker,
                      const Dependency<proposer::BlockBuilder> block_builder,
-                     const Dependency<proposer::Logic> proposer_logic)
-      : m_blockchain_behavior(blockchain_behavior),
-        m_multi_wallet(multi_wallet),
-        m_network(network),
-        m_active_chain(active_chain),
+                     const Dependency<proposer::Logic> proposer_logic,
+                     const Dependency<blockchain::Behavior> blockchain_behavior,
+                     const Dependency<MultiWallet> multi_wallet,
+                     const Dependency<staking::Network> network)
+      : m_active_chain(active_chain),
         m_transaction_picker(transaction_picker),
         m_block_builder(block_builder),
         m_proposer_logic(proposer_logic),
-        m_interrupted(false) {
+        m_interrupted(false),
+        m_blockchain_behavior(blockchain_behavior),
+        m_multi_wallet(multi_wallet),
+        m_network(network) {
   }
 
   void Wake() override {
@@ -229,7 +231,7 @@ class ActiveProposerImpl : public Proposer {
                                    *m_proposer_logic,
                                    wallet,
                                    coins,
-                                   boost::none);
+                                   boost::none /* coinbase_script */);
   }
 
   void Start() override {
@@ -274,9 +276,9 @@ std::unique_ptr<Proposer> Proposer::New(
     const Dependency<BlockBuilder> block_builder,
     const Dependency<Logic> proposer_logic) {
   if (settings->node_is_proposer) {
-    return std::unique_ptr<Proposer>(new ActiveProposerImpl(behavior, multi_wallet, network, active_chain, transaction_picker, block_builder, proposer_logic));
+    return MakeUnique<ActiveProposerImpl>(active_chain, transaction_picker, block_builder, proposer_logic, behavior, multi_wallet, network);
   } else {
-    return std::unique_ptr<Proposer>(new PassiveProposerImpl(active_chain, block_builder, transaction_picker, proposer_logic));
+    return MakeUnique<PassiveProposerImpl>(active_chain, block_builder, transaction_picker, proposer_logic);
   }
 }
 
