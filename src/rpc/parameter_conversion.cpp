@@ -194,6 +194,9 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "tracestake", 0, "start" },
     { "tracestake", 1, "length" },
     { "tracestake", 2, "reverse" },
+
+    { "propose", 0, "nblocks" },
+    { "proposetoaddress", 0, "nblocks" },
 };
 
 class CRPCConvertTable
