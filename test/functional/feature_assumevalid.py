@@ -65,10 +65,19 @@ class BaseNode(P2PInterface):
         headers_message.headers = [CBlockHeader(b) for b in new_blocks]
         self.send_message(headers_message)
 
+
+ESPERANZA_CONFIG = '-esperanzaconfig={"epochLength": 200}'
+
+
 class AssumeValidTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
+        self.extra_args = [
+            [ESPERANZA_CONFIG],
+            [ESPERANZA_CONFIG],
+            [ESPERANZA_CONFIG],
+        ]
 
     def send_blocks_until_disconnected(self, p2p_conn):
         """Keep sending blocks to the node until we're disconnected."""
@@ -221,8 +230,8 @@ class AssumeValidTest(UnitETestFramework):
         self.nodes[0].disconnect_p2ps()
 
         self.log.info("Start node1 and node2 with assumevalid so they accept a block with a bad signature.")
-        self.start_node(1, extra_args=["-assumevalid=" + hex(block102.sha256)])
-        self.start_node(2, extra_args=["-assumevalid=" + hex(block102.sha256)])
+        self.start_node(1, extra_args=["-assumevalid=" + hex(block102.sha256), ESPERANZA_CONFIG])
+        self.start_node(2, extra_args=["-assumevalid=" + hex(block102.sha256), ESPERANZA_CONFIG])
 
         p2p0 = self.nodes[0].add_p2p_connection(BaseNode())
         p2p1 = self.nodes[1].add_p2p_connection(BaseNode())
