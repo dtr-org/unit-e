@@ -138,7 +138,7 @@ class BlockBuilderImpl : public BlockBuilder {
     CScript reward_script;
 
     if (coinbase_script) {
-      reward_script = CScript(coinbase_script->begin(), coinbase_script->end());
+      reward_script = CScript(coinbase_script.get());
     } else if (m_settings->reward_destination) {
       reward_script = GetScriptForDestination(*m_settings->reward_destination);
     } else {
