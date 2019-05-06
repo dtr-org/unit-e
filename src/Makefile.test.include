@@ -250,8 +250,7 @@ if EMBEDDED_UNIVALUE
 endif
 
 %.cpp.test: %.cpp
-	for test_suite in `cat $< | grep -E "(BOOST_FIXTURE_TEST_SUITE\\(|BOOST_AUTO_TEST_SUITE\\()" | cut -d '(' -f 2 | cut -d ',' -f 1 | cut -d ')' -f 1`; do \
-	    echo $${test_suite}... \
+	@for test_suite in `cat $< | grep -E "(BOOST_FIXTURE_TEST_SUITE\\(|BOOST_AUTO_TEST_SUITE\\()" | cut -d '(' -f 2 | cut -d ',' -f 1 | cut -d ')' -f 1`; do \
 	    $(TEST_BINARY) -l test_suite -t $$test_suite > $<"-"$$test_suite".log" 2>&1 && (echo "Success: $$test_suite from $<") || ((echo "Failure: $$test_suite from $<"); cat $<"-"$$test_suite".log" && false) \
 	done
 
