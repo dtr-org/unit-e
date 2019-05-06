@@ -736,7 +736,7 @@ class FullBlockTest(UnitETestFramework):
 
         self.log.info("Reject a block with timestamp before MedianTimePast")
         b54 = self.next_block(54, self.get_staking_coin(), spend=out[15])
-        b54.nTime = b33.nTime - 1
+        b54.nTime = b35.nTime - 1
         b54.solve()
         self.sync_blocks([b54], False, request_block=False)
         self.comp_snapshot_hash(44)
