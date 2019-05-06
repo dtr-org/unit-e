@@ -15,7 +15,7 @@ For a description of arguments recognized by test scripts, see
 """
 
 import argparse
-from collections import deque
+from collections import (deque, Counter)
 import configparser
 import datetime
 import os
@@ -319,15 +319,16 @@ def main():
         print("Rerun ./configure with --enable-wallet, --with-utils and --with-daemon and then make")
         sys.exit(0)
 
-    if not (len(ALL_SCRIPTS) == dict.fromkeys(ALL_SCRIPTS).keys()):
+    unique_scripts = Counter(ALL_SCRIPTS)
+    if len(ALL_SCRIPTS) != len(unique_scripts):
         print("{}WARNING!{} There are duplicate tests in the test list:".format(BOLD[1], BOLD[0]))
-        duplicates = set()
-        for test in ALL_SCRIPTS:
-            if ALL_SCRIPTS.count(test) > 1:
-                duplicates.add(test)
+        for s in unique_scripts:
+            if unique_scripts.get(s) > 1:
+                print('-', s)
 
-        for dup in duplicates:
-            print("- ", dup)
+        if os.getenv('TRAVIS') == 'true':
+            # On travis this warning is an error to prevent merging duplicate tests on master
+            sys.exit(1)
 
     # Build list of tests
     test_list = []
