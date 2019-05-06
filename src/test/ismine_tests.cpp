@@ -6,13 +6,13 @@
 
 #include <key.h>
 #include <keystore.h>
+#include <outputtype.h>
 #include <pubkey.h>
 
 #include <test/test_unite.h>
 #include <boost/test/unit_test.hpp>
 
 #include <array>
-
 
 BOOST_FIXTURE_TEST_SUITE(ismine_tests, ReducedTestingSetup)
 
@@ -214,6 +214,48 @@ BOOST_AUTO_TEST_CASE(is_stakeable_by_me_remote_staking_watchonly) {
 
   BOOST_CHECK(!IsSpendable(IsMine(keystore, rsp2wsh)));
   BOOST_CHECK(!IsStakeableByMe(keystore, rsp2wsh));
+}
+
+BOOST_AUTO_TEST_CASE(is_stakeable_by_me_destinations) {
+
+  // Test that the P2SH output type is NOT stakeable
+  {
+    CKey key;
+    key.MakeNewKey(true);
+    CBasicKeyStore keystore;
+    keystore.AddKey(key);
+
+    CTxDestination dest = GetDestinationForKey(key.GetPubKey(), OutputType::P2SH_SEGWIT);
+    CScript script = GetScriptForDestination(dest);
+
+    BOOST_CHECK(!IsStakeableByMe(keystore, script));
+  }
+
+  // Test that the legacy output type is stakeable
+  {
+    CKey key;
+    key.MakeNewKey(true);
+    CBasicKeyStore keystore;
+    keystore.AddKey(key);
+
+    CTxDestination dest = GetDestinationForKey(key.GetPubKey(), OutputType::LEGACY);
+    CScript script = GetScriptForDestination(dest);
+
+    BOOST_CHECK(IsStakeableByMe(keystore, script));
+  }
+
+  // Test that the bech32 output type is stakeable
+  {
+    CKey key;
+    key.MakeNewKey(true);
+    CBasicKeyStore keystore;
+    keystore.AddKey(key);
+
+    CTxDestination dest = GetDestinationForKey(key.GetPubKey(), OutputType::BECH32);
+    CScript script = GetScriptForDestination(dest);
+
+    BOOST_CHECK(IsStakeableByMe(keystore, script));
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
