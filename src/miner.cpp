@@ -163,19 +163,20 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
       throw std::runtime_error(strprintf("%s: no stakeable coins.", __func__));
     }
 
+    // TODO UNIT-E: We can completely remove the whole `CreateNewBlock` once we
+    // migrated all the functional tests. At the moment this is a workaround to
+    // make them still work.
     bool success = false;
     CValidationState state;
     const staking::ActiveChain *active_chain = GetComponent<staking::ActiveChain>();
     for (const staking::Coin &coin : stakeable_coins) {
       proposer::EligibleCoin eligible_coin = {
-          staking::Coin(active_chain->GetBlockIndex(coin.GetTransactionId()),
-              COutPoint(coin.GetTransactionId(), coin.GetOutputIndex()),
-              CTxOut(coin.GetAmount(), scriptPubKeyIn)),
-          GetRandHash(), //TODO UNIT-E: At the moment is not used, since we still have PoW here
+          coin,
+          GetRandHash(),
           GetComponent<blockchain::Behavior>()->CalculateBlockReward(nHeight),
-          0, //TODO UNIT-E: At the moment is not used, since we still have PoW here
-          0, //TODO UNIT-E: At the moment is not used, since we still have PoW here
-          0 //TODO UNIT-E: At the moment is not used, since we still have PoW here
+          0,
+          0,
+          0
       };
 
       const CTransactionRef coinbase = GetComponent<proposer::BlockBuilder>()->BuildCoinbaseTransaction(uint256(snapshot_hash), eligible_coin, staking::CoinSet(), nFees, scriptPubKeyIn, pwallet->GetWalletExtension());
