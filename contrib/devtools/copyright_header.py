@@ -316,7 +316,7 @@ def report_cmd(argv):
 # query git for year of last change
 ################################################################################
 
-GIT_LOG_CMD = "git log --pretty=format:%%ai %s"
+GIT_LOG_CMD = "git log --pretty=format:%%ai --no-merges %s"
 
 def call_git_log(filename):
     out = subprocess.check_output((GIT_LOG_CMD % filename).split(' '))
