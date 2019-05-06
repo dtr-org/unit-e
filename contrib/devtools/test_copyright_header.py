@@ -11,8 +11,10 @@ from unittest import mock
 
 import tempfile
 import os
-from copyright_header import exec_insert_header
-
+from copyright_header import (
+    exec_insert_header,
+    ANY_COPYRIGHT_COMPILED,
+)
 
 class TestCopyrightHeader(unittest.TestCase):
     def run_and_test_insertion(self, original, expected_result, header_type):
@@ -157,6 +159,12 @@ Some text.
         # Should not insert the header twice
         with self.assertRaises(SystemExit):
             self.run_and_test_insertion(expected_result, expected_result, 'rst')
+
+
+class TestCopyrightMatch(unittest.TestCase):
+    def test_copyright(self):
+        assert(ANY_COPYRIGHT_COMPILED.search("Copyright (c) 2019 Jane Doe"))
+        assert(ANY_COPYRIGHT_COMPILED.search("Copyright(c) 2019 Jane Doe"))
 
 
 if __name__ == '__main__':
