@@ -1,3 +1,7 @@
+// Copyright (c) 2019 The Unit-e developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or https://opensource.org/licenses/MIT.
+
 #ifndef UNIT_E_BLOCKCHAIN_TESTNET_FUNDS_H
 #define UNIT_E_BLOCKCHAIN_TESTNET_FUNDS_H
 
