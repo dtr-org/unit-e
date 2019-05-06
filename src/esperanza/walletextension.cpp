@@ -228,6 +228,10 @@ bool WalletExtension::SignCoinbaseTransaction(CMutableTransaction &tx) {
   return true;
 }
 
+const std::string &WalletExtension::GetName() const {
+  return m_enclosing_wallet.GetName();
+}
+
 bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
                                            bool brand_new,
                                            std::string &error) {
@@ -248,8 +252,7 @@ bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
 }
 
 bool WalletExtension::BackupWallet() {
-  const std::string wallet_file_name = m_enclosing_wallet.GetName().empty() ?
-          "wallet.dat" : m_enclosing_wallet.GetName();
+  const std::string wallet_file_name = m_enclosing_wallet.GetName().empty() ? "wallet.dat" : m_enclosing_wallet.GetName();
   const int64_t current_time = GetTime();
 
   const std::string backup_wallet_filename =
@@ -611,7 +614,6 @@ void WalletExtension::VoteIfNeeded() {
              validatorState->m_last_source_epoch, validatorState->m_last_target_epoch);
     return;
   }
-
 
   const CWalletTx *prev_tx = m_enclosing_wallet.GetWalletTx(validator->m_last_transaction_hash);
   assert(prev_tx);
