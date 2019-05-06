@@ -7,6 +7,7 @@ from decimal import Decimal
 from test_framework.util import assert_equal, connect_nodes_bi, wait_until
 from test_framework.test_framework import UnitETestFramework
 
+
 class ProposerStakeableBalanceTest(UnitETestFramework):
 
     def set_test_params(self):
@@ -15,7 +16,7 @@ class ProposerStakeableBalanceTest(UnitETestFramework):
         self.extra_args = list([
             '-proposing=1',
             '-maxtipage=1000000000'
-        ] for i in range(0, self.num_nodes))
+        ] for _ in range(0, self.num_nodes))
 
     def setup_network(self):
         self.setup_nodes()
@@ -88,6 +89,21 @@ class ProposerStakeableBalanceTest(UnitETestFramework):
             wallet = status['wallets'][0]
             assert_equal(wallet['balance'], Decimal('0.00000000'))
             assert_equal(wallet['stakeable_balance'], Decimal('0.00000000'))
+
+        # Check that if we send all the money to a P2PKH address we cannot stake anymore.
+        disconnect_all_nodes(nodes)
+
+        p2pkh_tx = nodes[0].sendtoaddress(nodes[0].getnewaddress("", "legacy"), nodes[0].getbalance(), "", "", True)
+
+        wait_until(lambda: p2pkh_tx in nodes[0].getrawmempool())
+        connect_nodes(nodes[0], nodes[1].index)
+        sync_mempools(nodes[0:1])
+
+        wait_until(lambda: nodes[0].gettransaction(p2pkh_tx)['confirmations'] > 0, timeout=60)
+
+        assert_equal(len(nodes[0].liststakeablecoins()['stakeable_coins']), 0)
+        assert_equal(nodes[0].liststakeablecoins()['stakeable_balance'], Decimal('0.00000000'))
+        assert_equal(nodes[0].proposerstatus()['wallets'][0]['stakeable_balance'], Decimal('0.00000000'))
 
         print("Test succeeded.")
 

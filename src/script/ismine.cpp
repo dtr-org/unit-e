@@ -299,9 +299,7 @@ bool IsStakeableByMe(const CKeyStore &keystore, const CScript &script_pub_key)
     IsMineInfo is_mine_info;
     const isminetype is_mine = IsMine(keystore, script_pub_key, &is_mine_info);
 
-    // UNIT-E TODO: Restrict to witness programs only once #212 is merged (fixes #48)
     switch (is_mine_info.type) {
-        case TX_PUBKEYHASH:
         case TX_WITNESS_V0_KEYHASH: {
             if (is_mine != ISMINE_SPENDABLE) {
                 // Non-remote-staking scripts can be used as stake only if they

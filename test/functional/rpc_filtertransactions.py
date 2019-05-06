@@ -17,10 +17,11 @@ from test_framework.util import (
     sync_mempools,
 )
 
+
 class FilterTransactionsTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 3
-        self.extra_args = [['-deprecatedrpc=validateaddress']]*3
+        self.extra_args = [['-deprecatedrpc=validateaddress']] * 3
         self.enable_mocktime()
 
     def run_test(self):
@@ -108,7 +109,7 @@ class FilterTransactionsTest(UnitETestFramework):
 
         # coinbase
         sync_mempools(self.nodes)
-        self.nodes[0].generatetoaddress(1, self.nodes[0].getnewaddress())  # Clear node1's mempool
+        generate_block(self.nodes[0])  # Clear node1's mempool
         sync_blocks(self.nodes)
 
         address = self.nodes[1].getnewaddress()

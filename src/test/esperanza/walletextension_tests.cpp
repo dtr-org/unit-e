@@ -288,7 +288,7 @@ BOOST_FIXTURE_TEST_CASE(get_stakeable_coins, TestChain100Setup) {
   }
 
   // Make the first coinbase mature
-  CScript coinbase_script = GetScriptForDestination(coinbaseKey.GetPubKey().GetID());
+  CScript coinbase_script = GetScriptForDestination(WitnessV0KeyHash(coinbaseKey.GetPubKey().GetID()));
   bool processed;
   CreateAndProcessBlock({}, coinbase_script, boost::none, &processed);
   BOOST_CHECK(processed);

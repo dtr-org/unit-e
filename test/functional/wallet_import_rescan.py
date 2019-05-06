@@ -20,7 +20,14 @@ happened previously.
 """
 
 from test_framework.test_framework import (UnitETestFramework, DISABLE_FINALIZATION)
-from test_framework.util import (assert_raises_rpc_error, connect_nodes, sync_blocks, assert_equal, set_node_times)
+from test_framework.util import (
+    assert_raises_rpc_error,
+    connect_nodes,
+    sync_blocks,
+    assert_equal,
+    set_node_times,
+    generate_block
+)
 
 import collections
 import enum
@@ -150,7 +157,7 @@ class ImportRescanTest(UnitETestFramework):
     def run_test(self):
 
         self.setup_stake_coins(self.nodes[0])
-        self.nodes[0].generatetoaddress(200, self.nodes[0].getnewaddress())
+        generate_block(self.nodes[0], 200)
         sync_blocks(self.nodes)
 
         # Create one transaction on node 0 with a unique amount for

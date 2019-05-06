@@ -14,13 +14,13 @@ from random import (
 
 from decimal import Decimal
 
-from test_framework.authproxy import JSONRPCException
 from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_equal,
     sync_blocks,
-    sync_mempools
+    sync_mempools,
+    generate_block
 )
 
 
@@ -54,7 +54,8 @@ class ProposerBalanceTest(UnitETestFramework):
         for i in range(15):
             node_idx = i % 3
 
-            self.generate_block(nodes, node_idx)
+            generate_block(nodes[node_idx])
+            sync_blocks(nodes)
             block_info = self.get_last_block_info(node_idx, nodes)
 
             coinstake_tx_id = block_info['tx'][0]
@@ -87,7 +88,8 @@ class ProposerBalanceTest(UnitETestFramework):
                 node0_address, node1_address, node2_address, nodes
             )
 
-            self.generate_block(nodes, node_idx)
+            generate_block(nodes[node_idx])
+            sync_blocks(nodes)
             block_info = self.get_last_block_info(node_idx, nodes)
 
             transactions = [
@@ -152,15 +154,6 @@ class ProposerBalanceTest(UnitETestFramework):
     def load_wallets(self, nodes):
         for i in range(self.num_nodes):
             nodes[i].importmasterkey(regtest_mnemonics[i]['mnemonics'])
-
-    @staticmethod
-    def generate_block(nodes, node_idx):
-        try:
-            nodes[node_idx].generatetoaddress(nblocks=1, address=nodes[node_idx].getnewaddress())
-            sync_blocks(nodes)
-        except JSONRPCException as exp:
-            print("error generating block:", exp.error)
-            raise AssertionError("Node %s cannot generate block" % node_idx)
 
 
 if __name__ == '__main__':
