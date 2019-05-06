@@ -80,8 +80,6 @@ void FinalizationStateSpy::shuffle() {
   m_last_justified_epoch = Rand<uint32_t>();
   m_recommended_target_hash = GetRandHash();
   m_recommended_target_epoch = Rand<uint32_t>();
-  m_last_voter_rescale = Rand<ufp64::ufp64_t>();
-  m_last_non_voter_rescale = Rand<ufp64::ufp64_t>();
   m_reward_factor = Rand<ufp64::ufp64_t>();
 }
 

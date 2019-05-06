@@ -26,8 +26,6 @@ bool FinalizationStateData::operator==(const FinalizationStateData &other) const
          m_last_justified_epoch == other.m_last_justified_epoch &&
          m_recommended_target_hash == other.m_recommended_target_hash &&
          m_recommended_target_epoch == other.m_recommended_target_epoch &&
-         m_last_voter_rescale == other.m_last_voter_rescale &&
-         m_last_non_voter_rescale == other.m_last_non_voter_rescale &&
          m_reward_factor == other.m_reward_factor &&
          m_admin_state == other.m_admin_state;
 }
@@ -50,8 +48,6 @@ std::string FinalizationStateData::ToString() const {
       "m_last_justified_epoch=%d\n"
       "m_recommended_target_hash=%s\n"
       "m_recommended_target_epoch=%d\n"
-      "m_last_voter_rescale=%d\n"
-      "m_last_non_voter_rescale=%d\n"
       "m_reward_factor=%d\n"
       "m_admin_state=%s}",
       util::to_string(m_checkpoints),
@@ -69,8 +65,6 @@ std::string FinalizationStateData::ToString() const {
       m_last_justified_epoch,
       util::to_string(m_recommended_target_hash),
       m_recommended_target_epoch,
-      m_last_voter_rescale,
-      m_last_non_voter_rescale,
       m_reward_factor,
       util::to_string(m_admin_state));
 }
