@@ -46,7 +46,7 @@ def main():
 '''
         expected_result = '''# Copyright (c) 2017-2018 The Unit-e developers
 # Distributed under the MIT software license, see the accompanying
-# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+# file COPYING or https://opensource.org/licenses/MIT.
 import something
 
 def main():
@@ -68,7 +68,7 @@ def main():
         expected_result = '''#!/usr/bin/env python3
 # Copyright (c) 2017-2018 The Unit-e developers
 # Distributed under the MIT software license, see the accompanying
-# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+# file COPYING or https://opensource.org/licenses/MIT.
 import something
 
 def main():
@@ -89,7 +89,7 @@ void main() {
 '''
         expected_result = '''// Copyright (c) 2017-2018 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+// file COPYING or https://opensource.org/licenses/MIT.
 
 #include "something.h"
 
