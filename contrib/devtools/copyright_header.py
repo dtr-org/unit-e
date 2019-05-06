@@ -115,7 +115,10 @@ EXPECTED_HOLDER_NAMES = [
     "The ShadowCoin developers\n",
     "Institute of Formal and Applied Linguistics, Faculty of", # Multi-line
     "Intel Corporation",
-    "Anton Bachin"
+    "Anton Bachin",
+    "Gavin Andresen",
+    "The Bitcoin Unlimited developers",
+    "The Bitcoin ABC developers",
 ]
 
 DOMINANT_STYLE_COMPILED = {}
