@@ -149,7 +149,6 @@ BASE_SCRIPTS = [
     'rpc_finalization.py',
     'feature_logging.py',
     'rpc_preciousblock.py',
-    'esperanza_finalizationstate.py',
     'finalization_state_restoration.py',
     'interface_zmq.py',
     'wallet_txn_doublespend.py --mineblock',
@@ -215,7 +214,6 @@ BASE_SCRIPTS = [
     'wallet_mnemonicnew.py',
     'wallet_importmasterkey.py',
     'proposer_multiwallet.py',
-    'feature_minchainwork.py',
     'rpc_getblockstats.py',
     'feature_includeconf.py',
     'rpc_scantxoutset.py',
@@ -240,7 +238,6 @@ EXTENDED_SCRIPTS = [
     # vv Tests less than 5m vv
     # vv Tests less than 2m vv
     # vv Tests less than 60s vv
-    'p2p_feefilter.py',
     'rpc_bind.py',
     # vv Tests less than 30s vv
 ]
@@ -321,6 +318,16 @@ def main():
         print("No functional tests to run. Wallet, utils, and unit-e must all be enabled")
         print("Rerun ./configure with --enable-wallet, --with-utils and --with-daemon and then make")
         sys.exit(0)
+
+    if not (len(ALL_SCRIPTS) == dict.fromkeys(ALL_SCRIPTS).keys()):
+        print("{}WARNING!{} There are duplicate tests in the test list:".format(BOLD[1], BOLD[0]))
+        duplicates = set()
+        for test in ALL_SCRIPTS:
+            if ALL_SCRIPTS.count(test) > 1:
+                duplicates.add(test)
+
+        for dup in duplicates:
+            print("- ", dup)
 
     # Build list of tests
     test_list = []
