@@ -16,7 +16,14 @@ set -u
 SCRIPTDIR=$(dirname "${BASH_SOURCE[0]}")
 LINTALL=$(basename "${BASH_SOURCE[0]}")
 
-for f in "${SCRIPTDIR}"/lint-*.sh; do
+# TODO: Replace with "${SCRIPTDIR}"/lint-*.sh
+SHELL_SCRIPTS=(
+  "${SCRIPTDIR}"/lint-filenames.sh
+  "${SCRIPTDIR}"/lint-python-shebang.sh
+  "${SCRIPTDIR}"/lint-whitespace.sh
+)
+
+for f in ${SHELL_SCRIPTS[@]}; do
   if [ "$(basename "$f")" != "$LINTALL" ]; then
     if ! "$f"; then
       echo "^---- failure generated from $f"
@@ -24,13 +31,3 @@ for f in "${SCRIPTDIR}"/lint-*.sh; do
     fi
   fi
 done
-
-for f in "${SCRIPTDIR}"/lint-*.py; do
-  if [ "$(basename "$f")" != "$LINTALL" ]; then
-    if ! "$f"; then
-      echo "^---- failure generated from $f"
-      exit 1
-    fi
-  fi
-done
-
