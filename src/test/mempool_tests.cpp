@@ -309,7 +309,7 @@ BOOST_AUTO_TEST_CASE(MempoolAncestorIndexingTest)
     tx2.vout[0].scriptPubKey = CScript() << OP_11 << OP_EQUAL;
     tx2.vout[0].nValue = 2 * UNIT;
     pool.addUnchecked(tx2.GetHash(), entry.Fee(20000LL).FromTx(tx2));
-    uint64_t tx2Size = GetVirtualTransactionSize(tx2);
+    uint64_t tx2Size = GetVirtualTransactionSize(tx2, entry.sigOpCost);
 
     /* lowest fee */
     CMutableTransaction tx3 = CMutableTransaction();
@@ -357,7 +357,7 @@ BOOST_AUTO_TEST_CASE(MempoolAncestorIndexingTest)
     tx6.vout.resize(1);
     tx6.vout[0].scriptPubKey = CScript() << OP_11 << OP_EQUAL;
     tx6.vout[0].nValue = 20 * UNIT;
-    uint64_t tx6Size = GetVirtualTransactionSize(tx6);
+    uint64_t tx6Size = GetVirtualTransactionSize(tx6, entry.sigOpCost);
 
     pool.addUnchecked(tx6.GetHash(), entry.Fee(0LL).FromTx(tx6));
     BOOST_CHECK_EQUAL(pool.size(), 6U);
@@ -376,7 +376,7 @@ BOOST_AUTO_TEST_CASE(MempoolAncestorIndexingTest)
     tx7.vout.resize(1);
     tx7.vout[0].scriptPubKey = CScript() << OP_11 << OP_EQUAL;
     tx7.vout[0].nValue = 10 * UNIT;
-    uint64_t tx7Size = GetVirtualTransactionSize(tx7);
+    uint64_t tx7Size = GetVirtualTransactionSize(tx7, entry.sigOpCost);
 
     /* set the fee to just below tx2's feerate when including ancestor */
     CAmount fee = (20000/tx2Size)*(tx7Size + tx6Size) - 1;
@@ -464,12 +464,12 @@ BOOST_AUTO_TEST_CASE(MempoolSizeLimitTest)
     BOOST_CHECK(pool.exists(tx2.GetHash()));
     BOOST_CHECK(pool.exists(tx3.GetHash()));
 
-    pool.TrimToSize(GetVirtualTransactionSize(tx1)); // mempool is limited to tx1's size in memory usage, so nothing fits
+    pool.TrimToSize(GetVirtualTransactionSize(tx1, entry.sigOpCost)); // mempool is limited to tx1's size in memory usage, so nothing fits
     BOOST_CHECK(!pool.exists(tx1.GetHash()));
     BOOST_CHECK(!pool.exists(tx2.GetHash()));
     BOOST_CHECK(!pool.exists(tx3.GetHash()));
 
-    CFeeRate maxFeeRateRemoved(25000, GetVirtualTransactionSize(tx3) + GetVirtualTransactionSize(tx2));
+    CFeeRate maxFeeRateRemoved(25000, GetVirtualTransactionSize(tx3, entry.sigOpCost) + GetVirtualTransactionSize(tx2, entry.sigOpCost));
     BOOST_CHECK_EQUAL(pool.GetMinFee(1).GetFeePerK(), maxFeeRateRemoved.GetFeePerK() + 1000);
 
     CMutableTransaction tx4 = CMutableTransaction();

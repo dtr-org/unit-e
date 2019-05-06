@@ -3,9 +3,9 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <key_io.h>
 #include <extkey.h>
 #include <key.h>
+#include <key_io.h>
 #include <rpc/protocol.h>
 #include <rpc/server.h>
 #include <usbdevice/usbdevice.h>
