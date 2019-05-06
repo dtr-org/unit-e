@@ -66,7 +66,7 @@ class BaseNode(P2PInterface):
         self.send_message(headers_message)
 
 
-ESPERANZA_CONFIG = '-esperanzaconfig={"epochLength": 500}'
+ESPERANZA_CONFIG = '-esperanzaconfig={"epochLength": 200}'
 
 
 class AssumeValidTest(UnitETestFramework):
