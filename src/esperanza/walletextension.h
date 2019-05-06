@@ -118,6 +118,8 @@ class WalletExtension : public staking::StakingWallet {
   // defined in staking::StakingWallet
   bool SignCoinbaseTransaction(CMutableTransaction &) override;
 
+  const std::string &GetName() const override;
+
   // defined in staking::StakingWallet
   proposer::State &GetProposerState() override;
 

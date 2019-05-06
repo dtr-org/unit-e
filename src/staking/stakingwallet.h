@@ -60,6 +60,9 @@ class StakingWallet {
   //! \brief signs the staking input in a coinbase transaction
   virtual bool SignCoinbaseTransaction(CMutableTransaction &) = 0;
 
+  //! \brief get a name for this wallet for debug/logging purposes
+  virtual const std::string &GetName() const = 0;
+
   virtual ~StakingWallet() = default;
 };
 

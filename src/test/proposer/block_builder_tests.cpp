@@ -47,6 +47,7 @@ struct Fixture {
   class Wallet : public staking::StakingWallet {
     mutable CCriticalSection lock;
     proposer::State state;
+    std::string name = "test-wallet";
 
    public:
     CKey key;
@@ -59,6 +60,7 @@ struct Fixture {
     proposer::State &GetProposerState() override { return state; }
     boost::optional<CKey> GetKey(const CPubKey &) const override { return key; }
     bool SignCoinbaseTransaction(CMutableTransaction &tx) override { return signfunc(tx); }
+    const std::string &GetName() const override { return name; }
   };
 
   Wallet wallet;
