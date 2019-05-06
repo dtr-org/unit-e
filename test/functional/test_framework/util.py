@@ -699,9 +699,9 @@ def create_lots_of_big_transactions(node, txouts, utxos, num, fee):
         change = t['amount'] - fee
         outputs[addr] = satoshi_round(change)
         rawtx = node.createrawtransaction(inputs, outputs)
-        newtx = rawtx[0:92]
+        newtx = rawtx[0:88]
         newtx = newtx + txouts
-        newtx = newtx + rawtx[94:]
+        newtx = newtx + rawtx[90:]
         signresult = node.signrawtransactionwithwallet(newtx, None, "NONE")
         txid = node.sendrawtransaction(signresult["hex"], True)
         txids.append(txid)

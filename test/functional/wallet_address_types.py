@@ -263,6 +263,7 @@ class AddressTypeTest(UnitETestFramework):
         # Fund node 4:
         self.nodes[5].sendtoaddress(self.nodes[4].getnewaddress(), Decimal("1"))
         self.nodes[5].generate(1)
+
         sync_blocks(self.nodes)
         assert_equal(self.nodes[4].getbalance(), 1)
 

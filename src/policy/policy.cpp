@@ -93,7 +93,7 @@ bool IsStandardTx(const CTransaction& tx, std::string& reason)
         return true;
     }
 
-    if (tx.nVersion > CTransaction::MAX_STANDARD_VERSION || tx.nVersion < 1) {
+    if (tx.version > CTransaction::MAX_STANDARD_VERSION || tx.version < 1) {
         reason = "version";
         return false;
     }

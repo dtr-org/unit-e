@@ -66,8 +66,8 @@ class BIP68Test(UnitETestFramework):
         self.log.info("Activating BIP68 (and 112/113)")
         self.activateCSV()
 
-        self.log.info("Verifying nVersion=2 transactions are standard.")
-        self.log.info("Note that nVersion=2 transactions are always standard (independent of BIP68 activation status).")
+        self.log.info("Verifying version=2 transactions are standard.")
+        self.log.info("Note that version=2 transactions are always standard (independent of BIP68 activation status).")
         self.test_version2_relay()
 
         self.log.info("Passed")
@@ -101,7 +101,7 @@ class BIP68Test(UnitETestFramework):
         # This transaction will enable sequence-locks, so this transaction should
         # fail
         tx2 = CTransaction()
-        tx2.nVersion = 2
+        tx2.version = 2
         sequence_value = sequence_value & 0x7fffffff
         tx2.vin = [CTxIn(COutPoint(tx1_id, 0), nSequence=sequence_value)]
         tx2.vout = [CTxOut(int(value - self.relayfee * UNIT), CScript([b'a' * 35]))]
@@ -111,7 +111,7 @@ class BIP68Test(UnitETestFramework):
 
         # Setting the version back down to 1 should disable the sequence lock,
         # so this should be accepted.
-        tx2.nVersion = 1
+        tx2.version = 1
 
         self.nodes[0].sendrawtransaction(ToHex(tx2))
 
@@ -157,7 +157,7 @@ class BIP68Test(UnitETestFramework):
             using_sequence_locks = False
 
             tx = CTransaction()
-            tx.nVersion = 2
+            tx.version = 2
             value = 0
             for j in range(num_inputs):
                 sequence_value = 0xfffffffe # this disables sequence locks
@@ -225,7 +225,7 @@ class BIP68Test(UnitETestFramework):
         # Anyone-can-spend mempool tx.
         # Sequence lock of 0 should pass.
         tx2 = CTransaction()
-        tx2.nVersion = 2
+        tx2.version = 2
         tx2.vin = [CTxIn(COutPoint(tx1.sha256, 0), nSequence=0)]
         tx2.vout = [CTxOut(int(tx1.vout[0].nValue - self.relayfee*UNIT), CScript([b'a']))]
         tx2_raw = self.nodes[0].signrawtransactionwithwallet(ToHex(tx2))["hex"]
@@ -243,7 +243,7 @@ class BIP68Test(UnitETestFramework):
                 sequence_value |= SEQUENCE_LOCKTIME_TYPE_FLAG
 
             tx = CTransaction()
-            tx.nVersion = 2
+            tx.version = 2
             tx.vin = [CTxIn(COutPoint(orig_tx.sha256, 0), nSequence=sequence_value)]
             tx.vout = [CTxOut(int(orig_tx.vout[0].nValue - relayfee * UNIT), CScript([b'a' * 35]))]
             tx.rehash()
@@ -367,7 +367,7 @@ class BIP68Test(UnitETestFramework):
 
         # Make an anyone-can-spend transaction
         tx2 = CTransaction()
-        tx2.nVersion = 1
+        tx2.version = 1
         tx2.vin = [CTxIn(COutPoint(tx1.sha256, 0), nSequence=0)]
         tx2.vout = [CTxOut(int(tx1.vout[0].nValue - self.relayfee*UNIT), CScript([b'a']))]
 
@@ -381,7 +381,7 @@ class BIP68Test(UnitETestFramework):
         non_final_sequence_value = 100
 
         tx3 = CTransaction()
-        tx3.nVersion = 2
+        tx3.version = 2
         tx3.vin = [CTxIn(COutPoint(tx2.sha256, 0), nSequence=non_final_sequence_value)]
         tx3.vout = [CTxOut(int(tx2.vout[0].nValue - self.relayfee * UNIT), CScript([b'a' * 35]))]
         tx3.rehash()
@@ -426,7 +426,7 @@ class BIP68Test(UnitETestFramework):
         rawtx = self.nodes[1].createrawtransaction(inputs, outputs)
         rawtxfund = self.nodes[1].fundrawtransaction(rawtx)['hex']
         tx = FromHex(CTransaction(), rawtxfund)
-        tx.nVersion = 2
+        tx.version = 2
         tx_signed = self.nodes[1].signrawtransactionwithwallet(ToHex(tx))["hex"]
         self.nodes[1].sendrawtransaction(tx_signed)
 

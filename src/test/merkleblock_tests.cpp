@@ -22,10 +22,10 @@ BOOST_FIXTURE_TEST_CASE(merkleblock_construct_from_txids_found, RealBlockFixture
     std::set<uint256> txids;
 
     // Last txn in block.
-    uint256 txhash1 = uint256S("0x74d681e0e03bafa802c8aa084379aa98d9fcd632ddc2ed9782b586ec87451f20");
+    uint256 txhash1 = uint256S("0x055b1fdeed24ca2c56ee0d6188202e63c8a51f338a9adf8778453fb4f6e32d6a");
 
     // Second txn in block.
-    uint256 txhash2 = uint256S("0xf9fc751cb7dc372406a9f8d738d5e6f8f63bab71986a39cf36ee70ee17036d07");
+    uint256 txhash2 = uint256S("0xb20d26d80d4a5d2f910410d84b0c38e7157e8eb3959cb41fb2f242ac78710b49");
 
     txids.insert(txhash1);
     txids.insert(txhash2);

@@ -467,7 +467,8 @@ class CTxWitness():
 class CTransaction():
     def __init__(self, tx=None):
         if tx is None:
-            self.nVersion = 1
+            self.type = TxType.REGULAR.value
+            self.version = 1
             self.vin = []
             self.vout = []
             self.wit = CTxWitness()
@@ -475,7 +476,8 @@ class CTransaction():
             self.sha256 = None
             self.hash = None
         else:
-            self.nVersion = tx.nVersion
+            self.type = tx.type
+            self.version = tx.version
             self.vin = copy.deepcopy(tx.vin)
             self.vout = copy.deepcopy(tx.vout)
             self.nLockTime = tx.nLockTime
@@ -484,10 +486,10 @@ class CTransaction():
             self.wit = copy.deepcopy(tx.wit)
 
     def set_type(self, tx_type):
-        self.nVersion = (self.nVersion & 0x0000FFFF) | (tx_type.value << 16)
+        self.type = tx_type.value
 
     def get_type(self):
-        return TxType(self.nVersion >> 16)
+        return TxType(self.type)
 
     def is_finalizer_commit(self):
         name = self.get_type()
@@ -506,7 +508,8 @@ class CTransaction():
         assert False, ('unknown type: %s' % name)
 
     def deserialize(self, f):
-        self.nVersion = struct.unpack("<i", f.read(4))[0]
+        self.type = struct.unpack("<B", f.read(1))[0]
+        self.version = struct.unpack("<B", f.read(1))[0]
         self.vin = deser_vector(f, CTxIn)
         flags = 0
         if len(self.vin) == 0:
@@ -527,7 +530,8 @@ class CTransaction():
 
     def serialize_without_witness(self):
         r = b""
-        r += struct.pack("<i", self.nVersion)
+        r += struct.pack("<B", self.type)
+        r += struct.pack("<B", self.version)
         r += ser_vector(self.vin)
         r += ser_vector(self.vout)
         r += struct.pack("<I", self.nLockTime)
@@ -539,7 +543,8 @@ class CTransaction():
         if not self.wit.is_null():
             flags |= 1
         r = b""
-        r += struct.pack("<i", self.nVersion)
+        r += struct.pack("<B", self.type)
+        r += struct.pack("<B", self.version)
         if flags:
             dummy = []
             r += ser_vector(dummy)
@@ -586,11 +591,11 @@ class CTransaction():
         return True
 
     def is_coin_base(self):
-        return TxType(self.nVersion >> 16) == TxType.COINBASE
+        return self.get_type() == TxType.COINBASE
 
     def __repr__(self):
-        return "CTransaction(nVersion=%i vin=%s vout=%s wit=%s nLockTime=%i)" \
-            % (self.nVersion, repr(self.vin), repr(self.vout), repr(self.wit), self.nLockTime)
+        return "CTransaction(type=%i version=%i vin=%s vout=%s wit=%s nLockTime=%i)" \
+            % (self.type, self.version, repr(self.vin), repr(self.vout), repr(self.wit), self.nLockTime)
 
 
 class CBlockHeader():

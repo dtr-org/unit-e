@@ -65,7 +65,8 @@ BOOST_AUTO_TEST_CASE(signaturehash_vote)
     tx.vout.push_back(out);
 
     CHashWriter ss(SER_GETHASH, 0);
-    ss << tx.nVersion;
+    ss << tx.type;
+    ss << tx.version;
     ss << GetPrevoutHash(tx);
     ss << GetSequenceHash(tx);
     ss << tx.vin[0].prevout;

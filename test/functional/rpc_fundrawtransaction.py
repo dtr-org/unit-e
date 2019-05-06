@@ -258,7 +258,7 @@ class RawTransactionsTest(UnitETestFramework):
         rawtx   = self.nodes[2].createrawtransaction(inputs, outputs)
 
         # 4-byte version + 1-byte vin count + 36-byte prevout then script_len
-        rawtx = rawtx[:82] + "0100" + rawtx[84:]
+        rawtx = rawtx[:78] + "0100" + rawtx[80:]
 
         dec_tx  = self.nodes[2].decoderawtransaction(rawtx)
         assert_equal(utx['txid'], dec_tx['vin'][0]['txid'])
@@ -597,7 +597,7 @@ class RawTransactionsTest(UnitETestFramework):
         # test fundrawtransaction with OP_RETURN and no vin #
         #####################################################
 
-        rawtx   = "0100000000010000000000000000066a047465737400000000"
+        rawtx   = "000100010000000000000000066a047465737400000000"
         dec_tx  = self.nodes[2].decoderawtransaction(rawtx)
 
         assert_equal(len(dec_tx['vin']), 0)

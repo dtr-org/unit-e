@@ -99,7 +99,8 @@ static void BuildTxs(CMutableTransaction& spendingTx, CCoinsViewCache& coins, CM
     creationTx.vout[0].nValue = 1;
     creationTx.vout[0].scriptPubKey = scriptPubKey;
 
-    spendingTx.nVersion = 1;
+    spendingTx.SetVersion(1);
+    spendingTx.SetType(TxType::REGULAR);
     spendingTx.vin.resize(1);
     spendingTx.vin[0].prevout.hash = creationTx.GetHash();
     spendingTx.vin[0].prevout.n = 0;
