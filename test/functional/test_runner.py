@@ -326,9 +326,7 @@ def main():
             if unique_scripts.get(s) > 1:
                 print('-', s)
 
-        if os.getenv('TRAVIS') == 'true':
-            # On travis this warning is an error to prevent merging duplicate tests on master
-            sys.exit(1)
+        sys.exit(1)
 
     # Build list of tests
     test_list = []
