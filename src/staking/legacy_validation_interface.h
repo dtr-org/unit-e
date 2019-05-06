@@ -103,11 +103,6 @@ class LegacyValidationInterface {
 
   virtual ~LegacyValidationInterface() = default;
 
-  static std::unique_ptr<LegacyValidationInterface> New(
-      Dependency<ActiveChain> active_chain,
-      Dependency<BlockValidator> block_validator,
-      Dependency<StakeValidator> stake_validator);
-
   //! \brief Instantiates an instance of the old validation functions.
   //!
   //! Although the old functions do not require all these dependencies
