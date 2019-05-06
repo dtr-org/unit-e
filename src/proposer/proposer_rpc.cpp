@@ -26,6 +26,7 @@ namespace proposer {
 class ProposerRPCImpl : public ProposerRPC {
 
  private:
+  const Dependency<Settings> m_settings;
   const Dependency<MultiWallet> m_multi_wallet;
   const Dependency<staking::Network> m_network;
   const Dependency<staking::ActiveChain> m_chain;
@@ -93,11 +94,13 @@ class ProposerRPCImpl : public ProposerRPC {
 
  public:
   ProposerRPCImpl(
+      const Dependency<Settings> settings,
       const Dependency<MultiWallet> multi_wallet,
       const Dependency<staking::Network> network,
       const Dependency<staking::ActiveChain> chain,
       const Dependency<Proposer> proposer)
-      : m_multi_wallet(multi_wallet),
+      : m_settings(settings),
+        m_multi_wallet(multi_wallet),
         m_network(network),
         m_chain(chain),
         m_proposer(proposer) {}
@@ -181,6 +184,10 @@ class ProposerRPCImpl : public ProposerRPC {
 
     esperanza::WalletExtension &wallet_ext = wallet.GetWalletExtension();
 
+    if (m_settings->node_is_proposer) {
+      throw JSONRPCError(RPC_INTERNAL_ERROR, "Node is automatically proposing.");
+    }
+
     for (int i = 0; i < num_generate; ++i) {
 
       std::shared_ptr<const CBlock> block;
@@ -189,15 +196,14 @@ class ProposerRPCImpl : public ProposerRPC {
         const staking::CoinSet stakeable_coins = wallet_ext.GetStakeableCoins();
 
         if (stakeable_coins.empty()) {
-          throw JSONRPCError(RPC_INTERNAL_ERROR,
-                             "Not proposing, not enough balance.");
+          throw JSONRPCError(RPC_INTERNAL_ERROR, "Not proposing, no stakeable coins.");
         }
 
         // We don't want to combine coins when we use the rpc, so we don't need
         // to pass all of them.
         const staking::CoinSet first_coin = {*stakeable_coins.begin()};
 
-        block = m_proposer->GenerateBlock(wallet,
+        block = m_proposer->GenerateBlock(wallet.GetWalletExtension(),
                                           first_coin,
                                           coinbase_script);
         if (!block) {
@@ -217,16 +223,16 @@ class ProposerRPCImpl : public ProposerRPC {
   }
 
   UniValue propose(const JSONRPCRequest &request) const override {
-    CWallet *const pwallet = GetWalletForJSONRPCRequest(request).get();
+    std::shared_ptr<CWallet> const pwallet = GetWalletForJSONRPCRequest(request);
 
-    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+    if (!EnsureWalletIsAvailable(pwallet.get(), request.fHelp)) {
       return NullUniValue;
     }
 
     if (request.fHelp || request.params.size() != 1) {
       throw std::runtime_error(
           "propose nblocks\n"
-          "\nPropose up to nblocks blocks immediately (before the RPC call returns) to an address in the wallet.\n"
+          "\nPropose nblocks blocks immediately (before the RPC call returns) to an address in the wallet.\n"
           "\nNote: this function can only be used on the regtest network.\n"
           "\nArguments:\n"
           "1. nblocks      (numeric, required) How many blocks are proposed immediately.\n"
@@ -247,16 +253,16 @@ class ProposerRPCImpl : public ProposerRPC {
   }
 
   UniValue proposetoaddress(const JSONRPCRequest &request) const override {
-    CWallet *const pwallet = GetWalletForJSONRPCRequest(request).get();
+    std::shared_ptr<CWallet> const pwallet = GetWalletForJSONRPCRequest(request);
 
-    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+    if (!EnsureWalletIsAvailable(pwallet.get(), request.fHelp)) {
       return NullUniValue;
     }
 
     if (request.fHelp || request.params.size() != 2)
       throw std::runtime_error(
           "proposetoaddress nblocks address\n"
-          "\nProposes up to nBlocks immediately to a specified address (before the RPC call returns)\n"
+          "\nProposes nblocks blocks immediately to a specified address (before the RPC call returns)\n"
           "\nNote: this function can only be used on the regtest network.\n"
           "\nArguments:\n"
           "1. nblocks      (numeric, required) How many blocks are proposed immediately.\n"
@@ -285,12 +291,13 @@ class ProposerRPCImpl : public ProposerRPC {
 };
 
 std::unique_ptr<ProposerRPC> ProposerRPC::New(
+    const Dependency<Settings> settings,
     const Dependency<MultiWallet> multi_wallet,
     const Dependency<staking::Network> network,
     const Dependency<staking::ActiveChain> chain,
     const Dependency<Proposer> proposer) {
   return std::unique_ptr<ProposerRPC>(
-      new ProposerRPCImpl(multi_wallet, network, chain, proposer));
+      new ProposerRPCImpl(settings, multi_wallet, network, chain, proposer));
 }
 
 }  // namespace proposer

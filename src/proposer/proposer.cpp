@@ -35,11 +35,10 @@ std::shared_ptr<const CBlock> GenerateBlock(staking::ActiveChain &active_chain,
                                             staking::TransactionPicker &transaction_picker,
                                             proposer::BlockBuilder &block_builder,
                                             proposer::Logic &logic,
-                                            CWallet &wallet,
+                                            staking::StakingWallet &wallet,
                                             const staking::CoinSet &coins,
                                             const boost::optional<CScript> &coinbase_script) {
 
-  esperanza::WalletExtension &wallet_ext = wallet.GetWalletExtension();
   const std::string &wallet_name = wallet.GetName();
 
   const boost::optional<EligibleCoin> winning_ticket = logic.TryPropose(coins);
@@ -61,7 +60,7 @@ std::shared_ptr<const CBlock> GenerateBlock(staking::ActiveChain &active_chain,
   const uint256 snapshot_hash = active_chain.ComputeSnapshotHash();
 
   return block_builder.BuildBlock(
-      *active_chain.GetTip(), snapshot_hash, coin, coins, result.transactions, fees, coinbase_script, wallet_ext);
+      *active_chain.GetTip(), snapshot_hash, coin, coins, result.transactions, fees, coinbase_script, wallet);
 }
 
 }  // namespace
@@ -86,7 +85,7 @@ class PassiveProposerImpl : public Proposer {
   void Start() override {}
   void Stop() override {}
   bool IsStarted() override { return false; }
-  std::shared_ptr<const CBlock> GenerateBlock(CWallet &wallet,
+  std::shared_ptr<const CBlock> GenerateBlock(staking::StakingWallet &wallet,
                                               const staking::CoinSet &coins,
                                               const boost::optional<CScript> &coinbase_script) override {
 
@@ -176,7 +175,7 @@ class ActiveProposerImpl : public Proposer {
           }
           wallet_ext.GetProposerState().m_status = Status::IS_PROPOSING;
           wallet_ext.GetProposerState().m_number_of_search_attempts += 1;
-          block = GenerateBlock(*wallet, coins, boost::none);
+          block = GenerateBlock(wallet->GetWalletExtension(), coins, boost::none);
         }
         wallet_ext.GetProposerState().m_number_of_searches += 1;
         if (m_interrupted) {
@@ -221,7 +220,7 @@ class ActiveProposerImpl : public Proposer {
     m_waiter.Wake();
   }
 
-  std::shared_ptr<const CBlock> GenerateBlock(CWallet &wallet,
+  std::shared_ptr<const CBlock> GenerateBlock(staking::StakingWallet &wallet,
                                               const staking::CoinSet &coins,
                                               const boost::optional<CScript> &) override {
 

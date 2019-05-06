@@ -6,6 +6,7 @@
 #define UNIT_E_PROPOSER_RPC_H
 
 #include <dependency.h>
+#include <settings.h>
 
 #include <univalue.h>
 
@@ -47,6 +48,7 @@ class ProposerRPC {
   virtual ~ProposerRPC() = default;
 
   static std::unique_ptr<ProposerRPC> New(
+      Dependency<Settings> settings,
       Dependency<MultiWallet>,
       Dependency<staking::Network>,
       Dependency<staking::ActiveChain>,

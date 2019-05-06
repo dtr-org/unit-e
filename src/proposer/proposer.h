@@ -6,6 +6,7 @@
 #define UNITE_PROPOSER_PROPOSER_H
 
 #include <dependency.h>
+#include <staking/stakingwallet.h>
 
 #include <chain.h>
 #include <primitives/block.h>
@@ -42,7 +43,7 @@ class Proposer {
 
   virtual bool IsStarted() = 0;
 
-  virtual std::shared_ptr<const CBlock> GenerateBlock(CWallet &wallet,
+  virtual std::shared_ptr<const CBlock> GenerateBlock(staking::StakingWallet &wallet,
                                                       const staking::CoinSet &coins,
                                                       const boost::optional<CScript> &coinbase_script) = 0;
 
