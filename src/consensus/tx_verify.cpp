@@ -9,7 +9,6 @@
 #include <script/interpreter.h>
 #include <consensus/validation.h>
 #include <esperanza/vote.h>
-#include <esperanza/finalizationstate.h>
 #include <finalization/vote_recorder.h>
 
 // TODO remove the following dependencies

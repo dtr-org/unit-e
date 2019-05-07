@@ -33,7 +33,6 @@
 #include <script/sigcache.h>
 #include <script/standard.h>
 #include <shutdown.h>
-#include <staking/legacy_validation_interface.h>
 #include <timedata.h>
 #include <tinyformat.h>
 #include <txdb.h>

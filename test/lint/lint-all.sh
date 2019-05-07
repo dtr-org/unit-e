@@ -18,6 +18,7 @@ LINTALL=$(basename "${BASH_SOURCE[0]}")
 
 # TODO: Replace with "${SCRIPTDIR}"/lint-*.sh
 SHELL_SCRIPTS=(
+  "${SCRIPTDIR}"/lint-circular-dependencies.sh
   "${SCRIPTDIR}"/lint-filenames.sh
   "${SCRIPTDIR}"/lint-python-shebang.sh
   "${SCRIPTDIR}"/lint-whitespace.sh

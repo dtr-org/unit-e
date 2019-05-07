@@ -7,7 +7,6 @@
 #include <chainparams.h>
 #include <esperanza/script.h>
 #include <esperanza/vote.h>
-#include <script/ismine.h>
 #include <tinyformat.h>
 #include <ufp64.h>
 #include <util.h>
