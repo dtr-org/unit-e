@@ -158,7 +158,8 @@ class BIP68_112_113Test(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.setup_clean_chain = True
-        self.extra_args = [['-whitelist=127.0.0.1', '-blockversion=4', '-addresstype=legacy', '-stakesplitthreshold=1000000000', DISABLE_FINALIZATION]]
+        self.extra_args = [['-whitelist=127.0.0.1', '-blockversion=4', '-addresstype=legacy',
+                            '-stakesplitthreshold=1000000000', DISABLE_FINALIZATION]]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()

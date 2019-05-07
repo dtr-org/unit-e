@@ -59,7 +59,8 @@ class RpcCreateMultiSigTest(UnitETestFramework):
         assert 150 < height < 350
         num_fin_rewards = (height - COINBASE_MATURITY - 1) // DEFAULT_EPOCH_LENGTH * DEFAULT_EPOCH_LENGTH
         print(height, num_fin_rewards)
-        total = node0.initial_stake + (height - COINBASE_MATURITY) * PROPOSER_REWARD + num_fin_rewards * FULL_FINALIZATION_REWARD
+        total = (node0.initial_stake + (height - COINBASE_MATURITY) * PROPOSER_REWARD +
+                 num_fin_rewards * FULL_FINALIZATION_REWARD)
         assert bal1 == 0
         assert bal2 == self.moved
         assert bal0+bal1+bal2 == total

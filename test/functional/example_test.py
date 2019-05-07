@@ -31,7 +31,7 @@ from test_framework.mininode import (
     msg_block,
     msg_getdata,
 )
-from test_framework.test_framework import UnitETestFramework, DISABLE_FINALIZATION
+from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_equal,
     connect_nodes,

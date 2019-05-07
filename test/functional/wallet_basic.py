@@ -501,7 +501,8 @@ class WalletTest(UnitETestFramework):
         # Try with walletrejectlongchains
         # Double chain limit but require combining inputs, so we pass SelectCoinsMinConf
         self.stop_node(0)
-        self.start_node(0, extra_args=["-walletrejectlongchains", "-limitancestorcount=" + str(2 * chainlimit), DISABLE_FINALIZATION])
+        self.start_node(0, extra_args=["-walletrejectlongchains", "-limitancestorcount=" + str(2 * chainlimit),
+                                       DISABLE_FINALIZATION])
 
         # wait for loadmempool
         timeout = 10
