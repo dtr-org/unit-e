@@ -132,7 +132,7 @@ UniValue filteraddresses(const JSONRPCRequest &request) {
   }
 
   if (request.params.size() > 3) {
-    int sortCode = request.params[3].get_int();
+    const int sortCode = request.params[3].get_int();
     if (sortCode != 0 && sortCode != 1) {
       throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown sort_code.");
     }
@@ -148,7 +148,7 @@ UniValue filteraddresses(const JSONRPCRequest &request) {
 
   MatchOwned matchOwned = MatchOwned::ALL;
   if (request.params.size() > 5) {
-    int i = request.params[5].get_int();
+    const int i = request.params[5].get_int();
     if (i < 0 || i > 2) {
       throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown match_owned.");
     }
