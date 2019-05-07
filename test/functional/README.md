@@ -34,7 +34,7 @@ don't have test cases for.
 
 - Name the test `<area>_<name>.py`, where `<name>` is a keyword describing your test
   and `<area>` can be one of the following:
-    - `finalization` for tests that check the finalization functionality, eg `finalization_finalization.py`
+    - `finalization` for tests that check the finalization functionality, eg `finalization_deposit.py`
     - `feature` for tests for full features that aren't wallet/mining/mempool, eg `feature_rbf.py`
     - `interface` for tests for other interfaces (REST, ZMQ, etc), eg `interface_rest.py`
     - `mempool` for tests for mempool behaviour, eg `mempool_reorg.py`
