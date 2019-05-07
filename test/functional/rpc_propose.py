@@ -36,7 +36,8 @@ class RpcProposeTest(UnitETestFramework):
         self.setup_stake_coins(node0, node1)
 
         assert_raises_rpc_error(-32603, "Node is automatically proposing.", node1.propose, 1)
-        assert_raises_rpc_error(-32603, "Node is automatically proposing.", node1.proposetoaddress, 1, node1.getnewaddress('', 'bech32'))
+        assert_raises_rpc_error(-32603, "Node is automatically proposing.",
+                                node1.proposetoaddress, 1, node1.getnewaddress('', 'bech32'))
 
         assert_equal(len(node0.propose(10)), 10)
         assert_equal(node0.getblockcount(), 10)
@@ -59,8 +60,9 @@ class RpcProposeTest(UnitETestFramework):
         assert_equal(len(node0.liststakeablecoins()['stakeable_coins']), 1)
 
         block_id = node0.propose(1)[0]
-        coinbase = node0.getblock(block_id)['tx'][0]
-        coinbase_scriptpubkey = node0.decoderawtransaction(node0.getrawtransaction(coinbase))['vout'][0]['scriptPubKey']['hex']
+        coinbase_id = node0.getblock(block_id)['tx'][0]
+        coinbase = node0.decoderawtransaction(node0.getrawtransaction(coinbase_id))
+        coinbase_scriptpubkey = coinbase['vout'][0]['scriptPubKey']['hex']
         coin_scriptpubkey = node0.liststakeablecoins()['stakeable_coins'][0]['coin']['script_pub_key']['hex']
         assert_equal(coin_scriptpubkey, coinbase_scriptpubkey)
 
