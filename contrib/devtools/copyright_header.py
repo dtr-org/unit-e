@@ -65,7 +65,7 @@ def get_filenames_to_examine():
 ################################################################################
 
 
-COPYRIGHT_WITH_C = 'Copyright\s*\(c\)'
+COPYRIGHT_WITH_C = r'Copyright \(c\)'
 COPYRIGHT_WITHOUT_C = 'Copyright'
 ANY_COPYRIGHT_STYLE = '(%s|%s)' % (COPYRIGHT_WITH_C, COPYRIGHT_WITHOUT_C)
 

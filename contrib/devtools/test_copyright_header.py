@@ -163,8 +163,8 @@ Some text.
 
 class TestCopyrightMatch(unittest.TestCase):
     def test_copyright(self):
-        assert(ANY_COPYRIGHT_COMPILED.search("Copyright (c) 2019 Jane Doe"))
-        assert(ANY_COPYRIGHT_COMPILED.search("Copyright(c) 2019 Jane Doe"))
+        self.assertIsNotNone(ANY_COPYRIGHT_COMPILED.search("Copyright (c) 2019 Jane Doe"))
+        self.assertIsNone(ANY_COPYRIGHT_COMPILED.search("Copyright(c) 2019 Jane Doe"))
 
 
 if __name__ == '__main__':
