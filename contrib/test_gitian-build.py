@@ -22,16 +22,16 @@ class Log:
         return "test_data/gitian_build/" + self.name + ".log"
 
     def create(self):
-        with open(self.filename(), "w") as file:
+        with open(self.filename(), "w", encoding="utf8") as file:
             file.write("Test: %s\n" % self.name)
 
     def log(self, line):
-        with open(self.filename(), "a") as file:
+        with open(self.filename(), "a", encoding="utf8") as file:
             file.write(line + "\n")
 
     def check(self):
-        with open(self.filename()) as file:
-            with open(self.filename() + ".expected") as file_expected:
+        with open(self.filename(), encoding="utf8") as file:
+            with open(self.filename() + ".expected", encoding="utf8") as file_expected:
                 assert file.read() == file_expected.read()
 
     def log_call(self, parameters, shell=None, stdout=None, stderr=None, universal_newlines=None, encoding=None, cwd=None):

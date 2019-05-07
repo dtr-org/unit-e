@@ -33,7 +33,7 @@ class TestCopyrightHeader(unittest.TestCase):
             with mock.patch('copyright_header.get_git_change_year_range', return_value=[2017,2018]):
                 exec_insert_header(file.name, header_type)
 
-            with open(file.name) as result_file:
+            with open(file.name, encoding='utf8') as result_file:
                 result = result_file.read()
 
             self.assertEqual(result, expected_result)

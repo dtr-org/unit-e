@@ -55,10 +55,10 @@ def main(argv):
         exit(1)
     filename = argv[1]
     result = []
-    with open(filename, 'r') as f:
+    with open(filename, 'r', encoding='utf8') as f:
         for line in f:
             result += [kill_camels(line)]
-    with open(filename, 'w') as f:
+    with open(filename, 'w', encoding='utf8') as f:
         for line in result:
             f.write(line)
 

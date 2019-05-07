@@ -25,6 +25,7 @@ SHELL_SCRIPTS=(
   "${SCRIPTDIR}"/lint-locale-dependence.sh
   "${SCRIPTDIR}"/lint-logs.sh
   "${SCRIPTDIR}"/lint-python-shebang.sh
+  "${SCRIPTDIR}"/lint-python-utf8-encoding.sh
   "${SCRIPTDIR}"/lint-whitespace.sh
 )
 
