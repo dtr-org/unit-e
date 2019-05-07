@@ -16,7 +16,7 @@ from test_framework.util import (
 from test_framework.test_framework import UnitETestFramework
 
 
-class EsperanzaLogoutTest(UnitETestFramework):
+class LogoutTest(UnitETestFramework):
 
     def set_test_params(self):
         self.num_nodes = 3
@@ -166,4 +166,4 @@ class EsperanzaLogoutTest(UnitETestFramework):
 
 
 if __name__ == '__main__':
-    EsperanzaLogoutTest().main()
+    LogoutTest().main()
