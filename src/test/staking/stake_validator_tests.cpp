@@ -110,11 +110,11 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
       CScript::CreateRemoteStakingScripthashScript(std::vector<uint8_t>(20, 1), std::vector<uint8_t>(32));
   blockchain::Depth depth = fixture.parameters.stake_maturity + 10;
 
-  fixture.active_chain_mock.height = 1000;
+  fixture.active_chain_mock.result_GetHeight = 1000;
 
   const CBlockIndex block_index = [&] {
     CBlockIndex index;
-    index.nHeight = fixture.active_chain_mock.height - depth;
+    index.nHeight = fixture.active_chain_mock.result_GetHeight - depth;
     index.nTime = block.nTime;
     return index;
   }();

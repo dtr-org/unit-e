@@ -105,10 +105,10 @@ class Fixture {
     const auto height = FindNextHeight();
     CBlockIndex &index = *m_block_indexes.Insert(uint256S(std::to_string(height)));
     index.nHeight = height;
-    index.pprev = m_chain.tip;
+    index.pprev = m_chain.result_GetTip;
     index.nStatus |= BLOCK_HAVE_DATA;
-    m_chain.tip = &index;
-    m_chain.height = height;
+    m_chain.result_GetTip = &index;
+    m_chain.result_GetHeight = height;
     m_block_heights[index.nHeight] = &index;
     return index;
   }
@@ -122,7 +122,7 @@ class Fixture {
 
  private:
   blockchain::Height FindNextHeight() {
-    if (m_chain.tip == nullptr) {
+    if (m_chain.result_GetTip == nullptr) {
       return 0;
     } else {
       return m_chain.GetTip()->nHeight + 1;
@@ -383,8 +383,8 @@ BOOST_AUTO_TEST_CASE(recovering) {
   // Move tip one block back. Repository must try to recover it but won't throw as it's not
   // on the main chain.
   {
-    CBlockIndex *tip = fixture.m_chain.tip;
-    fixture.m_chain.tip = tip->pprev;
+    CBlockIndex *tip = fixture.m_chain.result_GetTip;
+    fixture.m_chain.result_GetTip = tip->pprev;
     auto restored_repo = fixture.NewRepo();
     auto proc = finalization::StateProcessor::New(
         &fixture.m_finalization_params, restored_repo.get(), &fixture.m_chain);

@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(propose) {
     coins.emplace(&block, COutPoint{t3, 4}, CTxOut{70, CScript()});
     return coins;
   }();
-  f.active_chain_mock.tip = &f.tip;
+  f.active_chain_mock.result_GetTip = &f.tip;
   f.active_chain_mock.stub_AtDepth = [&f](const blockchain::Depth depth) -> CBlockIndex * {
     if (depth == 1) {
       return &f.at_depth_1;

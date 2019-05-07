@@ -67,80 +67,11 @@ struct Fixture {
           return mock;
         }()) {}
 
-  class NetworkMock : public staking::Network {
-   public:
-    size_t nodecount = 0;
-    mutable size_t GetNodeCount_invocations = 0;
-    int64_t GetTime() const override { return 0; }
-    size_t GetNodeCount() const override {
-      ++GetNodeCount_invocations;
-      return nodecount;
-    }
-    size_t GetInboundNodeCount() const override { return nodecount; }
-    size_t GetOutboundNodeCount() const override { return 0; }
-  };
-
-  class ActiveChainMock : public staking::ActiveChain {
-   public:
-    ::SyncStatus syncstatus = ::SyncStatus::IMPORTING;
-    mutable size_t GetInitialBlockDownloadStatus_invocations = 0;
-    mutable CCriticalSection m_lock;
-    CCriticalSection &GetLock() const override { return m_lock; }
-    blockchain::Height GetSize() const override { return 1; }
-    blockchain::Height GetHeight() const override { return 0; }
-    const CBlockIndex *GetTip() const override { return nullptr; }
-    const CBlockIndex *GetGenesis() const override { return nullptr; }
-    bool Contains(const CBlockIndex &) const override { return false; }
-    const CBlockIndex *FindForkOrigin(const CBlockIndex &) const override { return nullptr; }
-    const CBlockIndex *GetNext(const CBlockIndex &) const override { return nullptr; }
-    const CBlockIndex *AtDepth(blockchain::Depth depth) const override { return nullptr; }
-    const CBlockIndex *AtHeight(blockchain::Height height) const override { return nullptr; }
-    blockchain::Depth GetDepth(const blockchain::Height) const override { return 0; }
-    const CBlockIndex *GetBlockIndex(const uint256 &) const override { return nullptr; }
-    const uint256 ComputeSnapshotHash() const override { return uint256(); }
-    bool ProposeBlock(std::shared_ptr<const CBlock> pblock) override { return false; }
-    ::SyncStatus GetInitialBlockDownloadStatus() const override {
-      ++GetInitialBlockDownloadStatus_invocations;
-      return syncstatus;
-    }
-    boost::optional<staking::Coin> GetUTXO(const COutPoint &) const override { return boost::none; };
-  };
-
-  class TransactionPickerMock : public staking::TransactionPicker {
-    PickTransactionsResult PickTransactions(const PickTransactionsParameters &) override {
-      return PickTransactionsResult();
-    }
-  };
-
-  class BlockBuilderMock : public proposer::BlockBuilder {
-    const CTransactionRef BuildCoinbaseTransaction(
-        const uint256 &,
-        const proposer::EligibleCoin &,
-        const staking::CoinSet &,
-        CAmount,
-        const boost::optional<CScript> &coinbase_script,
-        staking::StakingWallet &) const override { return nullptr; };
-    std::shared_ptr<const CBlock> BuildBlock(
-        const CBlockIndex &,
-        const uint256 &,
-        const proposer::EligibleCoin &,
-        const staking::CoinSet &,
-        const std::vector<CTransactionRef> &,
-        const CAmount,
-        const boost::optional<CScript> &coinbase_script,
-        staking::StakingWallet &) const override { return nullptr; }
-  };
-
-  class ProposerLogicMock : public proposer::Logic {
-   public:
-    boost::optional<proposer::EligibleCoin> TryPropose(const staking::CoinSet &) override { return boost::none; }
-  };
-
-  NetworkMock network_mock;
-  ActiveChainMock chain_mock;
-  TransactionPickerMock transaction_picker_mock;
-  BlockBuilderMock block_builder_mock;
-  ProposerLogicMock logic_mock;
+  mocks::NetworkMock network_mock;
+  mocks::ActiveChainMock chain_mock;
+  mocks::TransactionPickerMock transaction_picker_mock;
+  mocks::BlockBuilderMock block_builder_mock;
+  mocks::ProposerLogicMock logic_mock;
 
   std::unique_ptr<Proposer> MakeProposer() {
     return Proposer::New(
@@ -183,24 +114,25 @@ BOOST_AUTO_TEST_CASE(not_proposing_stub_vs_actual_impl) {
 
 BOOST_AUTO_TEST_CASE(start_stop_and_status) {
   Fixture f{"-proposing=1"};
-  f.network_mock.nodecount = 0;
+  f.network_mock.result_GetNodeCount = 0;
   BOOST_CHECK_NO_THROW({
     auto p = f.MakeProposer();
     p->Start();
   });
   // destroying the proposer stops it
-  BOOST_CHECK(f.network_mock.GetNodeCount_invocations > 0);
+  BOOST_CHECK(f.network_mock.invocations_GetNodeCount > 0);
   BOOST_CHECK_EQUAL(f.wallet->GetWalletExtension().GetProposerState().m_status, +proposer::Status::NOT_PROPOSING_NO_PEERS);
 }
 
 BOOST_AUTO_TEST_CASE(advance_to_blockchain_sync) {
   Fixture f{"-proposing=1"};
-  f.network_mock.nodecount = 1;
+  f.network_mock.result_GetNodeCount = 1;
+  f.chain_mock.result_GetInitialBlockDownloadStatus = SyncStatus::IMPORTING;
   BOOST_CHECK_NO_THROW({
     auto p = f.MakeProposer();
     p->Start();
   });
-  BOOST_CHECK(f.chain_mock.GetInitialBlockDownloadStatus_invocations > 0);
+  BOOST_CHECK(f.chain_mock.invocations_GetInitialBlockDownloadStatus > 0);
   BOOST_CHECK_EQUAL(f.wallet->GetWalletExtension().GetProposerState().m_status, +proposer::Status::NOT_PROPOSING_SYNCING_BLOCKCHAIN);
 }
 

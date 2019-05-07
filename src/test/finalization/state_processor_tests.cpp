@@ -35,8 +35,8 @@ class Fixture {
     const auto height = FindNextHeight();
     CBlockIndex &index = *m_block_indexes.Insert(uint256S(std::to_string(height)));
     index.nHeight = height;
-    index.pprev = m_chain.tip;
-    m_chain.tip = &index;
+    index.pprev = m_chain.result_GetTip;
+    m_chain.result_GetTip = &index;
     m_block_heights[index.nHeight] = &index;
     return index;
   }
@@ -77,7 +77,7 @@ class Fixture {
 
  private:
   blockchain::Height FindNextHeight() {
-    if (m_chain.tip == nullptr) {
+    if (m_chain.result_GetTip == nullptr) {
       return 0;
     } else {
       return m_chain.GetTip()->nHeight + 1;

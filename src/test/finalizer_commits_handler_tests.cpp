@@ -96,11 +96,11 @@ class Fixture {
     CBlockIndex &index = ins_res.first->second;
     index.nHeight = height;
     index.phashBlock = &ins_res.first->first;
-    index.pprev = active_chain.tip;
-    active_chain.tip = &index;
+    index.pprev = active_chain.result_GetTip;
+    active_chain.result_GetTip = &index;
     m_block_heights[index.nHeight] = &index;
     if (height == 0) {
-      active_chain.genesis = &index;
+      active_chain.result_GetGenesis = &index;
     }
     return index;
   }
@@ -117,7 +117,7 @@ class Fixture {
 
  private:
   blockchain::Height FindNextHeight() {
-    if (active_chain.tip == nullptr) {
+    if (active_chain.result_GetTip == nullptr) {
       return 0;
     } else {
       return active_chain.GetTip()->nHeight + 1;
