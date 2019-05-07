@@ -159,7 +159,7 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
     return nSigOps;
 }
 
-bool CheckTransaction(const CTransaction &tx, CValidationState &errState, bool fCheckDuplicateInputs)
+bool CheckTransaction(const CTransaction &tx, CValidationState &errState)
 {
     // Basic checks that don't depend on any context
     if (tx.vin.empty())
@@ -182,14 +182,11 @@ bool CheckTransaction(const CTransaction &tx, CValidationState &errState, bool f
         if (!MoneyRange(nValueOut))
             return errState.DoS(100, false, REJECT_INVALID, "bad-txns-txouttotal-toolarge");
     }
-
-    // Check for duplicate inputs - note that this check is slow so we skip it in CheckBlock
-    if (fCheckDuplicateInputs) {
-        std::set<COutPoint> vInOutPoints;
-        for (const auto& txin : tx.vin)
-        {
-            if (!vInOutPoints.insert(txin.prevout).second)
-                return errState.DoS(100, false, REJECT_INVALID, "bad-txns-inputs-duplicate");
+    std::set<COutPoint> vInOutPoints;
+    for (const auto& txin : tx.vin)
+    {
+        if (!vInOutPoints.insert(txin.prevout).second) {
+            return errState.DoS(100, false, REJECT_INVALID, "bad-txns-inputs-duplicate");
         }
     }
 
