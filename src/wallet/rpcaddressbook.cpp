@@ -79,7 +79,7 @@ UniValue filteraddresses(const JSONRPCRequest &request) {
         "1. \"offset\":      (numeric, optional) number of addresses to skip\n"
         "2. \"count\":       (numeric, optional) number of addresses to be "
         "displayed\n"
-        "3. \"sort_key\":    (string, optional) field to sort by, can be one "
+        "3. \"sort_key\":    (string, optional) field to sort by, can be empty or one "
         "of:\n"
         "       \"label\"\n"
         "       \"timestamp\"\n"
@@ -111,33 +111,22 @@ UniValue filteraddresses(const JSONRPCRequest &request) {
     throw JSONRPCError(RPC_INVALID_PARAMETER, "count must be 1 or greater.");
   }
 
-  SortOrder sort_order = SORT_NONE;
   std::string sort_key;
-  std::function<bool(const AddressBookIter&, const AddressBookIter&)> comparator;
-
   if (request.params.size() > 2 && !request.params[2].isNull()) {
     sort_key = request.params[2].get_str();
-    sort_order = SORT_ASCENDING;
-    if (sort_key == "label") {
-      comparator = [&sort_order](const AddressBookIter &a, const AddressBookIter &b) -> bool {
-        return a->second.name.compare(b->second.name) * sort_order < 0;
-      };
-    } else if (sort_key == "timestamp") {
-      comparator = [&sort_order](const AddressBookIter &a, const AddressBookIter &b) -> bool {
-        return (a->second.timestamp - b->second.timestamp) * sort_order < 0;
-      };
-    } else {
+    if (sort_key != "label" && sort_key != "timestamp" && !sort_key.empty()) {
       throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown sort_key.");
     }
   }
 
+  SortOrder sort_order = SORT_NONE;
   if (request.params.size() > 3) {
     const int sortCode = request.params[3].get_int();
     if (sortCode != 0 && sortCode != 1) {
       throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown sort_code.");
     }
-    if (sortCode == 1 && !sort_key.empty()) {
-      sort_order = SORT_DESCENDING;
+    if (!sort_key.empty()) {
+      sort_order = sortCode ? SORT_DESCENDING : SORT_ASCENDING;
     }
   }
 
@@ -187,6 +176,16 @@ UniValue filteraddresses(const JSONRPCRequest &request) {
     }
 
     if (sort_order != SORT_NONE) {
+      std::function<bool(const AddressBookIter&, const AddressBookIter&)> comparator;
+      if (sort_key == "label") {
+        comparator = [sort_order](const AddressBookIter &a, const AddressBookIter &b) -> bool {
+          return a->second.name.compare(b->second.name) * sort_order < 0;
+        };
+      } else if (sort_key == "timestamp") {
+        comparator = [sort_order](const AddressBookIter &a, const AddressBookIter &b) -> bool {
+          return (a->second.timestamp - b->second.timestamp) * sort_order < 0;
+        };
+      }
       std::sort(vitMapAddressBook.begin(), vitMapAddressBook.end(), comparator);
     }
 
