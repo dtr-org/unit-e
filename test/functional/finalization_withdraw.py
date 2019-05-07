@@ -21,7 +21,7 @@ LOGOUT_DYNASTY_DELAY = 3
 WITHDRAW_EPOCH_DELAY = 12
 
 
-class EsperanzaWithdrawTest(UnitETestFramework):
+class WithdrawTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 3
 
@@ -303,4 +303,4 @@ class EsperanzaWithdrawTest(UnitETestFramework):
 
 
 if __name__ == '__main__':
-    EsperanzaWithdrawTest().main()
+    WithdrawTest().main()

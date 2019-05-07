@@ -3,7 +3,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """
-EsperanzaSlashTest checks:
+SlashTest checks:
 1. double vote with invalid vote signature is ignored
 2. double vote with valid vote signature but invalid tx signature creates slash transaction
 """
@@ -30,7 +30,7 @@ from test_framework.util import (
 import time
 
 
-class EsperanzaSlashTest(UnitETestFramework):
+class SlashTest(UnitETestFramework):
 
     def set_test_params(self):
         self.num_nodes = 4
@@ -214,4 +214,4 @@ class EsperanzaSlashTest(UnitETestFramework):
 
 
 if __name__ == '__main__':
-    EsperanzaSlashTest().main()
+    SlashTest().main()

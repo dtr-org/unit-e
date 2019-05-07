@@ -3,7 +3,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """
-EsperanzaVoteReorgTest checks that finalizer
+VoteReorgTest checks that finalizer
 votes correctly during re-orgs
 """
 from test_framework.util import (
@@ -23,7 +23,7 @@ from test_framework.messages import (
 )
 
 
-class EsperanzaVoteReorgTest(UnitETestFramework):
+class VoteReorgTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 4
         self.extra_args = [
@@ -225,4 +225,4 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
 
 
 if __name__ == '__main__':
-    EsperanzaVoteReorgTest().main()
+    VoteReorgTest().main()

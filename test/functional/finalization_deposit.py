@@ -25,7 +25,7 @@ from test_framework.messages import (
 )
 
 
-class EsperanzaDepositTest(UnitETestFramework):
+class DepositTest(UnitETestFramework):
 
     def set_test_params(self):
         self.num_nodes = 2
@@ -190,4 +190,4 @@ def test_duplicate_deposit(finalizer):
 
 
 if __name__ == '__main__':
-    EsperanzaDepositTest().main()
+    DepositTest().main()

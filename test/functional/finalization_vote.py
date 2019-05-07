@@ -3,7 +3,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """
-EsperanzaVoteTest checks:
+VoteTest checks:
 1. all finalizers are able to vote after every block
 2. finalizers delay voting according to -finalizervotefromepochblocknumber
 """
@@ -18,7 +18,7 @@ from test_framework.util import (
 from test_framework.test_framework import UnitETestFramework
 
 
-class EsperanzaVoteTest(UnitETestFramework):
+class VoteTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 4
 
@@ -165,4 +165,4 @@ class EsperanzaVoteTest(UnitETestFramework):
 
 
 if __name__ == '__main__':
-    EsperanzaVoteTest().main()
+    VoteTest().main()

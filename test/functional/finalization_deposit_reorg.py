@@ -3,7 +3,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """
-EsperanzaDepositReorgTest checks how the state of finalizer
+DepositReorgTest checks how the state of finalizer
 is progressing during re-orgs
 """
 from test_framework.test_framework import UnitETestFramework
@@ -20,7 +20,7 @@ import os
 ESPERANZA_CONFIG = '-esperanzaconfig={"epochLength": 10}'
 
 
-class EsperanzaDepositReorgTest(UnitETestFramework):
+class DepositReorgTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 4
 
@@ -219,4 +219,4 @@ class EsperanzaDepositReorgTest(UnitETestFramework):
 
 
 if __name__ == '__main__':
-    EsperanzaDepositReorgTest().main()
+    DepositReorgTest().main()

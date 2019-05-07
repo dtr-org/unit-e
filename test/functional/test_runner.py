@@ -74,8 +74,8 @@ BASE_SCRIPTS = [
     'p2p_embargoman_star.py',
     'rpc_fundrawtransaction.py',
     'wallet_hd.py',
-    'feature_no_esperanza_tx_relay_delay.py',
-    'esperanza_admin_full_cycle.py',
+    'feature_no_vote_tx_relay_delay.py',
+    'finalization_admin_full_cycle.py',
     'wallet_basic.py',
     'feature_graphene_passive.py',
     'p2p_feefilter.py',
@@ -83,19 +83,19 @@ BASE_SCRIPTS = [
     'feature_staking.py',
     'feature_graphene_active.py',
     # vv Tests less than 30s vv
-    'esperanza_slash_restart.py',
+    'finalization_slash_restart.py',
     'wallet_keys.py',
     'p2p_compactblocks.py',
-    'esperanza_expired_vote_conflict.py',
-    'esperanza_vote_reorg.py',
+    'finalization_expired_vote_conflict.py',
+    'finalization_vote_reorg.py',
     'feature_csv_activation.py',
     'rpc_rawtransaction.py',
     'p2p_embargoman_probing.py',
     'p2p_embargoman_loop.py',
     'wallet_listtransactions.py',
-    'esperanza_slash.py',
+    'finalization_slash.py',
     'feature_segwit.py',
-    'esperanza_withdraw.py',
+    'finalization_withdraw.py',
     'finalization_deposit_reorg.py',
     'feature_fork_choice_forked_finalize_epoch.py',
     'p2p_snapshot.py',
@@ -122,7 +122,7 @@ BASE_SCRIPTS = [
     'p2p_commits.py',
     'rpc_blockchain.py',
     'rpc_liststakeablecoins.py',
-    'esperanza_logout.py',
+    'finalization_logout.py',
     'feature_versionbits_warning.py',
     'rpc_filtertransactions.py',
     'wallet_encryption.py',
@@ -139,8 +139,8 @@ BASE_SCRIPTS = [
     'feature_reindex.py',
     'rpc_getchaintips.py',
     'mempool_reorg.py',
-    'esperanza_deposit.py',
-    'esperanza_vote.py',
+    'finalization_deposit.py',
+    'finalization_vote.py',
     'wallet_listsinceblock.py',
     'finalization_slash_itself.py',
     'feature_minchainwork.py',
@@ -164,7 +164,7 @@ BASE_SCRIPTS = [
     'wallet_txn_doublespend.py',
     'wallet_txn_clone.py --mineblock',
     'feature_notifications.py',
-    'esperanza_admin_validation.py',
+    'finalization_admin_validation.py',
     'proposer_stakeable_balance.py',
     'wallet_importprunedfunds.py',
     'feature_proxy.py',
@@ -189,7 +189,7 @@ BASE_SCRIPTS = [
     'rpc_deprecated.py',
     'rpc_net.py',
     'p2p_mempool.py',
-    'esperanza_finalizationstate.py',
+    'finalization_finalizationstate.py',
     'p2p_invalid_locator.py',
     'rpc_createmultisig.py',
     'rpc_zmq.py',
@@ -605,7 +605,7 @@ class TestResult():
 def check_script_prefixes():
     """Check that test scripts start with one of the allowed name prefixes."""
 
-    good_prefixes_re = re.compile("(example|esperanza|finalization|feature|interface|mempool|mining|p2p|proposer|rpc|wallet)_")
+    good_prefixes_re = re.compile("(example|finalization|feature|interface|mempool|mining|p2p|proposer|rpc|wallet)_")
     bad_script_names = [script for script in ALL_SCRIPTS if good_prefixes_re.match(script) is None]
 
     if bad_script_names:

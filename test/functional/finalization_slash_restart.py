@@ -27,7 +27,7 @@ from test_framework.util import (
     wait_until,
 )
 
-class EsperanzaSlashRestart(UnitETestFramework):
+class SlashRestart(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 3
         self.extra_args = [
@@ -49,7 +49,7 @@ class EsperanzaSlashRestart(UnitETestFramework):
         for i, arg in enumerate(args):
             if arg.startswith('reindex='):
                 del args[i]
-        super(EsperanzaSlashRestart, self).restart_node(node.index, args + ['-reindex={0}'.format(1 if reindex else 0)])
+        super(SlashRestart, self).restart_node(node.index, args + ['-reindex={0}'.format(1 if reindex else 0)])
         wait_until(lambda: node.getbestblockhash() == tip_before)
 
     def setup_deposit(self, proposer, finalizers):
@@ -119,4 +119,4 @@ class EsperanzaSlashRestart(UnitETestFramework):
         self.log.info("Slashed")
 
 if __name__ == '__main__':
-    EsperanzaSlashRestart().main()
+    SlashRestart().main()

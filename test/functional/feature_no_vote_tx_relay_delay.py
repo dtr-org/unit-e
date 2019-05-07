@@ -31,7 +31,7 @@ TEST_SAMPLES = 21
 VOTE_PROPAGATION_THRESHOLD_SEC = 0.5
 
 
-class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
+class FeatureNoVoteTxRelayDelayTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
 
@@ -158,4 +158,4 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
 
 
 if __name__ == '__main__':
-    FeatureNoEsperanzaTxRelayDelayTest().main()
+    FeatureNoVoteTxRelayDelayTest().main()
