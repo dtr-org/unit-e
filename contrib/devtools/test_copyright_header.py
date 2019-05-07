@@ -11,8 +11,10 @@ from unittest import mock
 
 import tempfile
 import os
-from copyright_header import exec_insert_header
-
+from copyright_header import (
+    exec_insert_header,
+    ANY_COPYRIGHT_COMPILED,
+)
 
 class TestCopyrightHeader(unittest.TestCase):
     def run_and_test_insertion(self, original, expected_result, header_type):
@@ -46,7 +48,7 @@ def main():
 '''
         expected_result = '''# Copyright (c) 2017-2018 The Unit-e developers
 # Distributed under the MIT software license, see the accompanying
-# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+# file COPYING or https://opensource.org/licenses/MIT.
 import something
 
 def main():
@@ -68,7 +70,7 @@ def main():
         expected_result = '''#!/usr/bin/env python3
 # Copyright (c) 2017-2018 The Unit-e developers
 # Distributed under the MIT software license, see the accompanying
-# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+# file COPYING or https://opensource.org/licenses/MIT.
 import something
 
 def main():
@@ -89,7 +91,7 @@ void main() {
 '''
         expected_result = '''// Copyright (c) 2017-2018 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+// file COPYING or https://opensource.org/licenses/MIT.
 
 #include "something.h"
 
@@ -157,6 +159,12 @@ Some text.
         # Should not insert the header twice
         with self.assertRaises(SystemExit):
             self.run_and_test_insertion(expected_result, expected_result, 'rst')
+
+
+class TestCopyrightMatch(unittest.TestCase):
+    def test_copyright(self):
+        self.assertIsNotNone(ANY_COPYRIGHT_COMPILED.search("Copyright (c) 2019 Jane Doe"))
+        self.assertIsNone(ANY_COPYRIGHT_COMPILED.search("Copyright(c) 2019 Jane Doe"))
 
 
 if __name__ == '__main__':

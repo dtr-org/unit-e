@@ -65,7 +65,7 @@ def get_filenames_to_examine():
 ################################################################################
 
 
-COPYRIGHT_WITH_C = 'Copyright \(c\)'
+COPYRIGHT_WITH_C = r'Copyright \(c\)'
 COPYRIGHT_WITHOUT_C = 'Copyright'
 ANY_COPYRIGHT_STYLE = '(%s|%s)' % (COPYRIGHT_WITH_C, COPYRIGHT_WITHOUT_C)
 
@@ -115,7 +115,10 @@ EXPECTED_HOLDER_NAMES = [
     "The ShadowCoin developers\n",
     "Institute of Formal and Applied Linguistics, Faculty of", # Multi-line
     "Intel Corporation",
-    "Anton Bachin"
+    "Anton Bachin",
+    "Gavin Andresen",
+    "The Bitcoin Unlimited developers",
+    "The Bitcoin ABC developers",
 ]
 
 DOMINANT_STYLE_COMPILED = {}
@@ -313,7 +316,7 @@ def report_cmd(argv):
 # query git for year of last change
 ################################################################################
 
-GIT_LOG_CMD = "git log --pretty=format:%%ai %s"
+GIT_LOG_CMD = "git log --pretty=format:%%ai --no-merges %s"
 
 def call_git_log(filename):
     out = subprocess.check_output((GIT_LOG_CMD % filename).split(' '))
