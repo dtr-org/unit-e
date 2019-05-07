@@ -664,7 +664,7 @@ Result FinalizationState::CalculateWithdrawAmount(const uint160 &validatorAddres
 
     LogPrint(BCLog::FINALIZATION,
              "%s: Withdraw from validator %s of %d units.\n", __func__,
-             validatorAddress.GetHex(), validator.m_end_dynasty, withdrawAmountOut);
+             validatorAddress.GetHex(), withdrawAmountOut);
   }
 
   return success();

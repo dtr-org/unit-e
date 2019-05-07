@@ -20,6 +20,7 @@ LINTALL=$(basename "${BASH_SOURCE[0]}")
 SHELL_SCRIPTS=(
   "${SCRIPTDIR}"/lint-circular-dependencies.sh
   "${SCRIPTDIR}"/lint-filenames.sh
+  "${SCRIPTDIR}"/lint-format-strings.sh
   "${SCRIPTDIR}"/lint-python-shebang.sh
   "${SCRIPTDIR}"/lint-whitespace.sh
 )
