@@ -12,7 +12,6 @@
 #include <uint256.h>
 
 #include <stdint.h>
-#include <sync.h>
 #include <cassert>
 #include <map>
 #include <set>

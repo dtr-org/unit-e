@@ -54,7 +54,6 @@
 
 #include <esperanza/finalizationstate.h>
 #include <finalization/vote_recorder.h>
-#include <tinyformat.h>
 #include <snapshot/snapshot_validation.h>
 
 #if defined(NDEBUG)

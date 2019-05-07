@@ -9,7 +9,7 @@
 # Check includes: Check for duplicate includes. Enforce bracket syntax includes.
 
 export LC_ALL=C
-IGNORE_REGEXP="/(leveldb|secp256k1|univalue)/"
+IGNORE_REGEXP="/(leveldb|secp256k1|univalue|unilib)/"
 
 filter_suffix() {
     git ls-files | grep -E "^src/.*\.${1}"'$' | grep -Ev "${IGNORE_REGEXP}"
@@ -63,9 +63,9 @@ EXPECTED_BOOST_INCLUDES=(
     boost/multi_index/sequenced_index.hpp
     boost/multi_index_container.hpp
     boost/optional.hpp
+    boost/optional/optional_io.hpp
     boost/preprocessor/cat.hpp
     boost/preprocessor/stringize.hpp
-    boost/scoped_array.hpp
     boost/signals2/connection.hpp
     boost/signals2/last_value.hpp
     boost/signals2/signal.hpp

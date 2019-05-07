@@ -13,7 +13,6 @@
 #include <uint256.h>
 
 #include <boost/optional.hpp>
-#include <tinyformat.h>
 
 #include <vector>
 

@@ -19,8 +19,6 @@
 #include <string>
 #include <vector>
 
-#include <univalue.h>
-
 class CKeyStore;
 class COutPoint;
 class CPubKey;
