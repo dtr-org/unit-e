@@ -98,9 +98,9 @@ Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
 
   m_current_epoch = new_epoch;
 
-  ufp64::ufp64_t last_voter_rescale = ufp64::add_uint(GetCollectiveRewardFactor(), 1);
+  const ufp64::ufp64_t last_voter_rescale = ufp64::add_uint(GetCollectiveRewardFactor(), 1);
 
-  ufp64::ufp64_t last_non_voter_rescale = ufp64::div(last_voter_rescale, (ufp64::add_uint(m_reward_factor, 1)));
+  const ufp64::ufp64_t last_non_voter_rescale = ufp64::div(last_voter_rescale, (ufp64::add_uint(m_reward_factor, 1)));
 
   m_deposit_scale_factor[new_epoch] = ufp64::mul(last_non_voter_rescale, GetDepositScaleFactor(new_epoch - 1));
 
