@@ -210,10 +210,10 @@ class ActiveProposerImpl : public Proposer {
         m_transaction_picker(transaction_picker),
         m_block_builder(block_builder),
         m_proposer_logic(proposer_logic),
-        m_interrupted(false),
         m_blockchain_behavior(blockchain_behavior),
         m_multi_wallet(multi_wallet),
-        m_network(network) {
+        m_network(network),
+        m_interrupted(false) {
   }
 
   void Wake() override {

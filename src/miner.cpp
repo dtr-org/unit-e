@@ -168,7 +168,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     // make them still work.
     bool success = false;
     CValidationState state;
-    const staking::ActiveChain *active_chain = GetComponent<staking::ActiveChain>();
     for (const staking::Coin &coin : stakeable_coins) {
       proposer::EligibleCoin eligible_coin = {
           coin,
