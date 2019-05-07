@@ -168,14 +168,17 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     // make them still work.
     bool success = false;
     CValidationState state;
+    const staking::ActiveChain *active_chain = GetComponent<staking::ActiveChain>();
     for (const staking::Coin &coin : stakeable_coins) {
       proposer::EligibleCoin eligible_coin = {
-          coin,
-          GetRandHash(),
+          staking::Coin(active_chain->GetBlockIndex(coin.GetTransactionId()),
+              COutPoint(coin.GetTransactionId(), coin.GetOutputIndex()),
+              CTxOut(coin.GetAmount(), scriptPubKeyIn)),
+          GetRandHash(), //TODO UNIT-E: At the moment is not used, since we still have PoW here
           GetComponent<blockchain::Behavior>()->CalculateBlockReward(nHeight),
-          0,
-          0,
-          0
+          0, //TODO UNIT-E: At the moment is not used, since we still have PoW here
+          0, //TODO UNIT-E: At the moment is not used, since we still have PoW here
+          0 //TODO UNIT-E: At the moment is not used, since we still have PoW here
       };
 
       const CTransactionRef coinbase = GetComponent<proposer::BlockBuilder>()->BuildCoinbaseTransaction(uint256(snapshot_hash), eligible_coin, staking::CoinSet(), nFees, scriptPubKeyIn, pwallet->GetWalletExtension());
