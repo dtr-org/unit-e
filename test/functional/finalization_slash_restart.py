@@ -27,6 +27,7 @@ from test_framework.util import (
     wait_until,
 )
 
+
 class SlashRestart(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 3
@@ -117,6 +118,7 @@ class SlashRestart(UnitETestFramework):
         slash = FromHex(CTransaction(), p.getrawtransaction(p.getrawmempool()[0]))
         assert_equal(slash.get_type(), TxType.SLASH)
         self.log.info("Slashed")
+
 
 if __name__ == '__main__':
     SlashRestart().main()
