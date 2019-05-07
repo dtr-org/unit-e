@@ -8,7 +8,7 @@
 Tests correspond to code in proposer/proposer_rpc.cpp .
 """
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, DEFAULT_EPOCH_LENGTH
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
@@ -49,10 +49,12 @@ class RpcProposeTest(UnitETestFramework):
         assert_equal(node0.getblockcount(), 15)
 
         for i in proposed_blocks:
-            txs = node0.getblock(i)['tx']
-            assert_equal(len(txs), 1)
-            details = node0.gettransaction(txs[0])['details']
-            assert_equal(len(details), 1)
+            block = node0.getblock(i)
+            assert_equal(len(block['tx']), 1)
+            details = node0.gettransaction(block['tx'][0])['details']
+            # Might contain finalization rewards
+            nb_of_rewards = DEFAULT_EPOCH_LENGTH + 1 if block['height'] % DEFAULT_EPOCH_LENGTH == 1 else 1
+            assert_equal(len(details), nb_of_rewards)
             assert_equal(details[0]['address'], address)
 
         # Check that the script pubkey of the coin staked is also
