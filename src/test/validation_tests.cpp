@@ -25,9 +25,11 @@ void SortTxs(CBlock &block, bool reverse = false) {
   }
 }
 struct Fixture {
-  std::unique_ptr<blockchain::Behavior> blockchain_behavior = blockchain::Behavior::NewForNetwork(blockchain::Network::test);
+  std::unique_ptr<blockchain::Behavior> blockchain_behavior =
+      blockchain::Behavior::NewForNetwork(blockchain::Network::test);
   mocks::ActiveChainMock active_chain;
-  std::unique_ptr<staking::BlockValidator> block_validator = staking::BlockValidator::New(blockchain_behavior.get());
+  std::unique_ptr<staking::BlockValidator> block_validator =
+      staking::BlockValidator::New(blockchain_behavior.get());
   mocks::StakeValidatorMock stake_validator;
   std::unique_ptr<staking::LegacyValidationInterface> validation;
 
