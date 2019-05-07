@@ -256,7 +256,7 @@ void BlockAssembler::AddMandatoryTxs()
             //Check again in case the vote became invalid in the meanwhile (different target now)
             if (esperanza::ContextualCheckVoteTx(mi->GetTx(), state, *fin_state, *pcoinsTip)) {
                 AddToBlock(mempool.mapTx.project<0>(mi));
-                LogPrint(BCLog::FINALIZATION,
+                LogPrint(BCLog::FINALIZATION, /* Continued */
                          "%s: Add vote with id %s to a new block.\n",
                          __func__,
                          mi->GetTx().GetHash().GetHex());

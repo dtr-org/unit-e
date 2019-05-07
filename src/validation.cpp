@@ -1060,7 +1060,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         for (CTxMemPool::txiter it : allConflicting)
         {
             if (tx.IsSlash()) {
-                LogPrint(BCLog::MEMPOOL, "Removing transactions conflicting with the slash: %s.",
+                LogPrint(BCLog::MEMPOOL, "Removing transactions conflicting with the slash: %s.\n",
                     tx.GetHash().GetHex());
             } else {
                 LogPrint(BCLog::MEMPOOL, "replacing tx %s with %s for %s UTE additional fees, %d delta bytes\n",
@@ -1469,8 +1469,8 @@ bool CScriptCheck::operator()() {
     const CScriptWitness *witness = &ptxTo->vin[nIn].scriptWitness;
     bool result = VerifyScript(scriptSig, m_tx_out.scriptPubKey, witness, nFlags, CachingTransactionSignatureChecker(ptxTo, nIn, m_tx_out.nValue, cacheStore, *txdata), &error);
     if (!result && LogAcceptCategory(BCLog::VALIDATION)) {
-        LogPrint(
-            BCLog::VALIDATION,
+        LogPrint(              /* Continued */
+            BCLog::VALIDATION, /* Continued */
             "script verification FAILED: %s with message \"%s\"\n",
             ToString(), ScriptErrorString(GetScriptError()));
     }

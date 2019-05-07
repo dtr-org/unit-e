@@ -35,7 +35,7 @@ uint256 SignAndSend(CMutableTransaction &&mutableTx, CWallet *const wallet,
 
     if (!ProduceSignature(*wallet, signatureCreator, scriptPubKey, sigdata,
                           &constTx)) {
-      LogPrint(BCLog::RPC, "Unable to sign admin transaction");
+      LogPrint(BCLog::RPC, "Unable to sign admin transaction\n");
       throw JSONRPCError(RPC_TRANSACTION_ERROR,
                          "Unable to sign admin transaction");
     }
@@ -48,14 +48,14 @@ uint256 SignAndSend(CMutableTransaction &&mutableTx, CWallet *const wallet,
   CValidationState state;
   if (!wallet->CommitTransaction(txref, {} /* mapValue */, {} /* orderForm */, {} /* fromAccount */, reserveKey,
                                  g_connman.get(), state)) {
-    LogPrint(BCLog::RPC, "Unable to commit admin transaction");
+    LogPrint(BCLog::RPC, "Unable to commit admin transaction\n");
     throw JSONRPCError(RPC_TRANSACTION_ERROR,
                        "Unable to commit admin transaction");
   }
 
   if (state.IsInvalid()) {
     const auto &reason = state.GetRejectReason();
-    LogPrint(BCLog::RPC, "Unable to validate admin transaction: %s", reason);
+    LogPrint(BCLog::RPC, "Unable to validate admin transaction: %s\n", reason);
     throw JSONRPCError(RPC_VERIFY_REJECTED,
                        "Unable to validate admin transaction: " + reason);
   }

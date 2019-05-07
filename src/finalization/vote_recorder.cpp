@@ -39,12 +39,12 @@ void VoteRecorder::LoadFromDB() {
   while (cursor->Valid()) {
     DBKey key;
     if (!cursor->GetKey(key)) {
-      LogPrintf("WARN: cannot read next key from votes DB");
+      LogPrintf("WARN: cannot read next key from votes DB\n");
       return;
     }
     VoteRecord record;
     if (!cursor->GetValue(record)) {
-      LogPrintf("WARN: cannot fetch data from votes DB, key=%s", util::to_string(key));
+      LogPrintf("WARN: cannot fetch data from votes DB, key=%s\n", util::to_string(key));
       return;
     }
     voteRecords[key.first].emplace(key.second, record);
@@ -96,13 +96,13 @@ void VoteRecorder::RecordVote(const esperanza::Vote &vote,
     if (res == +esperanza::Result::SUCCESS) {
       GetMainSignals().SlashingConditionDetected(VoteRecord{vote, voteSig},
                                                  offendingVote.get());
-      LogPrint(BCLog::FINALIZATION,
+      LogPrint(BCLog::FINALIZATION, /* Continued */
                "%s: Slashable event found. Sending signal to the wallet.\n",
                __func__);
     } else {
       // If this happens then it needs urgent attention and fixing
-      LogPrint(BCLog::FINALIZATION,
-               "ERROR: The offending vote found is not valid: %s, cannot "
+      LogPrint(BCLog::FINALIZATION,                                        /* Continued */
+               "ERROR: The offending vote found is not valid: %s, cannot " /* Continued */
                "reliably identify slashable votes. Please fix.\n",
                res._to_string());
       assert(false);

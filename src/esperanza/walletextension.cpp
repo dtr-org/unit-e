@@ -298,7 +298,7 @@ bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
   const ValidatorState::Phase cur_phase = GetFinalizerPhase(*fin_state);
   const ValidatorState::Phase exp_phase = ValidatorState::Phase::NOT_VALIDATING;
   if (cur_phase != exp_phase) {
-    LogPrint(BCLog::FINALIZATION,
+    LogPrint(BCLog::FINALIZATION, /* Continued */
              "ERROR: %s: can't send deposit because finalizer in phase=%s when expected=%s\n",
              __func__,
              cur_phase._to_string(),
@@ -345,7 +345,7 @@ bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
     }
 
     if (state.IsInvalid()) {
-      LogPrint(BCLog::FINALIZATION,
+      LogPrint(BCLog::FINALIZATION, /* Continued */
                "%s: Cannot verify deposit transaction: %s.\n", __func__,
                state.GetRejectReason());
       return false;
@@ -433,7 +433,7 @@ bool WalletExtension::SendLogout(CTransactionRef &wtxNewOut) {
   m_enclosing_wallet.CommitTransaction(wtxNewOut, {}, {}, {}, reservekey, g_connman.get(),
                                        validation_state);
   if (validation_state.IsInvalid()) {
-    LogPrint(BCLog::FINALIZATION,
+    LogPrint(BCLog::FINALIZATION, /* Continued */
              "%s: Cannot commit logout transaction: %s.\n", __func__,
              validation_state.GetRejectReason());
     return false;
@@ -466,7 +466,7 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address, CTransactionRe
   const ValidatorState::Phase cur_phase = GetFinalizerPhase(*state);
   const ValidatorState::Phase exp_phase = ValidatorState::Phase::WAITING_TO_WITHDRAW;
   if (cur_phase != exp_phase) {
-    LogPrint(BCLog::FINALIZATION,
+    LogPrint(BCLog::FINALIZATION, /* Continued */
              "ERROR: %s: can't send withdraw because finalizer in phase=%s when expected=%s\n",
              __func__,
              cur_phase._to_string(),
@@ -553,7 +553,7 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address, CTransactionRe
   m_enclosing_wallet.CommitTransaction(wtxNewOut, {}, {}, {}, reservekey, g_connman.get(),
                                        errState);
   if (errState.IsInvalid()) {
-    LogPrint(BCLog::FINALIZATION,
+    LogPrint(BCLog::FINALIZATION, /* Continued */
              "%s: Cannot commit withdraw transaction: %s.\n", __func__,
              errState.GetRejectReason());
     return false;
@@ -596,7 +596,7 @@ void WalletExtension::VoteIfNeeded() {
     return;
   }
 
-  LogPrint(BCLog::FINALIZATION,
+  LogPrint(BCLog::FINALIZATION, /* Continued */
            "%s: Validator voting for epoch %d and dynasty %d.\n", __func__,
            target_epoch, fin_state->GetCurrentDynasty());
 
@@ -607,8 +607,8 @@ void WalletExtension::VoteIfNeeded() {
   if (vote.m_target_epoch < validatorState->m_last_target_epoch ||
       vote.m_source_epoch < validatorState->m_last_source_epoch) {
 
-    LogPrint(BCLog::FINALIZATION,
-             "%s: Attempting to make a surrounded vote, source: %s, target: %s"
+    LogPrint(BCLog::FINALIZATION,                                               /* Continued */
+             "%s: Attempting to make a surrounded vote, source: %s, target: %s" /* Continued */
              " prevSource %s, prevTarget: %s.\n",
              __func__, vote.m_source_epoch, vote.m_target_epoch,
              validatorState->m_last_source_epoch, validatorState->m_last_target_epoch);
@@ -810,7 +810,7 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
       const ValidatorState::Phase cur_phase = GetFinalizerPhase(*fin_state);
       if (cur_phase != +ValidatorState::Phase::NOT_VALIDATING &&                // deposit received via (re-)indexing
           cur_phase != +ValidatorState::Phase::WAITING_DEPOSIT_CONFIRMATION) {  // deposit was sent explicitly
-        LogPrint(BCLog::FINALIZATION,
+        LogPrint(BCLog::FINALIZATION,                                           /* Continued */
                  "ERROR: %s: finalizer=%s has already created a deposit.\n",
                  __func__,
                  validatorState->m_validator_address.ToString());
@@ -819,7 +819,7 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
 
       uint160 finalizer_address;
       if (!esperanza::ExtractValidatorAddress(tx, finalizer_address)) {
-        LogPrint(BCLog::FINALIZATION,
+        LogPrint(BCLog::FINALIZATION, /* Continued */
                  "ERROR: %s: Cannot extract validator address.\n",
                  __func__);
         return false;
@@ -830,7 +830,7 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
     case TxType::LOGOUT: {
       const esperanza::Validator *validator = fin_state->GetValidator(validatorState->m_validator_address);
       if (!validator) {
-        LogPrint(BCLog::FINALIZATION,
+        LogPrint(BCLog::FINALIZATION, /* Continued */
                  "ERROR: %s: finalizer=%s can't logout because deposit is missing\n",
                  __func__,
                  validatorState->m_validator_address.ToString());
@@ -838,8 +838,8 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
       }
 
       if (!fin_state->IsFinalizerVoting(*validator)) {
-        LogPrint(BCLog::FINALIZATION,
-                 "ERROR: %s: finalizer=%s can't logout because not in the voting state. "
+        LogPrint(BCLog::FINALIZATION,                                                     /* Continued */
+                 "ERROR: %s: finalizer=%s can't logout because not in the voting state. " /* Continued */
                  "current_dynasty=%d start_dynasty=%d end_dynasty=%d\n",
                  __func__, validatorState->m_validator_address.ToString(),
                  fin_state->GetCurrentDynasty(),
@@ -856,7 +856,7 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
     case TxType::VOTE: {
       const esperanza::Validator *validator = fin_state->GetValidator(validatorState->m_validator_address);
       if (!validator) {
-        LogPrint(BCLog::FINALIZATION,
+        LogPrint(BCLog::FINALIZATION, /* Continued */
                  "ERROR: %s: finalizer=%s can't vote because deposit is missing\n",
                  __func__,
                  validatorState->m_validator_address.ToString());
@@ -864,8 +864,8 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
       }
 
       if (!fin_state->IsFinalizerVoting(*validator)) {
-        LogPrint(BCLog::FINALIZATION,
-                 "ERROR: %s: finalizer=%s can't vote because not in the voting state. "
+        LogPrint(BCLog::FINALIZATION,                                                   /* Continued */
+                 "ERROR: %s: finalizer=%s can't vote because not in the voting state. " /* Continued */
                  "current_dynasty=%d start_dynasty=%d end_dynasty=%d\n",
                  __func__, validatorState->m_validator_address.ToString(),
                  fin_state->GetCurrentDynasty(),
@@ -879,7 +879,7 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
       const ValidatorState::Phase cur_phase = GetFinalizerPhase(*fin_state);
       if (cur_phase != +ValidatorState::Phase::WAITING_TO_WITHDRAW &&  // __func__ is called before block is processed
           cur_phase != +ValidatorState::Phase::NOT_VALIDATING) {       // __func__ is called after block is processed
-        LogPrint(BCLog::FINALIZATION,
+        LogPrint(BCLog::FINALIZATION,                                  /* Continued */
                  "ERROR: %s: finalizer=%s can't withdraw as it's still validating.\n",
                  __func__,
                  validatorState->m_validator_address.ToString());
@@ -970,7 +970,7 @@ void WalletExtension::SlashingConditionDetected(
     ValidatorState &state = validatorState.get();
 
     if (vote1.vote.m_validator_address == state.m_validator_address) {
-      LogPrint(BCLog::FINALIZATION,
+      LogPrint(BCLog::FINALIZATION, /* Continued */
                "WARNING: %s - The finalizer is trying to slash itself. vote1=%s vote2=%s.\n",
                __func__, vote1.vote.ToString(), vote2.vote.ToString());
       return;
