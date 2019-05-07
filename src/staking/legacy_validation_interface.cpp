@@ -98,7 +98,7 @@ class LegacyValidationImpl : public LegacyValidationInterface {
     // Check transactions
     CTransactionRef prevTx;
     for (const auto &tx : block.vtx) {
-      if (!CheckTransaction(*tx, state, true)) {
+      if (!CheckTransaction(*tx, state)) {
         return state.Invalid(
             false, state.GetRejectCode(), state.GetRejectReason(),
             strprintf(
