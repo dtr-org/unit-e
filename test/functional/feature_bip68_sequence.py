@@ -7,7 +7,15 @@
 import time
 import random
 
-from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta, sign_coinbase, sign_transaction, update_snapshot_with_tx
+from test_framework.blocktools import (
+    create_block,
+    create_coinbase,
+    get_finalization_rewards,
+    get_tip_snapshot_meta,
+    sign_coinbase,
+    sign_transaction,
+    update_snapshot_with_tx,
+)
 from test_framework.messages import UNIT, COutPoint, CTransaction, CTxIn, CTxOut, FromHex, ToHex, msg_block
 from test_framework.script import CScript
 from test_framework.test_framework import UnitETestFramework
@@ -338,9 +346,17 @@ class BIP68Test(UnitETestFramework):
         # We must exclude tx2 outputs from the list since any stake referred to them will fail
         # In order to do that, we limit outputs with the number of minimum confirmations (minconf = 2)
         avail_stake = [x for x in self.nodes[0].listunspent(2) if x['txid'] != tx1.hash]
+        coinbase = None
         for i in range(2):
             stake = avail_stake.pop()
-            coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, stake, tip_snapshot_meta.hash))
+            finalization_rewards = get_finalization_rewards(self.nodes[0], height - 1)
+            if finalization_rewards and coinbase:
+                # Since the previous block is not in the main chain we need to replace the last reward script
+                finalization_rewards[-1] = CTxOut(finalization_rewards[-1].nValue, coinbase.vout[0].scriptPubKey)
+            coinbase = sign_coinbase(
+                self.nodes[0],
+                create_coinbase(height, stake, tip_snapshot_meta.hash, finalization_rewards=finalization_rewards)
+            )
             block = create_block(tip, coinbase, cur_time)
             block.nVersion = 3
             block.solve()

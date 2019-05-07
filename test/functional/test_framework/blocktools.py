@@ -131,9 +131,10 @@ def sign_coinbase(node, coinbase):
     return coinbase
 
 
-def get_finalization_rewards(node):
+def get_finalization_rewards(node, current_height=None):
     epoch_length = node.getfinalizationconfig()['epochLength']
-    current_height = node.getblockcount()
+    if not current_height:
+        current_height = node.getblockcount()
     if current_height % epoch_length != 0 or current_height == 0:
         return []
     result = []
