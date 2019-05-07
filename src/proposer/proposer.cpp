@@ -175,7 +175,13 @@ class ActiveProposerImpl : public Proposer {
           }
           wallet_ext.GetProposerState().m_status = Status::IS_PROPOSING;
           wallet_ext.GetProposerState().m_number_of_search_attempts += 1;
-          block = GenerateBlock(wallet->GetWalletExtension(), coins, boost::none);
+          block = proposer::GenerateBlock(*m_active_chain,
+                                          *m_transaction_picker,
+                                          *m_block_builder,
+                                          *m_proposer_logic,
+                                          wallet_ext,
+                                          coins,
+                                          boost::none /* coinbase_script */);
         }
         wallet_ext.GetProposerState().m_number_of_searches += 1;
         if (m_interrupted) {
@@ -224,13 +230,7 @@ class ActiveProposerImpl : public Proposer {
                                               const staking::CoinSet &coins,
                                               const boost::optional<CScript> &) override {
 
-    return proposer::GenerateBlock(*m_active_chain,
-                                   *m_transaction_picker,
-                                   *m_block_builder,
-                                   *m_proposer_logic,
-                                   wallet,
-                                   coins,
-                                   boost::none /* coinbase_script */);
+    assert(!"GenerateBlock not supported for active proposer.");
   }
 
   void Start() override {
