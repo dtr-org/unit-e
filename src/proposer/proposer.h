@@ -6,10 +6,15 @@
 #define UNITE_PROPOSER_PROPOSER_H
 
 #include <dependency.h>
+#include <staking/stakingwallet.h>
 
+#include <chain.h>
+#include <primitives/block.h>
+#include <staking/coin.h>
 #include <memory>
 
 struct Settings;
+class CWallet;
 
 namespace blockchain {
 class Behavior;
@@ -37,6 +42,10 @@ class Proposer {
   virtual void Stop() = 0;
 
   virtual bool IsStarted() = 0;
+
+  virtual std::shared_ptr<const CBlock> GenerateBlock(staking::StakingWallet &wallet,
+                                                      const staking::CoinSet &coins,
+                                                      const boost::optional<CScript> &coinbase_script) = 0;
 
   virtual ~Proposer() = default;
 

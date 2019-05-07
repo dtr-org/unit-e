@@ -127,6 +127,7 @@ class UnitEInjector : public Injector<UnitEInjector> {
             Settings)
 
   COMPONENT(ProposerRPC, proposer::ProposerRPC, proposer::ProposerRPC::New,
+            Settings,
             proposer::MultiWallet,
             staking::Network,
             staking::ActiveChain,

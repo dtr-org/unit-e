@@ -19,6 +19,8 @@
   t.appendCommand(NAME.name, &NAME);
 
 void RegisterProposerRPCCommands(CRPCTable &t) {
+  PROPOSER_RPC_COMMAND(propose, "nblocks");
+  PROPOSER_RPC_COMMAND(proposetoaddress, "nblocks", "address");
   PROPOSER_RPC_COMMAND(liststakeablecoins);
   PROPOSER_RPC_COMMAND(proposerstatus);
   PROPOSER_RPC_COMMAND(proposerwake);

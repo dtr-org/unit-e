@@ -27,7 +27,7 @@ class ProposerSettingsTest(UnitETestFramework):
         assert_equal(self.nodes[1].proposerstatus()['wallets'][0]['status'], 'NOT_PROPOSING')
 
         # Leave IBD
-        self.nodes[2].generatetoaddress(1, self.nodes[2].getnewaddress("", "legacy"))
+        self.nodes[0].proposetoaddress(1, self.nodes[2].getnewaddress("", "legacy"))
 
         # If we pass -proposing=1 then the node should propose
         wait_until(lambda: self.nodes[2].proposerstatus()['wallets'][0]['status'] == "IS_PROPOSING", timeout=150)

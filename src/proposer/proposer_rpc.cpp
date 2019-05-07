@@ -4,7 +4,9 @@
 
 #include <proposer/proposer_rpc.h>
 
+#include <chainparams.h>
 #include <core_io.h>
+#include <key_io.h>
 #include <proposer/multiwallet.h>
 #include <proposer/proposer.h>
 #include <rpc/server.h>
@@ -24,6 +26,7 @@ namespace proposer {
 class ProposerRPCImpl : public ProposerRPC {
 
  private:
+  const Dependency<Settings> m_settings;
   const Dependency<MultiWallet> m_multi_wallet;
   const Dependency<staking::Network> m_network;
   const Dependency<staking::ActiveChain> m_chain;
@@ -91,11 +94,13 @@ class ProposerRPCImpl : public ProposerRPC {
 
  public:
   ProposerRPCImpl(
+      const Dependency<Settings> settings,
       const Dependency<MultiWallet> multi_wallet,
       const Dependency<staking::Network> network,
       const Dependency<staking::ActiveChain> chain,
       const Dependency<Proposer> proposer)
-      : m_multi_wallet(multi_wallet),
+      : m_settings(settings),
+        m_multi_wallet(multi_wallet),
         m_network(network),
         m_chain(chain),
         m_proposer(proposer) {}
@@ -167,15 +172,132 @@ class ProposerRPCImpl : public ProposerRPC {
     obj.pushKV("stakeable_coins", arr);
     return obj;
   }
+
+  UniValue ProposeBlocks(CWallet &wallet,
+                         const boost::optional<CScript> &coinbase_script,
+                         const int num_generate) const {
+
+    UniValue block_hashes(UniValue::VARR);
+
+    // To pick up to date coins for staking we need to make sure that the wallet is synced to the current chain.
+    wallet.BlockUntilSyncedToCurrentChain();
+
+    esperanza::WalletExtension &wallet_ext = wallet.GetWalletExtension();
+
+    if (m_settings->node_is_proposer) {
+      throw JSONRPCError(RPC_INTERNAL_ERROR, "Node is automatically proposing.");
+    }
+
+    for (int i = 0; i < num_generate; ++i) {
+
+      std::shared_ptr<const CBlock> block;
+      {
+        LOCK2(cs_main, wallet_ext.GetLock());
+        const staking::CoinSet stakeable_coins = wallet_ext.GetStakeableCoins();
+
+        if (stakeable_coins.empty()) {
+          throw JSONRPCError(RPC_INTERNAL_ERROR, "Not proposing, no stakeable coins.");
+        }
+
+        // We don't want to combine coins when we use the rpc, so we don't need
+        // to pass all of them.
+        const staking::CoinSet first_coin = {*stakeable_coins.begin()};
+
+        block = m_proposer->GenerateBlock(wallet.GetWalletExtension(),
+                                          first_coin,
+                                          coinbase_script);
+        if (!block) {
+          throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to generate a block.");
+        }
+      }
+
+      if (!ProcessNewBlock(Params(), block, /* fForceProcessing= */ true, nullptr)) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "ProcessNewBlock, block not accepted");
+      }
+
+      block_hashes.push_back(block->GetHash().GetHex());
+
+      wallet.BlockUntilSyncedToCurrentChain();
+    }
+    return block_hashes;
+  }
+
+  UniValue propose(const JSONRPCRequest &request) const override {
+    std::shared_ptr<CWallet> const pwallet = GetWalletForJSONRPCRequest(request);
+
+    if (!EnsureWalletIsAvailable(pwallet.get(), request.fHelp)) {
+      return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() != 1) {
+      throw std::runtime_error(
+          "propose nblocks\n"
+          "\nPropose nblocks blocks immediately (before the RPC call returns) to an address in the wallet.\n"
+          "\nNote: this function can only be used on the regtest network.\n"
+          "\nArguments:\n"
+          "1. nblocks      (numeric, required) How many blocks are proposed immediately.\n"
+          "\nResult:\n"
+          "[ blockhashes ]     (array) hashes of blocks proposed\n"
+          "\nExamples:\n"
+          "\nGenerate 11 blocks\n" +
+          HelpExampleCli("propose", "11"));
+    }
+
+    if (!Params().MineBlocksOnDemand()) {
+      throw JSONRPCError(RPC_METHOD_NOT_FOUND, "This method can only be used on regtest");
+    }
+
+    int num_generate = request.params[0].get_int();
+
+    return ProposeBlocks(*pwallet, boost::none, num_generate);
+  }
+
+  UniValue proposetoaddress(const JSONRPCRequest &request) const override {
+    std::shared_ptr<CWallet> const pwallet = GetWalletForJSONRPCRequest(request);
+
+    if (!EnsureWalletIsAvailable(pwallet.get(), request.fHelp)) {
+      return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() != 2)
+      throw std::runtime_error(
+          "proposetoaddress nblocks address\n"
+          "\nProposes nblocks blocks immediately to a specified address (before the RPC call returns)\n"
+          "\nNote: this function can only be used on the regtest network.\n"
+          "\nArguments:\n"
+          "1. nblocks      (numeric, required) How many blocks are proposed immediately.\n"
+          "2. address      (string, required) The address to send the newly proposed unite to.\n"
+          "\nResult:\n"
+          "[ blockhashes ]     (array) hashes of blocks generated\n"
+          "\nExamples:\n"
+          "\nGenerate 11 blocks to myaddress\n" +
+          HelpExampleCli("proposetoaddress", "11 \"myaddress\""));
+
+    if (!Params().MineBlocksOnDemand()) {
+      throw JSONRPCError(RPC_METHOD_NOT_FOUND, "This method can only be used on regtest");
+    }
+
+    int nGenerate = request.params[0].get_int();
+
+    CTxDestination destination = DecodeDestination(request.params[1].get_str());
+    if (!IsValidDestination(destination)) {
+      throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Error: Invalid address");
+    }
+
+    return ProposeBlocks(*pwallet,
+                         GetScriptForDestination(destination),
+                         nGenerate);
+  }
 };
 
 std::unique_ptr<ProposerRPC> ProposerRPC::New(
+    const Dependency<Settings> settings,
     const Dependency<MultiWallet> multi_wallet,
     const Dependency<staking::Network> network,
     const Dependency<staking::ActiveChain> chain,
     const Dependency<Proposer> proposer) {
   return std::unique_ptr<ProposerRPC>(
-      new ProposerRPCImpl(multi_wallet, network, chain, proposer));
+      new ProposerRPCImpl(settings, multi_wallet, network, chain, proposer));
 }
 
 }  // namespace proposer
