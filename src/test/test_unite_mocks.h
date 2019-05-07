@@ -24,6 +24,19 @@
 
 namespace mocks {
 
+template <typename T>
+struct stub;
+
+template <typename R, typename C, typename ...Args>
+struct stub<R(C::*)(Args...)> {
+  using type = std::function<R(Args...)>;
+};
+
+template <typename R, typename C, typename ...Args>
+struct stub<R(C::*)(Args...) const> {
+  using type = std::function<R(Args...)>;
+};
+
 //! \brief An ArgsManager that can be initialized using a list of cli args.
 //!
 //! Usage:
@@ -470,12 +483,7 @@ class BlockBuilderMock : public proposer::BlockBuilder {
   mutable CTransactionRef result_BuildCoinbaseTransaction = nullptr;
   mutable std::shared_ptr<const CBlock> result_BuildBlock = nullptr;
 
-  mutable std::function<CTransactionRef(const uint256 &,
-                                        const proposer::EligibleCoin &,
-                                        const staking::CoinSet &,
-                                        CAmount,
-                                        const boost::optional<CScript> &,
-                                        staking::StakingWallet &)>
+  mutable stub<decltype(&BlockBuilder::BuildCoinbaseTransaction)>::type
       stub_BuildCoinbaseTransaction =
           [&](const uint256 &,
               const proposer::EligibleCoin &,
@@ -485,14 +493,7 @@ class BlockBuilderMock : public proposer::BlockBuilder {
               staking::StakingWallet &) {
             return result_BuildCoinbaseTransaction;
           };
-  mutable std::function<std::shared_ptr<const CBlock>(const CBlockIndex &index,
-                                                      const uint256 &snapshot_hash,
-                                                      const proposer::EligibleCoin &stake_coin,
-                                                      const staking::CoinSet &coins,
-                                                      const std::vector<CTransactionRef> &txs,
-                                                      CAmount,
-                                                      const boost::optional<CScript> &,
-                                                      staking::StakingWallet &)>
+  mutable stub<decltype(&BlockBuilder::BuildBlock)>::type
       stub_BuildBlock =
           [&](const CBlockIndex &,
               const uint256 &,
