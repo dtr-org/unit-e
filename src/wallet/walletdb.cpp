@@ -47,7 +47,7 @@ bool WalletBatch::ErasePurpose(const std::string& strAddress)
     return EraseIC(std::make_pair(std::string("purpose"), strAddress));
 }
 
-bool WalletBatch::WriteTimestamp(const std::string& address, std::time_t timestamp)
+bool WalletBatch::WriteTimestamp(const std::string& address, int64_t timestamp)
 {
     return WriteIC(std::make_pair(std::string("timestamp"), address), timestamp);
 }
