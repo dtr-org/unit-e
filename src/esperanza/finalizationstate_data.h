@@ -85,10 +85,6 @@ class FinalizationStateData {
   uint256 m_recommended_target_hash = uint256();
   uint32_t m_recommended_target_epoch = 0;
 
-  ufp64::ufp64_t m_last_voter_rescale = 0;
-
-  ufp64::ufp64_t m_last_non_voter_rescale = 0;
-
   // Reward for voting as fraction of deposit size
   ufp64::ufp64_t m_reward_factor = 0;
 
@@ -114,8 +110,6 @@ class FinalizationStateData {
     READWRITE(m_last_justified_epoch);
     READWRITE(m_recommended_target_hash);
     READWRITE(m_recommended_target_epoch);
-    READWRITE(m_last_voter_rescale);
-    READWRITE(m_last_non_voter_rescale);
     READWRITE(m_reward_factor);
     READWRITE(m_admin_state);
   };
