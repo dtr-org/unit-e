@@ -50,13 +50,18 @@ from test_framework.messages import (
     UTXO,
     msg_block,
     msg_headers,
+    UNIT,
 )
 from test_framework.mininode import (
     P2PInterface,
 )
 from test_framework.script import (CScript, OP_TRUE)
-from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
-from test_framework.util import assert_equal, connect_nodes_bi
+from test_framework.test_framework import (
+    UnitETestFramework,
+    PROPOSER_REWARD,
+    FULL_FINALIZATION_REWARD,
+)
+from test_framework.util import assert_equal, connect_nodes_bi, hex_str_to_bytes
 from test_framework.regtest_mnemonics import regtest_mnemonics
 
 class BaseNode(P2PInterface):
@@ -66,7 +71,8 @@ class BaseNode(P2PInterface):
         self.send_message(headers_message)
 
 
-ESPERANZA_CONFIG = '-esperanzaconfig={"epochLength": 200}'
+EPOCH_LENGTH = 200
+ESPERANZA_CONFIG = '-esperanzaconfig={{"epochLength": {}}}'.format(EPOCH_LENGTH)
 
 
 class AssumeValidTest(UnitETestFramework):
@@ -150,7 +156,9 @@ class AssumeValidTest(UnitETestFramework):
 
         # Build the blockchain
         self.tip = int(self.nodes[0].getbestblockhash(), 16)
-        self.block_time = self.nodes[0].getblock(self.nodes[0].getbestblockhash())['time'] + 1
+        block = self.nodes[0].getblock(self.nodes[0].getbestblockhash(), 2)
+        self.block_time = block['time'] + 1
+        reward_scripts = [CScript(hex_str_to_bytes(block['tx'][0]['vout'][0]['scriptPubKey']['hex']))]
 
         self.blocks = []
 
@@ -165,6 +173,7 @@ class AssumeValidTest(UnitETestFramework):
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         coin = self.get_coin_to_stake()
         coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, coin, snapshot_meta.hash, coinbase_pubkey))
+        reward_scripts.append(coinbase.vout[0].scriptPubKey)
         block = create_block(self.tip, coinbase, self.block_time)
         self.blocks.append(block)
         self.block_time += 1
@@ -181,6 +190,7 @@ class AssumeValidTest(UnitETestFramework):
         for i in range(100):
             coin = self.get_coin_to_stake()
             coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, coin, snapshot_meta.hash, coinbase_pubkey))
+            reward_scripts.append(coinbase.vout[0].scriptPubKey)
             block = create_block(self.tip, coinbase, self.block_time)
             block.solve()
             self.blocks.append(block)
@@ -197,6 +207,7 @@ class AssumeValidTest(UnitETestFramework):
 
         coin = self.get_coin_to_stake()
         coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, coin, snapshot_meta.hash, coinbase_pubkey))
+        reward_scripts.append(coinbase.vout[0].scriptPubKey)
         block102 = create_block(self.tip, coinbase, self.block_time)
         self.block_time += 1
         block102.vtx.extend([tx])
@@ -217,7 +228,18 @@ class AssumeValidTest(UnitETestFramework):
         self.log.info("Bury the assumed valid block 2100 deep")
         for i in range(2100):
             coin = self.get_coin_to_stake()
-            coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, coin, snapshot_meta.hash, coinbase_pubkey))
+            if height % EPOCH_LENGTH == 1:
+                finalization_rewards = [
+                    CTxOut(FULL_FINALIZATION_REWARD * UNIT, s) for s in reward_scripts[-EPOCH_LENGTH:]
+                ]
+            else:
+                finalization_rewards = []
+            coinbase = sign_coinbase(
+                self.nodes[0],
+                create_coinbase(height, coin, snapshot_meta.hash, coinbase_pubkey,
+                                finalization_rewards=finalization_rewards)
+            )
+            reward_scripts.append(coinbase.vout[0].scriptPubKey)
             block = create_block(self.tip, coinbase, self.block_time)
             block.nVersion = 4
             block.solve()

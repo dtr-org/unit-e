@@ -50,7 +50,7 @@ class BlockRewardValidatorImpl : public BlockRewardValidator {
       for (std::size_t i = 0; i < fin_rewards.size(); ++i) {
         total_reward += fin_rewards[i];
         if (coinbase_tx.vout[i + 1].nValue != fin_rewards[i]) {
-          return state.DoS(100, error("%s: incorrect finalization reward", __func__), REJECT_INVALID,
+          return state.DoS(100, error("%s: incorrect finalization reward n=%d", __func__, i + 1), REJECT_INVALID,
                            "bad-cb-finalization-reward");
         }
       }
@@ -59,7 +59,7 @@ class BlockRewardValidatorImpl : public BlockRewardValidator {
       for (std::size_t i = 0; i < fin_rewards.size(); ++i) {
         total_reward += fin_rewards[i].nValue;
         if (coinbase_tx.vout[i + 1] != fin_rewards[i]) {
-          return state.DoS(100, error("%s: incorrect finalization reward", __func__), REJECT_INVALID,
+          return state.DoS(100, error("%s: incorrect finalization reward n=%d", __func__, i + 1), REJECT_INVALID,
                            "bad-cb-finalization-reward");
         }
       }
