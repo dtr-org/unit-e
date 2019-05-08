@@ -150,10 +150,7 @@ def generate(node, n, preserve_utxos=[], send_witness=False):
         block = create_block(tip, coinbase, block_time)
         snapshot_meta = update_snapshot_with_tx(node, snapshot_meta, height + 1, coinbase)
         block.solve()
-        if send_witness:
-            node.p2p.send_message(msg_block(block))
-        else:
-            node.p2p.send_message(msg_block(block))
+        node.p2p.send_message(msg_block(block))
         tip = block.sha256
         block_time += 1
         height += 1
