@@ -4245,6 +4245,9 @@ static UniValue AddressBookDataToJSON(const CAddressBookData& data, const bool v
         ret.pushKV("name", data.name);
     }
     ret.pushKV("purpose", data.purpose);
+    if (data.timestamp) {
+        ret.pushKV("timestamp", data.timestamp);
+    }
     return ret;
 }
 
@@ -4296,6 +4299,7 @@ UniValue getaddressinfo(const JSONRPCRequest& request)
             "      { (json object of label data)\n"
             "        \"name\": \"labelname\" (string) The label\n"
             "        \"purpose\": \"string\" (string) Purpose of address (\"send\" for sending address, \"receive\" for receiving address)\n"
+            "        \"timestamp\": timestamp  (number, optional) The creation/modification time of the address if available, in seconds since epoch (Jan 1 1970 GMT)\n"
             "      },...\n"
             "    ]\n"
             "}\n"

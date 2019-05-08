@@ -33,8 +33,8 @@ class WalletLabelsTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 4
-        self.extra_args = [[]] * 4
-        self.extra_args[0] = ['-deprecatedrpc=accounts']
+        self.extra_args = [['-mocktime=1500000000']] * 4
+        self.extra_args[0] += ['-deprecatedrpc=accounts']
 
     def setup_network(self):
         """Don't connect nodes."""
@@ -300,7 +300,8 @@ class Label:
             assert_equal(
                 node.getaddressinfo(address)['labels'][0],
                 {"name": self.name,
-                 "purpose": self.purpose[address]})
+                 "purpose": self.purpose[address],
+                 "timestamp": 1500000000})
             if self.accounts_api:
                 assert_equal(node.getaccount(address), self.name)
             else:
@@ -308,7 +309,7 @@ class Label:
 
         assert_equal(
             node.getaddressesbylabel(self.name),
-            {address: {"purpose": self.purpose[address]} for address in self.addresses})
+            {address: {"purpose": self.purpose[address], "timestamp": 1500000000} for address in self.addresses})
         if self.accounts_api:
             assert_equal(set(node.getaddressesbyaccount(self.name)), set(self.addresses))
 

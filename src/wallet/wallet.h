@@ -179,8 +179,9 @@ class CAddressBookData
 public:
     std::string name;
     std::string purpose;
+    int64_t timestamp;   //!< The Unix time when the entry was last updated
 
-    CAddressBookData() : purpose("unknown") {}
+    CAddressBookData() : purpose("unknown"), timestamp(0) {}
 
     typedef std::map<std::string, std::string> StringMap;
     StringMap destdata;

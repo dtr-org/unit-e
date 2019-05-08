@@ -14,18 +14,21 @@ class AddressBookRPCTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.setup_clean_chain = True
+        self.extra_args = [['-mocktime=1500000000']]
 
     def run_test (self):
         node = self.nodes[0]
 
-        # filteraddresses [offset] [count] [sort_code] [match_str] [match_owned]
-        resp = node.filteraddresses(0, 100, 0, '', 0)
+        # filteraddresses [offset] [count] [sort_key] [sort_code] [match_str] [match_owned]
+        resp = node.filteraddresses(0, 100, None, 0, '', 0)
         assert_equal(len(resp), 0)
 
         resp = node.addressbookinfo()
         assert_equal(resp['total'], 0)
         assert_equal(resp['num_receive'], 0)
         assert_equal(resp['num_send'], 0)
+
+        self.log.info('Test address book management')
 
         assert_raises_rpc_error(
             -8, 'is not in the address book',
@@ -42,7 +45,7 @@ class AddressBookRPCTest(UnitETestFramework):
         assert_equal(resp['label'], 'label1')
         assert_equal(resp['purpose'], 'purpose1')
 
-        resp = node.filteraddresses(0, 100, 0, '', 2)  # list not owned
+        resp = node.filteraddresses(0, 100, None, 0, '', 2)  # list not owned
         assert_equal(len(resp), 1)
         assert_equal(resp[0]['address'], not_owned_address)
         assert_equal(resp[0]['label'], 'label1')
@@ -59,7 +62,7 @@ class AddressBookRPCTest(UnitETestFramework):
         assert_equal(resp['purpose'], 'purpose2')
         assert_equal(resp['owned'], False)
 
-        resp = node.filteraddresses(0, 100, 0, '', 2)
+        resp = node.filteraddresses(0, 100, None, 0, '', 2)
         assert_equal(len(resp), 1)
         assert_equal(resp[0]['address'], not_owned_address)
         assert_equal(resp[0]['label'], 'label2')
@@ -70,7 +73,7 @@ class AddressBookRPCTest(UnitETestFramework):
             -8, 'is recorded in the address book',
             node.manageaddressbook, 'add', owned_address, 'owned1', 'receive')
 
-        resp = node.filteraddresses(0, 100, 0, '', 1)  # list only owned
+        resp = node.filteraddresses(0, 100, None, 0, '', 1)  # list only owned
         assert_equal(len(resp), 1)
         assert_equal(resp[0]['address'], owned_address)
         assert_equal(resp[0]['owned'], True)
@@ -98,6 +101,23 @@ class AddressBookRPCTest(UnitETestFramework):
 
         resp = node.filteraddresses(0, 100)
         assert_equal(len(resp), 1)
+
+        self.log.info('Test sorting addresses by timestamp')
+        self.restart_node(0, extra_args=['-mocktime=1600000000'])
+        node.getnewaddress('zzz')
+
+        resp = node.filteraddresses(0, 100, 'timestamp', 0)
+        assert_equal([x['timestamp'] for x in resp], [1500000000, 1600000000])
+
+        resp = node.filteraddresses(0, 100, 'timestamp', 1)
+        assert_equal([x['timestamp'] for x in resp], [1600000000, 1500000000])
+
+        self.log.info('Test sorting addresses by label')
+        resp = node.filteraddresses(0, 100, 'timestamp', 0)
+        assert_equal([x['label'] for x in resp], ['owned2', 'zzz'])
+
+        resp = node.filteraddresses(0, 100, 'timestamp', 1)
+        assert_equal([x['label'] for x in resp], ['zzz', 'owned2'])
 
 
 if __name__ == '__main__':

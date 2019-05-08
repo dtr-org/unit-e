@@ -173,8 +173,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "filtertransactions", 0, "options" },
     { "filteraddresses", 0, "offset" },
     { "filteraddresses", 1, "count" },
-    { "filteraddresses", 2, "sort_code" },
-    { "filteraddresses", 4, "match_owned" },
+    { "filteraddresses", 3, "sort_code" },
+    { "filteraddresses", 5, "match_owned" },
 
     { "sendtypeto", 2, "outputs" },
     { "sendtypeto", 5, "test_fee" },

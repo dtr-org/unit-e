@@ -47,6 +47,16 @@ bool WalletBatch::ErasePurpose(const std::string& strAddress)
     return EraseIC(std::make_pair(std::string("purpose"), strAddress));
 }
 
+bool WalletBatch::WriteTimestamp(const std::string& address, int64_t timestamp)
+{
+    return WriteIC(std::make_pair(std::string("timestamp"), address), timestamp);
+}
+
+bool WalletBatch::EraseTimestamp(const std::string& address)
+{
+  return EraseIC(std::make_pair(std::string("timestamp"), address));
+}
+
 bool WalletBatch::WriteTx(const CWalletTx& wtx)
 {
     return WriteIC(std::make_pair(std::string("tx"), wtx.GetHash()), wtx);
@@ -272,6 +282,12 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
             std::string strAddress;
             ssKey >> strAddress;
             ssValue >> pwallet->mapAddressBook[DecodeDestination(strAddress)].purpose;
+        }
+        else if (strType == "timestamp")
+        {
+            std::string strAddress;
+            ssKey >> strAddress;
+            ssValue >> pwallet->mapAddressBook[DecodeDestination(strAddress)].timestamp;
         }
         else if (strType == "tx")
         {

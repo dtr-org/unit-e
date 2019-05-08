@@ -14,6 +14,9 @@ using AddressBookIter = std::map<CTxDestination, CAddressBookData>::iterator;
 
 enum class MatchOwned { ALL = 0, ONLY_OWNED = 1, ONLY_NOT_OWNED = 2 };
 
+// Not a strongly-typed enum since it's used in the sorting comparator
+enum SortOrder { SORT_NONE = 0, SORT_ASCENDING = 1, SORT_DESCENDING = -1 };
+
 static bool CompareCharsI(unsigned char a, unsigned char b) {
   return std::tolower(a) == std::tolower(b);
 }
@@ -70,16 +73,20 @@ UniValue filteraddresses(const JSONRPCRequest &request) {
 
   if (request.fHelp || request.params.size() > 6) {
     throw std::runtime_error(
-        "filteraddresses ( offset count sort_code \"search\" match_owned )\n"
+        "filteraddresses ( offset count \"sort_key\" sort_code \"search\" match_owned )\n"
         "\nList addresses.\n"
         "\nArguments:\n"
         "1. \"offset\":      (numeric, optional) number of addresses to skip\n"
         "2. \"count\":       (numeric, optional) number of addresses to be "
         "displayed\n"
-        "3. \"sort_code\":   (numeric, optional) 0 sort by label ascending,\n"
-        "                  1 sort by label descending, default 0\n"
-        "4. \"search\":      (string, optional) a query to search labels\n"
-        "5. \"match_owned\": (numeric, optional) 0 off, 1 owned, 2 non-owned,\n"
+        "3. \"sort_key\":    (string, optional) field to sort by, can be empty or one "
+        "of:\n"
+        "       \"label\"\n"
+        "       \"timestamp\"\n"
+        "4. \"sort_code\":   (numeric, optional) 0 sort ascending,\n"
+        "                  1 sort descending, default 0\n"
+        "5. \"search\":      (string, optional) a query to search labels\n"
+        "6. \"match_owned\": (numeric, optional) 0 off, 1 owned, 2 non-owned,\n"
         "                  default 0\n");
   }
 
@@ -104,23 +111,33 @@ UniValue filteraddresses(const JSONRPCRequest &request) {
     throw JSONRPCError(RPC_INVALID_PARAMETER, "count must be 1 or greater.");
   }
 
-  bool sortAsc = true;
-  if (request.params.size() > 2) {
-    int sortCode = request.params[2].get_int();
+  std::string sort_key;
+  if (request.params.size() > 2 && !request.params[2].isNull()) {
+    sort_key = request.params[2].get_str();
+    if (sort_key != "label" && sort_key != "timestamp" && !sort_key.empty()) {
+      throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown sort_key.");
+    }
+  }
+
+  SortOrder sort_order = SORT_NONE;
+  if (request.params.size() > 3) {
+    const int sortCode = request.params[3].get_int();
     if (sortCode != 0 && sortCode != 1) {
       throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown sort_code.");
     }
-    sortAsc = sortCode == 0;
+    if (!sort_key.empty()) {
+      sort_order = sortCode ? SORT_DESCENDING : SORT_ASCENDING;
+    }
   }
 
   std::string search;
-  if (request.params.size() > 3) {
-    search = request.params[3].get_str();
+  if (request.params.size() > 4) {
+    search = request.params[4].get_str();
   }
 
   MatchOwned matchOwned = MatchOwned::ALL;
-  if (request.params.size() > 4) {
-    int i = request.params[4].get_int();
+  if (request.params.size() > 5) {
+    const int i = request.params[5].get_int();
     if (i < 0 || i > 2) {
       throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown match_owned.");
     }
@@ -158,14 +175,19 @@ UniValue filteraddresses(const JSONRPCRequest &request) {
       vitMapAddressBook.push_back(it);
     }
 
-    auto comparator = sortAsc
-        ? [](const AddressBookIter &a, const AddressBookIter &b) -> bool {
-      return a->second.name.compare(b->second.name) < 0;
+    if (sort_order != SORT_NONE) {
+      std::function<bool(const AddressBookIter&, const AddressBookIter&)> comparator;
+      if (sort_key == "label") {
+        comparator = [sort_order](const AddressBookIter &a, const AddressBookIter &b) -> bool {
+          return a->second.name.compare(b->second.name) * sort_order < 0;
+        };
+      } else if (sort_key == "timestamp") {
+        comparator = [sort_order](const AddressBookIter &a, const AddressBookIter &b) -> bool {
+          return (a->second.timestamp - b->second.timestamp) * sort_order < 0;
+        };
+      }
+      std::sort(vitMapAddressBook.begin(), vitMapAddressBook.end(), comparator);
     }
-    : [](const AddressBookIter &a, const AddressBookIter &b) -> bool {
-        return b->second.name.compare(a->second.name) < 0;
-      };
-    std::sort(vitMapAddressBook.begin(), vitMapAddressBook.end(), comparator);
 
     int numEntries = 0;
     for (auto vit = vitMapAddressBook.begin() + offset;
@@ -176,6 +198,7 @@ UniValue filteraddresses(const JSONRPCRequest &request) {
       entry.pushKV("address", EncodeDestination(item->first));
       entry.pushKV("label", item->second.name);
       entry.pushKV("owned", UniValue(addressIsMine[item->first]));
+      entry.pushKV("timestamp", item->second.timestamp);
 
       result.push_back(entry);
       ++numEntries;
@@ -316,6 +339,9 @@ static UniValue AddressInfo(CWallet *pwallet, const std::string &address,
 
   result.pushKV("label", addressBookIt->second.name);
   result.pushKV("purpose", addressBookIt->second.purpose);
+  if (addressBookIt->second.timestamp) {
+    result.pushKV("timestamp", addressBookIt->second.timestamp);
+  }
 
   result.pushKV("owned", UniValue(!!IsMine(*pwallet, addressBookIt->first)));
 
@@ -402,7 +428,7 @@ static const CRPCCommand commands[] =
 { //  category               name                      actor (function)         argNames
   //  ---------------------  ------------------------  -----------------------  ------------------------------------------
       {"wallet",             "addressbookinfo",        &addressbookinfo,        {}},
-      {"wallet",             "filteraddresses",        &filteraddresses,        {"offset", "count", "sort_code", "search", "match_owned"}},
+      {"wallet",             "filteraddresses",        &filteraddresses,        {"offset", "count", "sort_key", "sort_code", "search", "match_owned"}},
       {"wallet",             "manageaddressbook",      &manageaddressbook,      {"action", "address", "label", "purpose"}},
 };
 // clang-format on
