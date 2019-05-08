@@ -16,7 +16,6 @@ set -u
 SCRIPTDIR=$(dirname "${BASH_SOURCE[0]}")
 LINTALL=$(basename "${BASH_SOURCE[0]}")
 
-# TODO: Replace with "${SCRIPTDIR}"/lint-*.sh
 SHELL_SCRIPTS=(
   "${SCRIPTDIR}"/lint-circular-dependencies.sh
   "${SCRIPTDIR}"/lint-filenames.sh
@@ -31,10 +30,8 @@ SHELL_SCRIPTS=(
 )
 
 for f in ${SHELL_SCRIPTS[@]}; do
-  if [ "$(basename "$f")" != "$LINTALL" ]; then
-    if ! "$f"; then
-      echo "^---- failure generated from $f"
-      exit 1
-    fi
+  if ! "$f"; then
+    echo "^---- failure generated from $f"
+    exit 1
   fi
 done
