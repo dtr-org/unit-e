@@ -128,7 +128,7 @@ def sign_coinbase(node, coinbase):
     return coinbase
 
 
-def generate(node, n, preserve_utxos=[], send_witness=False):
+def generate(node, n, preserve_utxos=[]):
     """ Generate n blocks on the node, making sure not to touch the utxos specified.
 
     :param preserve_utxos: an iterable of either dicts {'txid': ..., 'vout': ...}
