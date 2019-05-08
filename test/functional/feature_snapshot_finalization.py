@@ -101,8 +101,8 @@ class SnapshotFinalization(UnitETestFramework):
                                      'lastFinalizedEpoch': 6,
                                      'validators': 1})
 
-        self.log.info("Check slashig condition")
-        # Create new vote with input=votes[-1] which attepts to make a double vote
+        self.log.info("Check slashing condition")
+        # Create new vote with input=votes[-1] which attempts to make a double vote
         # To detect double vote, it's enough having two votes which are:
         # 1. from same validator
         # 2. with same source epoch
@@ -121,7 +121,7 @@ class SnapshotFinalization(UnitETestFramework):
         wait_until(lambda: len(s.getrawmempool()) > 0, timeout=20)
         slash = FromHex(CTransaction(), s.getrawtransaction(s.getrawmempool()[0]))
         assert_equal(slash.get_type(), TxType.SLASH)
-        self.log.info("Slahed")
+        self.log.info("Slashed")
 
         self.log.info("Restart fast-sync node")
         self.restart_node(s.index)
