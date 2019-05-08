@@ -58,6 +58,7 @@ EXPECTED_BOOST_INCLUDES=(
     boost/filesystem/detail/utf8_codecvt_facet.hpp
     boost/filesystem/fstream.hpp
     boost/interprocess/sync/file_lock.hpp
+    boost/mpl/list.hpp
     boost/multi_index/hashed_index.hpp
     boost/multi_index/ordered_index.hpp
     boost/multi_index/sequenced_index.hpp
@@ -69,6 +70,7 @@ EXPECTED_BOOST_INCLUDES=(
     boost/signals2/connection.hpp
     boost/signals2/last_value.hpp
     boost/signals2/signal.hpp
+    boost/test/test_case_template.hpp
     boost/test/unit_test.hpp
     boost/thread.hpp
     boost/thread/condition_variable.hpp
