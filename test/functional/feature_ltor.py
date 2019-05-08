@@ -227,10 +227,8 @@ class LTORTest(UnitETestFramework):
 
         if len(self.spendable_outputs) > 0:
             block_time = self.spendable_outputs[-1].nTime + 1
-            print(1, block_time)
         else:
             block_time = int(time_time()) + 2
-            print(2, block_time)
 
         block = create_block(
             hashprev=hashprev,
@@ -238,7 +236,7 @@ class LTORTest(UnitETestFramework):
                 height=sync_height + 1,
                 stake=node0.listunspent()[0],
                 snapshot_hash=snapshot_hash,
-                finalization_rewards=get_finalization_rewards(node0)
+                finalization_rewards=get_finalization_rewards(node0, sync_height)
             )),
             ntime=block_time
         )
