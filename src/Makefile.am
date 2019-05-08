@@ -205,8 +205,8 @@ UNITE_CORE_H = \
   policy/policy.h \
   policy/rbf.h \
   proposer/block_builder.h \
-  proposer/finalization_reward_logic.h \
   proposer/eligible_coin.h \
+  proposer/finalization_reward_logic.h \
   proposer/multiwallet.h \
   proposer/proposer.h \
   proposer/proposer_logic.h \

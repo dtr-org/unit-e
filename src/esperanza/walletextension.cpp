@@ -13,7 +13,6 @@
 #include <esperanza/finalizationstate.h>
 #include <esperanza/script.h>
 #include <finalization/state_repository.h>
-#include <injector.h>
 #include <net.h>
 #include <policy/policy.h>
 #include <primitives/txtype.h>
