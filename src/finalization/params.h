@@ -31,6 +31,16 @@ struct Params {
 
   esperanza::AdminParams admin_params;
 
+  //! \brief Returns the epoch which includes block_height.
+  inline uint32_t GetEpoch(const blockchain::Height block_height) const {
+    uint32_t epoch = block_height / epoch_length;
+    if (block_height % epoch_length != 0) {
+      ++epoch;
+    }
+    return epoch;
+  }
+
+  //! \brief Returns the height of the first block of the epoch.
   inline blockchain::Height GetEpochStartHeight(const uint32_t epoch) const {
     // epoch=0 contains only genesis
     if (epoch == 0) {
@@ -39,8 +49,19 @@ struct Params {
     return GetEpochCheckpointHeight(epoch - 1) + 1;
   }
 
+  //! \brief Returns the height of the last block of the epoch.
   inline blockchain::Height GetEpochCheckpointHeight(const uint32_t epoch) const {
     return epoch * epoch_length;
+  }
+
+  //! \brief Returns whether block at block_height is the first block of the epoch.
+  inline bool IsEpochStart(blockchain::Height block_height) const {
+    return block_height % epoch_length == 1;
+  }
+
+  //! \brief Returns whether block at block_height is the last block of the epoch.
+  inline bool IsCheckpoint(blockchain::Height block_height) const {
+    return block_height % epoch_length == 0;
   }
 
   static Params RegTest(bool gen_admin_keys = false);
