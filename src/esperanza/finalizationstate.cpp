@@ -125,6 +125,13 @@ Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
     InstaJustify();
   }
 
+  // new source is already known when the checkpoint is processed but we didn't
+  // update it as the previous one is used inside of this function. To not keep
+  // current and previous expected source in the FinalizationState, we update
+  // it here and the limitation of it is that we can't create vote inside the
+  // first block of new epoch as new source is not known yet for finalizers.
+  m_expected_source_epoch = m_last_justified_epoch;
+
   std::string log_msg;
   if (m_current_epoch >= 2 && m_last_justified_epoch != m_current_epoch - 2) {
     log_msg = " epoch=" + std::to_string(m_current_epoch - 2) + " was not justified.";
@@ -195,12 +202,19 @@ ufp64::ufp64_t FinalizationState::GetCollectiveRewardFactor() {
     return 0;
   }
 
+  // we use "m_current_epoch - 2" epoch to retrieve dynasty votes because:
+  // -1 as m_current_epoch is already incremented inside of InitializeEpoch
+  // before this function is invoked
+  // -1 because when we store votes we use vote.m_target_epoch which is always
+  // one below the m_current_epoch
+  const uint32_t checkpoint_epoch = m_current_epoch - 2;
+
   ufp64::ufp64_t curVoteFraction = ufp64::div_2uint(
-      GetCheckpoint(m_current_epoch - 2).GetCurDynastyVotes(m_expected_source_epoch - 1),
+      GetCheckpoint(checkpoint_epoch).GetCurDynastyVotes(m_expected_source_epoch),
       m_cur_dyn_deposits);
 
   ufp64::ufp64_t prevVoteFraction = ufp64::div_2uint(
-      GetCheckpoint(m_current_epoch - 2).GetPrevDynastyVotes(m_expected_source_epoch - 1),
+      GetCheckpoint(checkpoint_epoch).GetPrevDynastyVotes(m_expected_source_epoch),
       m_prev_dyn_deposits);
 
   ufp64::ufp64_t voteFraction = ufp64::min(curVoteFraction, prevVoteFraction);
@@ -1020,7 +1034,6 @@ void FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
 
     m_recommended_target_hash = block_index.GetBlockHash();
     m_recommended_target_epoch = GetEpoch(block_index);
-    m_expected_source_epoch = m_last_justified_epoch;
   }
   m_status = FROM_COMMITS;
 }

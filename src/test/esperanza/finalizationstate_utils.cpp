@@ -96,7 +96,8 @@ void FinalizationStateSpy::CreateAndActivateDeposit(const uint160 &validator_add
   for (uint32_t i = 1; i < 4 * EpochLength() + 1; i += EpochLength()) {
     BOOST_REQUIRE_EQUAL(GetActiveFinalizers().size(), 0);
 
-    m_expected_source_epoch = m_last_justified_epoch;
+    // recommended target epoch in ProcessNewCommits
+    // when checkpoint is being processed
     m_recommended_target_epoch = m_current_epoch;
 
     res = InitializeEpoch(i);

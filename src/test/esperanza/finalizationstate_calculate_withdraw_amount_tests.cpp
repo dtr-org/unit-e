@@ -15,7 +15,6 @@ void CreateAndProcessVote(FinalizationStateSpy &state, uint160 finalizer_address
 }
 
 void InitializeNextEpoch(FinalizationStateSpy &state) {
-  state.SetExpectedSourceEpoch(state.GetLastJustifiedEpoch());
   state.SetRecommendedTargetEpoch(state.GetCurrentEpoch());
 
   Result res = state.InitializeEpoch(1 + state.GetCurrentEpoch() * state.EpochLength());
