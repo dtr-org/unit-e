@@ -138,10 +138,7 @@ class FinalizationSlashSelfTest(UnitETestFramework):
                                          'lastFinalizedEpoch': 3,
                                          'validators': 1})
 
-        connect_nodes(finalizer2, fork2.index)
-        wait_until(lambda: len(finalizer2.getrawmempool()) == 1, timeout=10)
-        sync_mempools([fork2, finalizer2])
-        assert_equal(len(fork2.getrawmempool()), 1)
+        self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork2)
 
         # check that a vote, and not a slash is actually in the mempool
         vote = fork2.decoderawtransaction(fork2.getrawtransaction(fork2.getrawmempool()[0]))
@@ -149,7 +146,6 @@ class FinalizationSlashSelfTest(UnitETestFramework):
 
         fork2.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
         assert_equal(len(fork2.getrawmempool()), 0)
-        disconnect_nodes(finalizer2, fork2.index)
 
         # check if there is slashing after voting
         fork2.generatetoaddress(3, fork1.getnewaddress('', 'bech32'))
