@@ -87,13 +87,13 @@ class StateDBMock : public finalization::StateDB {
 class Fixture {
  public:
   Fixture() : m_repo(NewRepo()) {
-    m_chain.stub_AtHeight = [this](blockchain::Height h) -> CBlockIndex * {
+    m_chain.mock_AtHeight.SetStub([this](blockchain::Height h) -> CBlockIndex * {
       auto const it = this->m_block_heights.find(h);
       if (it == this->m_block_heights.end()) {
         return nullptr;
       }
       return it->second;
-    };
+    });
   }
 
   std::unique_ptr<finalization::StateRepository> NewRepo() {
@@ -105,24 +105,24 @@ class Fixture {
     const auto height = FindNextHeight();
     CBlockIndex &index = *m_block_indexes.Insert(uint256S(std::to_string(height)));
     index.nHeight = height;
-    index.pprev = m_chain.result_GetTip;
+    index.pprev = m_block_heights[height - 1];
     index.nStatus |= BLOCK_HAVE_DATA;
-    m_chain.result_GetTip = &index;
-    m_chain.result_GetHeight = height;
+    m_chain.mock_GetTip.SetResult(&index);
+    m_chain.mock_GetHeight.SetResult(height);
     m_block_heights[index.nHeight] = &index;
     return index;
   }
 
   finalization::Params m_finalization_params;
   std::unique_ptr<finalization::StateRepository> m_repo;
-  mocks::ActiveChainMock m_chain;
+  mocks::ActiveChainFake m_chain;
   StateDBMock m_state_db;
   BlockDBMock m_block_db;
-  mocks::BlockIndexMapMock m_block_indexes;
+  mocks::BlockIndexMapFake m_block_indexes;
 
  private:
   blockchain::Height FindNextHeight() {
-    if (m_chain.result_GetTip == nullptr) {
+    if (m_chain.GetTip() == nullptr) {
       return 0;
     } else {
       return m_chain.GetTip()->nHeight + 1;
@@ -362,7 +362,7 @@ BOOST_AUTO_TEST_CASE(recovering) {
     auto proc = finalization::StateProcessor::New(
         &fixture.m_finalization_params, restored_repo.get(), &fixture.m_chain);
     std::vector<CTransactionRef> commits;
-    fixture.m_chain.stub_AtHeight(5)->commits = commits;
+    fixture.m_chain.AtHeight(5)->commits = commits;
     restored_repo->RestoreFromDisk(proc.get());
     BOOST_CHECK(fixture.m_block_db.blocks.empty());
     LOCK(restored_repo->GetLock());
@@ -383,8 +383,8 @@ BOOST_AUTO_TEST_CASE(recovering) {
   // Move tip one block back. Repository must try to recover it but won't throw as it's not
   // on the main chain.
   {
-    CBlockIndex *tip = fixture.m_chain.result_GetTip;
-    fixture.m_chain.result_GetTip = tip->pprev;
+    const CBlockIndex *tip = fixture.m_chain.GetTip();
+    fixture.m_chain.mock_GetTip.SetResult(tip->pprev);
     auto restored_repo = fixture.NewRepo();
     auto proc = finalization::StateProcessor::New(
         &fixture.m_finalization_params, restored_repo.get(), &fixture.m_chain);

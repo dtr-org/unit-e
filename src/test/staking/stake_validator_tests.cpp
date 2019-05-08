@@ -28,7 +28,7 @@ struct Fixture {
   std::unique_ptr<blockchain::Behavior> b =
       blockchain::Behavior::NewFromParameters(parameters);
 
-  mocks::ActiveChainMock active_chain_mock;
+  mocks::ActiveChainFake active_chain_mock;
 };
 
 }  // namespace
@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
   prev_block.nTime = block.nTime - 15;
   prev_block.stake_modifier = uint256S("2cdcf27ffe49aa00d95605c677a38462b684763b7218c6dbd856293bf8325cd0");
 
-  fixture.active_chain_mock.stub_GetBlockIndex = [&prev_block](const uint256 &) { return &prev_block; };
+  fixture.active_chain_mock.mock_GetBlockIndex.SetStub([&prev_block](const uint256 &) { return &prev_block; });
 
   uint256 stake_txid = uint256S("7f6b062da8f3c99f302341f06879ff94db0b7ae291b38438846c9878b58412d4");
   COutPoint stake_ref(stake_txid, 7);
@@ -109,11 +109,11 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
       CScript::CreateRemoteStakingScripthashScript(std::vector<uint8_t>(20, 1), std::vector<uint8_t>(32));
   blockchain::Depth depth = fixture.parameters.stake_maturity + 10;
 
-  fixture.active_chain_mock.result_GetHeight = 1000;
+  fixture.active_chain_mock.mock_GetHeight.SetResult(1000);
 
   const CBlockIndex block_index = [&] {
     CBlockIndex index;
-    index.nHeight = fixture.active_chain_mock.result_GetHeight - depth;
+    index.nHeight = fixture.active_chain_mock.GetHeight() - depth;
     index.nTime = block.nTime;
     return index;
   }();
@@ -123,10 +123,10 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
   std::map<COutPoint, staking::Coin> coins;
   coins.emplace(stake_ref, staking::Coin(&block_index, stake_ref, CTxOut{amount, script}));
 
-  fixture.active_chain_mock.stub_GetUTXO = [&coins](const COutPoint &p) {
+  fixture.active_chain_mock.mock_GetUTXO.SetStub([&coins](const COutPoint &p) {
     const auto it = coins.find(p);
     return it == coins.end() ? boost::none : boost::make_optional(it->second);
-  };
+  });
 
   CMutableTransaction tx;
   tx.vin = {CTxIn(), stake};

@@ -7,6 +7,7 @@
 
 #include <blockdb.h>
 #include <coins.h>
+#include <esperanza/finalizationstate.h>
 #include <finalization/state_db.h>
 #include <proposer/block_builder.h>
 #include <proposer/proposer_logic.h>
@@ -18,19 +19,14 @@
 #include <staking/transactionpicker.h>
 #include <util.h>
 
+#include <test/util/mocks.h>
+
 #include <atomic>
 #include <cstdint>
 #include <functional>
+#include <type_traits>
 
 namespace mocks {
-
-template <typename T>
-struct stub;
-
-template <typename R, typename C, typename ...Args>
-struct stub<R(C::*)(Args...) const> {
-  using type = std::function<R(Args...)>;
-};
 
 //! \brief An ArgsManager that can be initialized using a list of cli args.
 //!
@@ -54,41 +50,48 @@ class ArgsManagerMock : public ArgsManager {
   bool IsArgKnown(const std::string &) const override { return true; }
 };
 
-class NetworkMock : public staking::Network {
+class NetworkMock : public staking::Network, public Mock {
  public:
-  mutable std::atomic<std::uint32_t> invocations_GetTime{0};
-  mutable std::atomic<std::uint32_t> invocations_GetNodeCount{0};
-  mutable std::atomic<std::uint32_t> invocations_GetInboundNodeCount{0};
-  mutable std::atomic<std::uint32_t> invocations_GetOutboundNodeCount{0};
-
-  mutable std::int64_t result_GetTime = 0;
-  mutable std::size_t result_GetNodeCount = 0;
-  mutable std::size_t result_GetInboundNodeCount = 0;
-  mutable std::size_t result_GetOutboundNodeCount = 0;
+  MethodMock<decltype(&staking::Network::GetTime)> mock_GetTime{this};
+  MethodMock<decltype(&staking::Network::GetNodeCount)> mock_GetNodeCount{this};
+  MethodMock<decltype(&staking::Network::GetInboundNodeCount)> mock_GetInboundNodeCount{this};
+  MethodMock<decltype(&staking::Network::GetOutboundNodeCount)> mock_GetOutboundNodeCount{this};
 
   int64_t GetTime() const override {
-    ++invocations_GetTime;
-    return result_GetTime;
+    return mock_GetTime();
   }
   std::size_t GetNodeCount() const override {
-    ++invocations_GetNodeCount;
-    return result_GetNodeCount;
+    return mock_GetNodeCount();
   }
   std::size_t GetInboundNodeCount() const override {
-    ++invocations_GetInboundNodeCount;
-    return result_GetInboundNodeCount;
+    return mock_GetInboundNodeCount();
   }
   std::size_t GetOutboundNodeCount() const override {
-    ++invocations_GetOutboundNodeCount;
-    return result_GetOutboundNodeCount;
+    return mock_GetOutboundNodeCount();
   }
 };
 
-class BlockIndexMapMock : public staking::BlockIndexMap {
+class BlockIndexMapMock : public staking::BlockIndexMap, public Mock {
+ public:
+  MethodMock<decltype(&staking::BlockIndexMap::GetLock)> mock_GetLock{this};
+  MethodMock<decltype(&staking::BlockIndexMap::Lookup)> mock_Lookup{this, nullptr};
+  MethodMock<decltype(&staking::BlockIndexMap::ForEach)> mock_ForEach{this};
+
+  CCriticalSection &GetLock() const override {
+    return mock_GetLock();
+  }
+  CBlockIndex *Lookup(const uint256 &block_hash) const override {
+    return mock_Lookup(block_hash);
+  }
+  void ForEach(std::function<bool(const uint256 &, const CBlockIndex &)> &&f) const override {
+    mock_ForEach.forward(std::move(f));
+  }
+};
+
+class BlockIndexMapFake : public BlockIndexMapMock {
  public:
   bool reverse = false;
 
-  CCriticalSection &GetLock() const override { return cs; }
   CBlockIndex *Insert(const uint256 &block_hash) {
     const auto result = indexes.emplace(block_hash, new CBlockIndex());
     CBlockIndex *index = result.first->second;
@@ -121,169 +124,146 @@ class BlockIndexMapMock : public staking::BlockIndexMap {
       }
     }
   }
-  ~BlockIndexMapMock() override {
+  ~BlockIndexMapFake() override {
     for (auto &i : indexes) {
       delete i.second;
     }
   }
 
  private:
-  mutable CCriticalSection cs;
   std::map<uint256, CBlockIndex *> indexes;
 };
 
-class ActiveChainMock : public staking::ActiveChain {
-  mutable CCriticalSection lock;
-
+class ActiveChainMock : public staking::ActiveChain, public Mock {
  public:
-  mutable std::atomic<std::uint32_t> invocations_GetLock{0};
-  mutable std::atomic<std::uint32_t> invocations_GetSize{0};
-  mutable std::atomic<std::uint32_t> invocations_GetHeight{0};
-  mutable std::atomic<std::uint32_t> invocations_GetTip{0};
-  mutable std::atomic<std::uint32_t> invocations_GetGenesis{0};
-  mutable std::atomic<std::uint32_t> invocations_Contains{0};
-  mutable std::atomic<std::uint32_t> invocations_FindForkOrigin{0};
-  mutable std::atomic<std::uint32_t> invocations_GetNext{0};
-  mutable std::atomic<std::uint32_t> invocations_AtDepth{0};
-  mutable std::atomic<std::uint32_t> invocations_AtHeight{0};
-  mutable std::atomic<std::uint32_t> invocations_GetDepth{0};
-  mutable std::atomic<std::uint32_t> invocations_GetBlockIndex{0};
-  mutable std::atomic<std::uint32_t> invocations_ComputeSnapshotHash{0};
-  mutable std::atomic<std::uint32_t> invocations_ProcessNewBlock{0};
-  mutable std::atomic<std::uint32_t> invocations_GetUTXO{0};
-  mutable std::atomic<std::uint32_t> invocations_GetInitialBlockDownloadStatus{0};
-
-  //! The tip to be returned by GetTip()
-  CBlockIndex *result_GetTip = nullptr;
-
-  //! The genesis to be returned by GetGenesis()
-  CBlockIndex *result_GetGenesis = nullptr;
-
-  //! The sync states to be returned by GetIBDStatus()
-  ::SyncStatus result_GetInitialBlockDownloadStatus = SyncStatus::SYNCED;
-
-  //! The height to be returned by GetHeight() (GetSize = GetHeight + 1)
-  blockchain::Height result_GetHeight = 0;
-
-  //! The snapshot hash to be returned by ComputeSnapshotHash()
-  uint256 result_ComputeSnapshotHash = uint256();
-
-  //! Function to retrieve the block at the given depth
-  std::function<CBlockIndex *(blockchain::Depth)> stub_AtDepth = [](blockchain::Depth) {
-    return nullptr;
-  };
-
-  //! Function to retrieve the block at the given height
-  std::function<CBlockIndex *(blockchain::Height)> stub_AtHeight = [](blockchain::Height) {
-    return nullptr;
-  };
-
-  //! Function to retrieve the block at the given index
-  std::function<CBlockIndex *(const uint256 &)> stub_GetBlockIndex = [](const uint256 &) {
-    return nullptr;
-  };
-
-  //! Function to retrieve the block at the given index
-  std::function<boost::optional<staking::Coin>(const COutPoint &)> stub_GetUTXO = [](const COutPoint &) {
-    return boost::none;
-  };
+  MethodMock<decltype(&staking::ActiveChain::GetLock)> mock_GetLock{this};
+  MethodMock<decltype(&staking::ActiveChain::GetSize)> mock_GetSize{this, 0};
+  MethodMock<decltype(&staking::ActiveChain::GetHeight)> mock_GetHeight{this, 1};
+  MethodMock<decltype(&staking::ActiveChain::GetTip)> mock_GetTip{this, nullptr};
+  MethodMock<decltype(&staking::ActiveChain::GetGenesis)> mock_GetGenesis{this, nullptr};
+  MethodMock<decltype(&staking::ActiveChain::Contains)> mock_Contains{this, false};
+  MethodMock<decltype(&staking::ActiveChain::FindForkOrigin)> mock_FindForkOrigin{this};
+  MethodMock<decltype(&staking::ActiveChain::GetNext)> mock_GetNext{this};
+  MethodMock<decltype(&staking::ActiveChain::AtDepth)> mock_AtDepth{this};
+  MethodMock<decltype(&staking::ActiveChain::AtHeight)> mock_AtHeight{this};
+  MethodMock<decltype(&staking::ActiveChain::GetDepth)> mock_GetDepth{this};
+  MethodMock<decltype(&staking::ActiveChain::GetBlockIndex)> mock_GetBlockIndex{this};
+  MethodMock<decltype(&staking::ActiveChain::ComputeSnapshotHash)> mock_ComputeSnapshotHash{this};
+  MethodMock<decltype(&staking::ActiveChain::ProposeBlock)> mock_ProposeBlock{this};
+  MethodMock<decltype(&staking::ActiveChain::GetUTXO)> mock_GetUTXO{this};
+  MethodMock<decltype(&staking::ActiveChain::GetInitialBlockDownloadStatus)> mock_GetInitialBlockDownloadStatus{this, SyncStatus::SYNCED};
 
   CCriticalSection &GetLock() const override {
-    ++invocations_GetLock;
-    return lock;
+    return mock_GetLock();
   }
   blockchain::Height GetSize() const override {
-    ++invocations_GetSize;
-    return result_GetHeight + 1;
+    return mock_GetSize();
   }
   blockchain::Height GetHeight() const override {
-    ++invocations_GetHeight;
-    return result_GetHeight;
+    return mock_GetHeight();
   }
   const CBlockIndex *GetTip() const override {
-    ++invocations_GetTip;
-    return result_GetTip;
+    return mock_GetTip();
   }
   const CBlockIndex *GetGenesis() const override {
-    ++invocations_GetGenesis;
-    return result_GetGenesis;
+    return mock_GetGenesis();
   }
   bool Contains(const CBlockIndex &block_index) const override {
-    ++invocations_Contains;
-    return stub_AtHeight(block_index.nHeight) == &block_index;
+    return mock_Contains(block_index);
   }
   const CBlockIndex *FindForkOrigin(const CBlockIndex &block_index) const override {
-    ++invocations_FindForkOrigin;
-    const CBlockIndex *walk = &block_index;
-    while (walk != nullptr && stub_AtHeight(walk->nHeight) != walk) {
-      walk = walk->pprev;
-    }
-    return walk;
+    return mock_FindForkOrigin(block_index);
   }
   const CBlockIndex *GetNext(const CBlockIndex &block_index) const override {
-    ++invocations_GetNext;
-    if (stub_AtHeight(block_index.nHeight) == &block_index) {
-      return stub_AtHeight(block_index.nHeight + 1);
-    }
-    return nullptr;
+    return mock_GetNext(block_index);
   }
   const CBlockIndex *AtDepth(blockchain::Depth depth) const override {
-    ++invocations_AtDepth;
-    return stub_AtDepth(depth);
+    return mock_AtDepth(depth);
   }
   const CBlockIndex *AtHeight(blockchain::Height height) const override {
-    ++invocations_AtHeight;
-    return stub_AtHeight(height);
+    return mock_AtHeight(height);
   }
   blockchain::Depth GetDepth(const blockchain::Height height) const override {
-    ++invocations_GetDepth;
-    return GetHeight() - height + 1;
+    return mock_GetDepth(height);
   }
   const CBlockIndex *GetBlockIndex(const uint256 &hash) const override {
-    ++invocations_GetBlockIndex;
-    return stub_GetBlockIndex(hash);
+    return mock_GetBlockIndex(hash);
   }
   const uint256 ComputeSnapshotHash() const override {
-    ++invocations_ComputeSnapshotHash;
-    return result_ComputeSnapshotHash;
+    return mock_ComputeSnapshotHash();
   }
   bool ProposeBlock(std::shared_ptr<const CBlock> pblock) override {
-    ++invocations_ProcessNewBlock;
-    return false;
+    return mock_ProposeBlock(pblock);
   }
   boost::optional<staking::Coin> GetUTXO(const COutPoint &outpoint) const override {
-    ++invocations_GetUTXO;
-    return stub_GetUTXO(outpoint);
+    return mock_GetUTXO(outpoint);
   }
   ::SyncStatus GetInitialBlockDownloadStatus() const override {
-    ++invocations_GetInitialBlockDownloadStatus;
-    return result_GetInitialBlockDownloadStatus;
+    return mock_GetInitialBlockDownloadStatus();
   }
 };
 
-class StakeValidatorMock : public staking::StakeValidator {
+class ActiveChainFake : public ActiveChainMock {
+ public:
+  ActiveChainFake() {
+    mock_GetSize.SetStub([this]() { return GetHeight() + 1; });
+    mock_Contains.SetStub([this](const CBlockIndex &ix) { return AtHeight(ix.nHeight) == &ix; });
+    mock_FindForkOrigin.SetStub([this](const CBlockIndex &block_index) {
+      const CBlockIndex *walk = &block_index;
+      while (walk != nullptr && AtHeight(walk->nHeight) != walk) {
+        walk = walk->pprev;
+      }
+      return walk;
+    });
+    mock_GetNext.SetStub([this](const CBlockIndex &block_index) -> const CBlockIndex * {
+      if (AtHeight(block_index.nHeight) == &block_index) {
+        return AtHeight(block_index.nHeight + 1);
+      }
+      return nullptr;
+    });
+    mock_GetDepth.SetStub([this](const blockchain::Height height) {
+      return GetHeight() - height + 1;
+    });
+  }
+};
+
+class StakeValidatorMock : public staking::StakeValidator, public Mock {
   mutable CCriticalSection lock;
 
  public:
-  std::function<bool(uint256)> checkkernelfunc =
-      [](uint256 kernel) { return false; };
-  std::function<uint256(const CBlockIndex *, const staking::Coin &, blockchain::Time)> computekernelfunc =
-      [](const CBlockIndex *, const staking::Coin &, blockchain::Time) { return uint256(); };
+  MethodMock<decltype(&staking::StakeValidator::GetLock)> mock_GetLock{this};
+  MethodMock<decltype(&staking::StakeValidator::CheckKernel)> mock_CheckKernel{this, false};
+  MethodMock<decltype(&staking::StakeValidator::ComputeKernelHash)> mock_ComputeKernelHash{this, uint256::zero};
+  MethodMock<decltype(&staking::StakeValidator::ComputeStakeModifier)> mock_ComputeStakeModifier{this, uint256::zero};
+  MethodMock<decltype(&staking::StakeValidator::IsPieceOfStakeKnown)> mock_IsPieceOfStakeKnown{this, false};
+  MethodMock<decltype(&staking::StakeValidator::RememberPieceOfStake)> mock_RememberPieceOfStake{this};
+  MethodMock<decltype(&staking::StakeValidator::ForgetPieceOfStake)> mock_ForgetPieceOfStake{this};
+  MethodMock<decltype(&staking::StakeValidator::IsStakeMature)> mock_IsStakeMature{this, true};
 
   CCriticalSection &GetLock() override {
-    return lock;
+    return mock_GetLock();
   }
-  bool CheckKernel(CAmount, const uint256 &kernel, blockchain::Difficulty) const override {
-    return checkkernelfunc(kernel);
+  bool CheckKernel(const CAmount amount, const uint256 &kernel, blockchain::Difficulty difficulty) const override {
+    return mock_CheckKernel(amount, kernel, difficulty);
   }
   uint256 ComputeKernelHash(const CBlockIndex *blockindex, const staking::Coin &coin, blockchain::Time time) const override {
-    return computekernelfunc(blockindex, coin, time);
+    return mock_ComputeKernelHash(blockindex, coin, time);
   }
-  uint256 ComputeStakeModifier(const CBlockIndex *, const staking::Coin &) const override { return uint256(); }
-  bool IsPieceOfStakeKnown(const COutPoint &) const override { return false; }
-  void RememberPieceOfStake(const COutPoint &) override {}
-  void ForgetPieceOfStake(const COutPoint &) override {}
-  bool IsStakeMature(const blockchain::Height) const override { return true; };
+  uint256 ComputeStakeModifier(const CBlockIndex *blockindex, const staking::Coin &coin) const override {
+    return mock_ComputeStakeModifier(blockindex, coin);
+  }
+  bool IsPieceOfStakeKnown(const COutPoint &outpoint) const override {
+    return mock_IsPieceOfStakeKnown(outpoint);
+  }
+  void RememberPieceOfStake(const COutPoint &outpoint) override {
+    return mock_RememberPieceOfStake(outpoint);
+  }
+  void ForgetPieceOfStake(const COutPoint &outpoint) override {
+    return mock_ForgetPieceOfStake(outpoint);
+  }
+  bool IsStakeMature(const blockchain::Height height) const override {
+    return mock_IsStakeMature(height);
+  };
 
  protected:
   blockchain::UTXOView &GetUTXOView() const override {
@@ -299,207 +279,110 @@ class StakeValidatorMock : public staking::StakeValidator {
   }
 };
 
-class CoinsViewMock : public AccessibleCoinsView {
+class CoinsViewMock : public AccessibleCoinsView, public Mock {
 
  public:
-  Coin default_coin;
-  bool default_have_inputs = true;
+  MethodMock<decltype(&AccessibleCoinsView::AccessCoin)> mock_AccessCoin{this, {}};
+  MethodMock<decltype(&AccessibleCoinsView::HaveInputs)> mock_HaveInputs{this, true};
 
-  mutable std::atomic<std::uint32_t> invocations_AccessCoins{0};
-  mutable std::atomic<std::uint32_t> invocations_HaveInputs{0};
-
-  mutable std::function<const Coin &(const COutPoint &)> access_coin = [this](const COutPoint &op) -> const Coin & {
-    return default_coin;
-  };
-
-  mutable std::function<bool(const CTransaction &)> have_inputs = [this](const CTransaction &tx) -> bool {
-    return default_have_inputs;
-  };
-
-  const Coin &AccessCoin(const COutPoint &output) const override {
-    ++invocations_AccessCoins;
-    return access_coin(output);
+  const Coin &AccessCoin(const COutPoint &outpoint) const override {
+    return mock_AccessCoin(outpoint);
   }
-
   bool HaveInputs(const CTransaction &tx) const override {
-    ++invocations_HaveInputs;
-    return have_inputs(tx);
+    return mock_HaveInputs(tx);
   }
 };
 
-class StateDBMock : public finalization::StateDB {
-  using FinalizationState = finalization::FinalizationState;
+class StateDBMock : public finalization::StateDB, public Mock {
+  using FinalizationState = esperanza::FinalizationState;
 
  public:
-  mutable std::atomic<std::uint32_t> invocations_Save{0};
-  mutable std::atomic<std::uint32_t> invocations_Load{0};
-  mutable std::atomic<std::uint32_t> invocations_LoadParticular{0};
-  mutable std::atomic<std::uint32_t> invocations_FindLastFinalizedEpoch{0};
-  mutable std::atomic<std::uint32_t> invocations_LoadStatesHigherThan{0};
+  MethodMock<decltype(&finalization::StateDB::Save)> mock_Save{this, false};
+  MethodMock<bool (finalization::StateDB::*)(std::map<const CBlockIndex *, FinalizationState> *)> mock_Load{this, false};
+  MethodMock<bool (finalization::StateDB::*)(const CBlockIndex &, std::map<const CBlockIndex *, FinalizationState> *)> mock_LoadParticular{this, false};
+  MethodMock<decltype(&finalization::StateDB::FindLastFinalizedEpoch)> mock_FindLastFinalizedEpoch{this, boost::none};
+  MethodMock<decltype(&finalization::StateDB::LoadStatesHigherThan)> mock_LoadStatesHigherThan{this};
 
   bool Save(const std::map<const CBlockIndex *, FinalizationState> &states) override {
-    ++invocations_Save;
-    return false;
+    return mock_Save(states);
   }
-
   bool Load(std::map<const CBlockIndex *, FinalizationState> *states) override {
-    ++invocations_Load;
-    return false;
+    return mock_Load(states);
   }
-
   bool Load(const CBlockIndex &index,
             std::map<const CBlockIndex *, FinalizationState> *states) const override {
-    ++invocations_LoadParticular;
-    return false;
+    return mock_LoadParticular(index, states);
   }
-
   boost::optional<uint32_t> FindLastFinalizedEpoch() const override {
-    ++invocations_FindLastFinalizedEpoch;
-    return boost::none;
+    return mock_FindLastFinalizedEpoch();
   }
-
   void LoadStatesHigherThan(
       blockchain::Height height,
       std::map<const CBlockIndex *, FinalizationState> *states) const override {
-    ++invocations_LoadStatesHigherThan;
+    mock_LoadStatesHigherThan(height, states);
   }
 };
 
-class BlockDBMock : public ::BlockDB {
+class BlockDBMock : public BlockDB, public Mock {
  public:
-  mutable std::atomic<std::uint32_t> invocations_ReadBlock{0};
+  MethodMock<decltype(&BlockDB::ReadBlock)> mock_ReadBlock{this, boost::none};
 
   boost::optional<CBlock> ReadBlock(const CBlockIndex &index) override {
-    ++invocations_ReadBlock;
-    return boost::none;
+    return mock_ReadBlock(index);
   }
 };
 
-class BlockValidatorMock : public staking::BlockValidator {
+class BlockValidatorMock : public staking::BlockValidator, public Mock {
   using BlockValidationResult = staking::BlockValidationResult;
   using BlockValidationInfo = staking::BlockValidationInfo;
 
  public:
-  mutable std::atomic<std::uint32_t> invocations_CheckBlock{0};
-  mutable std::atomic<std::uint32_t> invocations_CheckBlockHeader{0};
-  mutable std::atomic<std::uint32_t> invocations_ContextualCheckBlock{0};
-  mutable std::atomic<std::uint32_t> invocations_ContextualCheckBlockHeader{0};
-  mutable std::atomic<std::uint32_t> invocations_CheckCoinbaseTransaction{0};
-
-  mutable BlockValidationResult result_CheckBlock;
-  mutable BlockValidationResult result_ContextualCheckBlock;
-  mutable BlockValidationResult result_CheckBlockHeader;
-  mutable BlockValidationResult result_ContextualCheckBlockHeader;
-  mutable BlockValidationResult result_CheckCoinbaseTransaction;
-
-  mutable std::function<BlockValidationResult(const CBlock &, BlockValidationInfo *)> stub_CheckBlock =
-      [&](const CBlock &block, BlockValidationInfo *info) {
-        return result_CheckBlock;
-      };
-  mutable std::function<BlockValidationResult(const CBlockHeader &, BlockValidationInfo *)> stub_CheckBlockHeader =
-      [&](const CBlockHeader &block_header, BlockValidationInfo *info) {
-        return result_CheckBlockHeader;
-      };
-  mutable std::function<BlockValidationResult(const CBlock &, const CBlockIndex &, blockchain::Time, BlockValidationInfo *)> stub_ContextualCheckBlock =
-      [&](const CBlock &block, const CBlockIndex &block_index, blockchain::Time adjusted_time, BlockValidationInfo *info) {
-        return result_ContextualCheckBlock;
-      };
-  mutable std::function<BlockValidationResult(const CBlockHeader &, const CBlockIndex &, blockchain::Time, BlockValidationInfo *)> stub_ContextualCheckBlockHeader =
-      [&](const CBlockHeader &block_header, const CBlockIndex &block_index, blockchain::Time time, BlockValidationInfo *info) {
-        return result_ContextualCheckBlockHeader;
-      };
-  mutable std::function<BlockValidationResult(const CTransaction &)> stub_CheckCoinbaseTransaction =
-      [&](const CTransaction &coinbase_tx) {
-        return result_CheckCoinbaseTransaction;
-      };
+  MethodMock<decltype(&staking::BlockValidator::CheckBlock)> mock_CheckBlock{this};
+  MethodMock<decltype(&staking::BlockValidator::CheckBlockHeader)> mock_CheckBlockHeader{this};
+  MethodMock<decltype(&staking::BlockValidator::ContextualCheckBlock)> mock_ContextualCheckBlock{this};
+  MethodMock<decltype(&staking::BlockValidator::ContextualCheckBlockHeader)> mock_ContextualCheckBlockHeader{this};
+  MethodMock<decltype(&staking::BlockValidator::CheckCoinbaseTransaction)> mock_CheckCoinbaseTransaction{this};
 
   BlockValidationResult CheckBlock(const CBlock &block, BlockValidationInfo *info) const override {
-    ++invocations_CheckBlock;
-    return stub_CheckBlock(block, info);
+    return mock_CheckBlock(block, info);
   }
   BlockValidationResult ContextualCheckBlock(const CBlock &block, const CBlockIndex &block_index, blockchain::Time adjusted_time, BlockValidationInfo *info) const override {
-    ++invocations_ContextualCheckBlock;
-    return stub_ContextualCheckBlock(block, block_index, adjusted_time, info);
+    return mock_ContextualCheckBlock(block, block_index, adjusted_time, info);
   }
   BlockValidationResult CheckBlockHeader(const CBlockHeader &block_header, BlockValidationInfo *info) const override {
-    ++invocations_CheckBlockHeader;
-    return stub_CheckBlockHeader(block_header, info);
+    return mock_CheckBlockHeader(block_header, info);
   }
   BlockValidationResult ContextualCheckBlockHeader(const CBlockHeader &block_header, const CBlockIndex &block_index, blockchain::Time time, BlockValidationInfo *info) const override {
-    ++invocations_ContextualCheckBlockHeader;
-    return stub_ContextualCheckBlockHeader(block_header, block_index, time, info);
+    return mock_ContextualCheckBlockHeader(block_header, block_index, time, info);
   }
   BlockValidationResult CheckCoinbaseTransaction(const CTransaction &coinbase_tx) const override {
-    ++invocations_CheckCoinbaseTransaction;
-    return stub_CheckCoinbaseTransaction(coinbase_tx);
+    return mock_CheckCoinbaseTransaction(coinbase_tx);
   }
 };
 
-class ProposerLogicMock : public proposer::Logic {
+class ProposerLogicMock : public proposer::Logic, public Mock {
  public:
-  mutable std::atomic<std::uint32_t> invocations_TryPropose{0};
-
-  mutable boost::optional<proposer::EligibleCoin> result_TryPropose = boost::none;
-
-  mutable std::function<boost::optional<proposer::EligibleCoin>(const staking::CoinSet &)> stub_TryPropose =
-      [&](const staking::CoinSet &) {
-        return result_TryPropose;
-      };
+  MethodMock<decltype(&proposer::Logic::TryPropose)> mock_TryPropose{this, boost::none};
 
   boost::optional<proposer::EligibleCoin> TryPropose(const staking::CoinSet &coin_set) override {
-    ++invocations_TryPropose;
-    return stub_TryPropose(coin_set);
+    return mock_TryPropose(coin_set);
   }
 };
 
-class TransactionPickerMock : public staking::TransactionPicker {
+class TransactionPickerMock : public staking::TransactionPicker, public Mock {
 
  public:
-  mutable std::atomic<std::uint32_t> invocations_PickTransactions{0};
-
-  mutable PickTransactionsResult result_PickTransactions = {"", {}, {}};
-
-  mutable std::function<PickTransactionsResult(const PickTransactionsParameters &)> stub_PickTransactions =
-      [&](const PickTransactionsParameters &parameters) {
-        return result_PickTransactions;
-      };
+  MethodMock<decltype(&staking::TransactionPicker::PickTransactions)> mock_PickTransactions{this, {"", {}, {}}};
 
   PickTransactionsResult PickTransactions(const PickTransactionsParameters &parameters) override {
-    ++invocations_PickTransactions;
-    return stub_PickTransactions(parameters);
+    return mock_PickTransactions(parameters);
   }
 };
 
-class BlockBuilderMock : public proposer::BlockBuilder {
+class BlockBuilderMock : public proposer::BlockBuilder, public Mock {
  public:
-  mutable std::atomic<std::uint32_t> invocations_BuildCoinbaseTransaction{0};
-  mutable std::atomic<std::uint32_t> invocations_BuildBlock{0};
-
-  mutable CTransactionRef result_BuildCoinbaseTransaction = nullptr;
-  mutable std::shared_ptr<const CBlock> result_BuildBlock = nullptr;
-
-  mutable stub<decltype(&BlockBuilder::BuildCoinbaseTransaction)>::type
-      stub_BuildCoinbaseTransaction =
-          [&](const uint256 &,
-              const proposer::EligibleCoin &,
-              const staking::CoinSet &,
-              const CAmount,
-              const boost::optional<CScript> &,
-              staking::StakingWallet &) {
-            return result_BuildCoinbaseTransaction;
-          };
-  mutable stub<decltype(&BlockBuilder::BuildBlock)>::type
-      stub_BuildBlock =
-          [&](const CBlockIndex &,
-              const uint256 &,
-              const proposer::EligibleCoin &,
-              const staking::CoinSet &,
-              const std::vector<CTransactionRef> &,
-              const CAmount fees,
-              const boost::optional<CScript> &,
-              staking::StakingWallet &) {
-            return result_BuildBlock;
-          };
+  MethodMock<decltype(&proposer::BlockBuilder::BuildCoinbaseTransaction)> mock_BuildCoinbaseTransaction{this};
+  MethodMock<decltype(&proposer::BlockBuilder::BuildBlock)> mock_BuildBlock{this};
 
   const CTransactionRef BuildCoinbaseTransaction(
       const uint256 &snapshot_hash,
@@ -508,10 +391,8 @@ class BlockBuilderMock : public proposer::BlockBuilder {
       const CAmount fees,
       const boost::optional<CScript> &coinbase_script,
       staking::StakingWallet &wallet) const override {
-    ++invocations_BuildCoinbaseTransaction;
-    return stub_BuildCoinbaseTransaction(snapshot_hash, eligible_coin, coins, fees, coinbase_script, wallet);
+    return mock_BuildCoinbaseTransaction(snapshot_hash, eligible_coin, coins, fees, coinbase_script, wallet);
   }
-
   std::shared_ptr<const CBlock> BuildBlock(
       const CBlockIndex &index,
       const uint256 &snapshot_hash,
@@ -521,8 +402,7 @@ class BlockBuilderMock : public proposer::BlockBuilder {
       const CAmount fees,
       const boost::optional<CScript> &coinbase_script,
       staking::StakingWallet &wallet) const override {
-    ++invocations_BuildBlock;
-    return stub_BuildBlock(index, snapshot_hash, stake_coin, coins, txs, fees, coinbase_script, wallet);
+    return mock_BuildBlock(index, snapshot_hash, stake_coin, coins, txs, fees, coinbase_script, wallet);
   }
 };
 

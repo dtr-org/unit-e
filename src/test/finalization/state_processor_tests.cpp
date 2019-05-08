@@ -22,21 +22,21 @@ class Fixture {
             &m_finalization_params, &m_block_indexes, &m_chain, &m_state_db, &m_block_db)),
         m_proc(finalization::StateProcessor::New(
             &m_finalization_params, m_repo.get(), &m_chain)) {
-    m_chain.stub_AtHeight = [this](blockchain::Height h) -> CBlockIndex * {
+    m_chain.mock_AtHeight.SetStub([this](blockchain::Height h) -> CBlockIndex * {
       auto const it = this->m_block_heights.find(h);
       if (it == this->m_block_heights.end()) {
         return nullptr;
       }
       return it->second;
-    };
+    });
   }
 
   CBlockIndex &CreateBlockIndex() {
     const auto height = FindNextHeight();
     CBlockIndex &index = *m_block_indexes.Insert(uint256S(std::to_string(height)));
     index.nHeight = height;
-    index.pprev = m_chain.result_GetTip;
-    m_chain.result_GetTip = &index;
+    index.pprev = m_block_heights[height - 1];
+    m_chain.mock_GetTip.SetResult(&index);
     m_block_heights[index.nHeight] = &index;
     return index;
   }
@@ -77,7 +77,7 @@ class Fixture {
 
  private:
   blockchain::Height FindNextHeight() {
-    if (m_chain.result_GetTip == nullptr) {
+    if (m_chain.GetTip() == nullptr) {
       return 0;
     } else {
       return m_chain.GetTip()->nHeight + 1;
@@ -91,9 +91,9 @@ class Fixture {
   }
 
   finalization::Params m_finalization_params;
-  mocks::BlockIndexMapMock m_block_indexes;
+  mocks::BlockIndexMapFake m_block_indexes;
   std::map<blockchain::Height, CBlockIndex *> m_block_heights;  // m_block_index owns these block indexes
-  mocks::ActiveChainMock m_chain;
+  mocks::ActiveChainFake m_chain;
   std::unique_ptr<finalization::StateRepository> m_repo;
   std::unique_ptr<finalization::StateProcessor> m_proc;
   mocks::StateDBMock m_state_db;

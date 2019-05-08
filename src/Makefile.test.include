@@ -35,7 +35,11 @@ UNITE_TEST_SUITE = \
   test/test_unite_block_fixture.h \
   test/test_unite_block_fixture.cpp \
   test/test_unite_main.cpp \
-  test/test_unite_mocks.h
+  test/test_unite_mocks.h \
+  test/util/blocktools.h \
+  test/util/blocktools.cpp \
+  test/util/mocks.h \
+  test/util/mocks.cpp
 
 # test_unite binary #
 UNITE_TESTS =\
@@ -139,6 +143,7 @@ UNITE_TESTS =\
   test/ufp64_tests.cpp \
   test/uint256_tests.cpp \
   test/util_tests.cpp \
+  test/util/blocktools_tests.cpp \
   test/validation_tests.cpp \
   test/versionbits_tests.cpp
 
