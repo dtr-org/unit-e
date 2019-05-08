@@ -17,20 +17,20 @@ SCRIPTDIR=$(dirname "${BASH_SOURCE[0]}")
 LINTALL=$(basename "${BASH_SOURCE[0]}")
 
 SHELL_SCRIPTS=(
-  "${SCRIPTDIR}"/lint-circular-dependencies.sh
-  "${SCRIPTDIR}"/lint-filenames.sh
-  "${SCRIPTDIR}"/lint-format-strings.sh
-  "${SCRIPTDIR}"/lint-includes.sh
-  "${SCRIPTDIR}"/lint-locale-dependence.sh
-  "${SCRIPTDIR}"/lint-logs.sh
-  "${SCRIPTDIR}"/lint-python-shebang.sh
-  "${SCRIPTDIR}"/lint-python-utf8-encoding.sh
-  "${SCRIPTDIR}"/lint-shell-locale.sh
-  "${SCRIPTDIR}"/lint-whitespace.sh
+  lint-circular-dependencies.sh
+  lint-filenames.sh
+  lint-format-strings.sh
+  lint-includes.sh
+  lint-locale-dependence.sh
+  lint-logs.sh
+  lint-python-shebang.sh
+  lint-python-utf8-encoding.sh
+  lint-shell-locale.sh
+  lint-whitespace.sh
 )
 
 for f in ${SHELL_SCRIPTS[@]}; do
-  if ! "$f"; then
+  if ! "${SCRIPTDIR}/$f"; then
     echo "^---- failure generated from $f"
     exit 1
   fi
