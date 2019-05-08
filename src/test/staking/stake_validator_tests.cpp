@@ -7,10 +7,9 @@
 #include <hash.h>
 #include <staking/stake_validator.h>
 #include <test/test_unite.h>
+#include <test/test_unite_mocks.h>
 #include <uint256.h>
 
-#include <test/test_unite.h>
-#include <test/test_unite_mocks.h>
 #include <boost/test/unit_test.hpp>
 
 namespace {

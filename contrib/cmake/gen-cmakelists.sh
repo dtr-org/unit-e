@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+export LC_ALL=C
+
 if [[ "$OSTYPE" == "darwin"* ]]; then
   FIND_CMD='find -E'
   OPENSSL_INCLUDE=/usr/local/opt/openssl/include

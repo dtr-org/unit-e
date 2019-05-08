@@ -7,7 +7,6 @@
 #include <chainparams.h>
 #include <esperanza/script.h>
 #include <esperanza/vote.h>
-#include <script/ismine.h>
 #include <tinyformat.h>
 #include <ufp64.h>
 #include <util.h>
@@ -129,7 +128,7 @@ Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
     log_msg = " epoch=" + std::to_string(m_current_epoch - 2) + " was not justified.";
   }
 
-  LogPrint(BCLog::FINALIZATION,
+  LogPrint(BCLog::FINALIZATION, /* Continued */
            "%s:%s new_epoch=%d current_dynasty=%d last_justified_epoch=%d last_finalized_epoch=%d\n",
            __func__,
            log_msg,
@@ -248,7 +247,7 @@ Vote FinalizationState::GetRecommendedVote(const uint160 &validatorAddress) cons
   vote.m_target_epoch = m_recommended_target_epoch;
   vote.m_source_epoch = m_expected_source_epoch;
 
-  LogPrint(BCLog::FINALIZATION,
+  LogPrint(BCLog::FINALIZATION, /* Continued */
            "%s: source_epoch=%d target_epoch=%d dynasty=%d target_hash=%s.\n",
            __func__,
            vote.m_source_epoch,
@@ -419,7 +418,7 @@ void FinalizationState::ProcessDeposit(const uint160 &validatorAddress,
 
   m_dynasty_deltas[startDynasty] = GetDynastyDelta(startDynasty) + scaledDeposit;
 
-  LogPrint(BCLog::FINALIZATION,
+  LogPrint(BCLog::FINALIZATION, /* Continued */
            "%s: Add deposit %s for validator in dynasty %d.\n", __func__,
            validatorAddress.GetHex(), startDynasty);
 }
@@ -461,7 +460,7 @@ Result FinalizationState::ValidateVote(const Vote &vote, const bool log_errors) 
                 vote.m_target_epoch);
   }
 
-  LogPrint(BCLog::FINALIZATION,
+  LogPrint(BCLog::FINALIZATION, /* Continued */
            "%s: valid. validator=%s target=%s source_epoch=%d target_epoch=%d\n",
            __func__,
            vote.m_validator_address.GetHex(),
@@ -477,7 +476,7 @@ void FinalizationState::ProcessVote(const Vote &vote) {
 
   GetCheckpoint(vote.m_target_epoch).m_vote_set.insert(vote.m_validator_address);
 
-  LogPrint(BCLog::FINALIZATION,
+  LogPrint(BCLog::FINALIZATION, /* Continued */
            "%s: validator=%s voted successfully. target=%s source_epoch=%d target_epoch=%d.\n",
            __func__,
            vote.m_validator_address.GetHex(),
@@ -585,7 +584,7 @@ void FinalizationState::ProcessLogout(const uint160 &validatorAddress) {
   validator.m_deposits_at_logout = m_cur_dyn_deposits;
   m_dynasty_deltas[endDyn] = GetDynastyDelta(endDyn) - validator.m_deposit;
 
-  LogPrint(BCLog::FINALIZATION,
+  LogPrint(BCLog::FINALIZATION, /* Continued */
            "%s: validator=%s logging out at dynasty=%d.\n", __func__,
            validatorAddress.GetHex(), endDyn);
 }
@@ -663,9 +662,9 @@ Result FinalizationState::CalculateWithdrawAmount(const uint160 &validatorAddres
       withdrawAmountOut = ufp64::mul_to_uint(ufp64::sub(ufp64::to_ufp64(1), fractionToSlash), depositSize);
     }
 
-    LogPrint(BCLog::FINALIZATION,
+    LogPrint(BCLog::FINALIZATION, /* Continued */
              "%s: Withdraw from validator %s of %d units.\n", __func__,
-             validatorAddress.GetHex(), validator.m_end_dynasty, withdrawAmountOut);
+             validatorAddress.GetHex(), withdrawAmountOut);
   }
 
   return success();
@@ -813,7 +812,7 @@ void FinalizationState::ProcessSlash(const Vote &vote1, const Vote &vote2) {
 
   m_validators.at(validatorAddress).m_is_slashed = true;
 
-  LogPrint(BCLog::FINALIZATION,
+  LogPrint(BCLog::FINALIZATION, /* Continued */
            "%s: Slashing validator with deposit hash %s of %d units.\n",
            __func__, validatorAddress.GetHex(), validatorDeposit);
 
@@ -1015,7 +1014,7 @@ void FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
   }
 
   if (IsCheckpoint(block_index.nHeight)) {
-    LogPrint(BCLog::FINALIZATION,
+    LogPrint(BCLog::FINALIZATION, /* Continued */
              "%s: Last block of the epoch, new m_recommended_target_hash=%s\n",
              __func__, block_hash.GetHex());
 

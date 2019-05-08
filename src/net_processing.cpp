@@ -35,8 +35,6 @@
 
 #include <memory>
 
-#include <memory>
-
 #if defined(NDEBUG)
 # error "Unit-e cannot be compiled without assertions."
 #endif

@@ -1198,7 +1198,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                         if (tx.IsCoinBase() && mapWallet.find(range.first->second)->second.IsCoinBase()) {
                             // We show different messages depending on whether the transactions are coinbase because
                             // this case will be more common (& also less problematic, since we have maturity).
-                            WalletLogPrintf(
+                            WalletLogPrintf( /* Continued */
                                 "After re-org, new coinbase tx %s (in block %s) uses same input (%s:%i) as the old & discarded coinbase tx %s.\n",
                                 tx.GetHash().ToString(), pIndex->GetBlockHash().ToString(), range.first->first.hash.ToString(), range.first->first.n, range.first->second.ToString()
                             );
@@ -1206,7 +1206,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                             //              are the emitters of all of them, we could copy them replacing the inputs to
                             //              decrease the re-org's impact.
                         } else {
-                            WalletLogPrintf(
+                            WalletLogPrintf( /* Continued */
                                 "Transaction %s (in block %s) conflicts with wallet transaction %s (both spend %s:%i)\n",
                                 tx.GetHash().ToString(), pIndex->GetBlockHash().ToString(), range.first->second.ToString(), range.first->first.hash.ToString(), range.first->first.n
                             );

@@ -185,7 +185,7 @@ def assert_log_does_not_contain(node, stop_pattern, skip_first_n_lines=500):
     compiled_re = re.compile(stop_pattern, re.IGNORECASE)
 
     i = 0
-    with open(path) as f:
+    with open(path, encoding='utf8') as f:
         for line in f.readlines():
             i += 1
             if i < skip_first_n_lines:

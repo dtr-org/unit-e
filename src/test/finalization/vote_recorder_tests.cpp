@@ -7,7 +7,6 @@
 #include <test/test_unite.h>
 #include <validationinterface.h>
 #include <boost/test/unit_test.hpp>
-#include <boost/test/unit_test_log.hpp>
 
 BOOST_FIXTURE_TEST_SUITE(vote_recorder_tests, TestingSetup)
 

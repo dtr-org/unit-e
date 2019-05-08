@@ -9,6 +9,8 @@
 # usage:
 # - run contrib/devtools/run-unit-tests.sh from the repository root
 
+export LC_ALL=C
+
 which parallel > /dev/null || (echo "GNU parallel is not installed"; false) || exit 1
 
 src/test/test_unite --list_content 2>&1 | \

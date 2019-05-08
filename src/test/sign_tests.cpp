@@ -2,8 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <boost/test/unit_test.hpp>
-#include <boost/test/unit_test_log.hpp>
+#include <core_io.h>
 #include <esperanza/vote.h>
 #include <keystore.h>
 #include <policy/policy.h>
@@ -11,9 +10,8 @@
 #include <string.h>
 #include <test/test_unite.h>
 #include <util.h>
+
 #include <boost/test/unit_test.hpp>
-#include <boost/test/unit_test_log.hpp>
-#include <core_io.h>
 
 BOOST_FIXTURE_TEST_SUITE(sign_tests, ReducedTestingSetup)
 
