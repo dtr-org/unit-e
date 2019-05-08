@@ -15,8 +15,16 @@ run_unit_test() {
   fi
 }
 
+run_pytest() {
+  echo "Running pytest"
+  if ! (cd contrib; pytest); then
+    failed=true
+  fi
+}
+
 run_unit_test contrib/devtools/test_copyright_header.py
 run_unit_test contrib/devtools/test_camel_to_snake.py
+run_pytest
 
 if $failed; then
   echo run-python-tests FAILED
