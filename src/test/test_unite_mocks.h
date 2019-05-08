@@ -28,11 +28,6 @@ template <typename T>
 struct stub;
 
 template <typename R, typename C, typename ...Args>
-struct stub<R(C::*)(Args...)> {
-  using type = std::function<R(Args...)>;
-};
-
-template <typename R, typename C, typename ...Args>
 struct stub<R(C::*)(Args...) const> {
   using type = std::function<R(Args...)>;
 };
