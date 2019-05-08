@@ -67,7 +67,7 @@ class ActiveChainTest : public mocks::ActiveChainMock {
   }
 
   void Add(CBlockIndex &index) {
-    this->tip = &index;
+    this->result_GetTip = &index;
     m_block_heights[index.nHeight] = &index;
   }
 
@@ -103,7 +103,7 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
   // Generate active chain
   std::map<const CBlockIndex *, esperanza::FinalizationState> original;
   for (size_t i = 0; i < 100; ++i) {
-    CBlockIndex *block_index = generate(active_chain.tip, true);
+    CBlockIndex *block_index = generate(active_chain.result_GetTip, true);
     FinalizationStateSpy state(finalization_params);
     state.shuffle();
     original.emplace(block_index, std::move(state));
@@ -154,7 +154,7 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
   // accoring to the main chain. Simply move active chain forward but keep db as is.
 
   for (size_t i = 0; i < 5; ++i) {
-    generate(active_chain.tip, true);
+    generate(active_chain.result_GetTip, true);
   }
   BOOST_REQUIRE(active_chain.GetTip()->nHeight == 104);
 

@@ -8,11 +8,14 @@
 #include <blockdb.h>
 #include <coins.h>
 #include <finalization/state_db.h>
+#include <proposer/block_builder.h>
+#include <proposer/proposer_logic.h>
 #include <staking/active_chain.h>
 #include <staking/block_index_map.h>
 #include <staking/block_validator.h>
 #include <staking/network.h>
 #include <staking/stake_validator.h>
+#include <staking/transactionpicker.h>
 #include <util.h>
 
 #include <atomic>
@@ -20,6 +23,14 @@
 #include <functional>
 
 namespace mocks {
+
+template <typename T>
+struct stub;
+
+template <typename R, typename C, typename ...Args>
+struct stub<R(C::*)(Args...) const> {
+  using type = std::function<R(Args...)>;
+};
 
 //! \brief An ArgsManager that can be initialized using a list of cli args.
 //!
@@ -40,7 +51,7 @@ class ArgsManagerMock : public ArgsManager {
     ParseParameters(static_cast<int>(i), argv, error);
     delete[] argv;
   }
-  bool IsArgKnown(const std::string& ) const override { return true; }
+  bool IsArgKnown(const std::string &) const override { return true; }
 };
 
 class NetworkMock : public staking::Network {
@@ -143,19 +154,19 @@ class ActiveChainMock : public staking::ActiveChain {
   mutable std::atomic<std::uint32_t> invocations_GetInitialBlockDownloadStatus{0};
 
   //! The tip to be returned by GetTip()
-  CBlockIndex *tip = nullptr;
+  CBlockIndex *result_GetTip = nullptr;
 
   //! The genesis to be returned by GetGenesis()
-  CBlockIndex *genesis = nullptr;
+  CBlockIndex *result_GetGenesis = nullptr;
 
   //! The sync states to be returned by GetIBDStatus()
-  ::SyncStatus sync_status = SyncStatus::SYNCED;
+  ::SyncStatus result_GetInitialBlockDownloadStatus = SyncStatus::SYNCED;
 
   //! The height to be returned by GetHeight() (GetSize = GetHeight + 1)
-  blockchain::Height height = 0;
+  blockchain::Height result_GetHeight = 0;
 
   //! The snapshot hash to be returned by ComputeSnapshotHash()
-  uint256 snapshot_hash = uint256();
+  uint256 result_ComputeSnapshotHash = uint256();
 
   //! Function to retrieve the block at the given depth
   std::function<CBlockIndex *(blockchain::Depth)> stub_AtDepth = [](blockchain::Depth) {
@@ -183,19 +194,19 @@ class ActiveChainMock : public staking::ActiveChain {
   }
   blockchain::Height GetSize() const override {
     ++invocations_GetSize;
-    return height + 1;
+    return result_GetHeight + 1;
   }
   blockchain::Height GetHeight() const override {
     ++invocations_GetHeight;
-    return height;
+    return result_GetHeight;
   }
   const CBlockIndex *GetTip() const override {
     ++invocations_GetTip;
-    return tip;
+    return result_GetTip;
   }
   const CBlockIndex *GetGenesis() const override {
     ++invocations_GetGenesis;
-    return genesis;
+    return result_GetGenesis;
   }
   bool Contains(const CBlockIndex &block_index) const override {
     ++invocations_Contains;
@@ -234,7 +245,7 @@ class ActiveChainMock : public staking::ActiveChain {
   }
   const uint256 ComputeSnapshotHash() const override {
     ++invocations_ComputeSnapshotHash;
-    return snapshot_hash;
+    return result_ComputeSnapshotHash;
   }
   bool ProposeBlock(std::shared_ptr<const CBlock> pblock) override {
     ++invocations_ProcessNewBlock;
@@ -246,7 +257,7 @@ class ActiveChainMock : public staking::ActiveChain {
   }
   ::SyncStatus GetInitialBlockDownloadStatus() const override {
     ++invocations_GetInitialBlockDownloadStatus;
-    return sync_status;
+    return result_GetInitialBlockDownloadStatus;
   }
 };
 
@@ -421,6 +432,97 @@ class BlockValidatorMock : public staking::BlockValidator {
   BlockValidationResult CheckCoinbaseTransaction(const CTransaction &coinbase_tx) const override {
     ++invocations_CheckCoinbaseTransaction;
     return stub_CheckCoinbaseTransaction(coinbase_tx);
+  }
+};
+
+class ProposerLogicMock : public proposer::Logic {
+ public:
+  mutable std::atomic<std::uint32_t> invocations_TryPropose{0};
+
+  mutable boost::optional<proposer::EligibleCoin> result_TryPropose = boost::none;
+
+  mutable std::function<boost::optional<proposer::EligibleCoin>(const staking::CoinSet &)> stub_TryPropose =
+      [&](const staking::CoinSet &) {
+        return result_TryPropose;
+      };
+
+  boost::optional<proposer::EligibleCoin> TryPropose(const staking::CoinSet &coin_set) override {
+    ++invocations_TryPropose;
+    return stub_TryPropose(coin_set);
+  }
+};
+
+class TransactionPickerMock : public staking::TransactionPicker {
+
+ public:
+  mutable std::atomic<std::uint32_t> invocations_PickTransactions{0};
+
+  mutable PickTransactionsResult result_PickTransactions = {"", {}, {}};
+
+  mutable std::function<PickTransactionsResult(const PickTransactionsParameters &)> stub_PickTransactions =
+      [&](const PickTransactionsParameters &parameters) {
+        return result_PickTransactions;
+      };
+
+  PickTransactionsResult PickTransactions(const PickTransactionsParameters &parameters) override {
+    ++invocations_PickTransactions;
+    return stub_PickTransactions(parameters);
+  }
+};
+
+class BlockBuilderMock : public proposer::BlockBuilder {
+ public:
+  mutable std::atomic<std::uint32_t> invocations_BuildCoinbaseTransaction{0};
+  mutable std::atomic<std::uint32_t> invocations_BuildBlock{0};
+
+  mutable CTransactionRef result_BuildCoinbaseTransaction = nullptr;
+  mutable std::shared_ptr<const CBlock> result_BuildBlock = nullptr;
+
+  mutable stub<decltype(&BlockBuilder::BuildCoinbaseTransaction)>::type
+      stub_BuildCoinbaseTransaction =
+          [&](const uint256 &,
+              const proposer::EligibleCoin &,
+              const staking::CoinSet &,
+              const CAmount,
+              const boost::optional<CScript> &,
+              staking::StakingWallet &) {
+            return result_BuildCoinbaseTransaction;
+          };
+  mutable stub<decltype(&BlockBuilder::BuildBlock)>::type
+      stub_BuildBlock =
+          [&](const CBlockIndex &,
+              const uint256 &,
+              const proposer::EligibleCoin &,
+              const staking::CoinSet &,
+              const std::vector<CTransactionRef> &,
+              const CAmount fees,
+              const boost::optional<CScript> &,
+              staking::StakingWallet &) {
+            return result_BuildBlock;
+          };
+
+  const CTransactionRef BuildCoinbaseTransaction(
+      const uint256 &snapshot_hash,
+      const proposer::EligibleCoin &eligible_coin,
+      const staking::CoinSet &coins,
+      const CAmount fees,
+      const boost::optional<CScript> &coinbase_script,
+      staking::StakingWallet &wallet) const override {
+    ++invocations_BuildCoinbaseTransaction;
+    return stub_BuildCoinbaseTransaction(snapshot_hash, eligible_coin, coins, fees, coinbase_script, wallet);
+  }
+
+  std::shared_ptr<const CBlock> BuildBlock(
+      const CBlockIndex &index,
+      const uint256 &snapshot_hash,
+      const proposer::EligibleCoin &stake_coin,
+      const staking::CoinSet &coins,
+      const std::vector<CTransactionRef> &txs,
+      const CAmount fees,
+      const boost::optional<CScript> &coinbase_script,
+      staking::StakingWallet &wallet) const override {
+    ++invocations_BuildBlock;
+    return stub_BuildBlock(index, snapshot_hash, stake_coin, coins, txs, fees, coinbase_script, wallet);
   }
 };
 
