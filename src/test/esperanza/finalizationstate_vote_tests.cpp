@@ -198,7 +198,7 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success) {
 
   spy.CreateAndActivateDeposit(validatorAddress, depositSize);
 
-  Vote vote{validatorAddress, targetHash, 1, 5};
+  Vote vote{validatorAddress, targetHash, 4, 5};
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
 }
 

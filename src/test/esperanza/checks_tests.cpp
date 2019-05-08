@@ -742,7 +742,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
   CPubKey pub_key = key.GetPubKey();
   uint160 validator_address = pub_key.GetID();
 
-  Vote vote_out{pub_key.GetID(), target_hash, 0, 5};
+  Vote vote_out{pub_key.GetID(), target_hash, 4, 5};
 
   std::vector<unsigned char> vote_sig_out;
   BOOST_REQUIRE(CreateVoteSignature(&keystore, vote_out, vote_sig_out));
