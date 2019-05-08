@@ -417,8 +417,12 @@ class BIP68Test(UnitETestFramework):
         # Make a block that violates bip68; ensure that the tip updates
         tip = int(self.nodes[0].getbestblockhash(), 16)
         snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
+        height = self.nodes[0].getblockcount()
 
-        coinbase = create_coinbase(self.nodes[0].getblockcount()+1, self.nodes[0].listunspent()[0], snapshot_hash)
+        coinbase = create_coinbase(
+            height + 1, self.nodes[0].listunspent()[0], snapshot_hash,
+            finalization_rewards=get_finalization_rewards(self.nodes[0], height)
+        )
         coinbase = sign_transaction(self.nodes[0], coinbase)
         coinbase.rehash()
 
