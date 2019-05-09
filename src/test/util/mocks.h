@@ -22,8 +22,16 @@ class Mock {
   friend MethodMockBase;
 
  public:
+  //! Resets this mock and all of its mocked methods, i.e. invokes
+  //! Reset() on every MockMethod and resets interactions counts of this mock.
   void MockReset();
+
+  //! Resets the invocation counts of every mock method of this mock to zero.
+  //! Also the interaction count with this mock is set to zero.
   void MockResetInvocationCounts();
+
+  //! Returns how often this mock was interacted with. This is the sum of
+  //! all invocations of every mocked method of this Mock.
   std::uint32_t MockCountInteractions();
 
  private:
@@ -36,8 +44,13 @@ class Mock {
 
 class MethodMockBase {
  public:
+  //! Returns how often this method was invoked.
   std::uint32_t CountInvocations() const;
+
+  //! Resets this method mocks (invocation counts and stub).
   virtual void Reset() = 0;
+
+  //! Resets just the invocation counts to zero.
   void ResetInvocationCounts();
 
  protected:
@@ -66,7 +79,7 @@ class VoidMethodMockImpl : public MethodMockBase {
     CountInteraction();
     m_stub(args...);
   }
-  void forward(Args&&... args) const {
+  void forward(Args &&... args) const {
     CountInteraction();
     m_stub(std::forward<Args...>(args)...);
   }
@@ -108,7 +121,7 @@ class MethodMockImpl : public MethodMockBase {
     CountInteraction();
     return m_stub(args...);
   }
-  R forward(Args&&... args) const {
+  R forward(Args &&... args) const {
     CountInteraction();
     return m_stub(std::forward<Args...>(args)...);
   }
