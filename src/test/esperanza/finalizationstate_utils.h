@@ -51,6 +51,7 @@ class FinalizationStateSpy : public FinalizationState {
   }
 
   void CreateAndActivateDeposit(const uint160 &validator_address, CAmount deposit_size);
+  void CreateDeposit(const uint160 &finalizer_address, CAmount deposit_size);
 
   void shuffle();
 

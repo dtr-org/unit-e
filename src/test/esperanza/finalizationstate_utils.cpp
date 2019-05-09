@@ -88,10 +88,7 @@ void FinalizationStateSpy::shuffle() {
 void FinalizationStateSpy::CreateAndActivateDeposit(const uint160 &validator_address, CAmount deposit_size) {
   BOOST_REQUIRE_EQUAL(GetCurrentEpoch(), 0);
 
-  Result res = ValidateDeposit(validator_address, deposit_size);
-  BOOST_REQUIRE_EQUAL(res, +Result::SUCCESS);
-
-  ProcessDeposit(validator_address, deposit_size);
+  CreateDeposit(validator_address, deposit_size);
 
   for (uint32_t i = 1; i < 4 * EpochLength() + 1; i += EpochLength()) {
     BOOST_REQUIRE_EQUAL(GetActiveFinalizers().size(), 0);
@@ -100,7 +97,7 @@ void FinalizationStateSpy::CreateAndActivateDeposit(const uint160 &validator_add
     // when checkpoint is being processed
     m_recommended_target_epoch = m_current_epoch;
 
-    res = InitializeEpoch(i);
+    Result res = InitializeEpoch(i);
     BOOST_REQUIRE_EQUAL(res, +Result::SUCCESS);
   }
 
@@ -108,7 +105,13 @@ void FinalizationStateSpy::CreateAndActivateDeposit(const uint160 &validator_add
   BOOST_REQUIRE_EQUAL(GetCurrentEpoch(), 4);
   BOOST_REQUIRE_EQUAL(GetLastJustifiedEpoch(), 2);
   BOOST_REQUIRE_EQUAL(GetLastFinalizedEpoch(), 2);
-  BOOST_REQUIRE_EQUAL(GetActiveFinalizers().size(), 1);
+  BOOST_REQUIRE(!GetActiveFinalizers().empty());
   BOOST_REQUIRE_EQUAL(m_expected_source_epoch, 2);
   BOOST_REQUIRE_EQUAL(m_recommended_target_epoch, 3);
+}
+
+void FinalizationStateSpy::CreateDeposit(const uint160 &finalizer_address, CAmount deposit_size) {
+  Result res = ValidateDeposit(finalizer_address, deposit_size);
+  BOOST_REQUIRE_EQUAL(res, +Result::SUCCESS);
+  ProcessDeposit(finalizer_address, deposit_size);
 }
