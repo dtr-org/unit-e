@@ -38,7 +38,7 @@ BEGIN_FOLD distdir
 DOCKER_EXEC make distdir VERSION=$HOST
 END_FOLD
 
-DOCKER_EXEC chmod a+w unit-e-$HOST
+DOCKER_EXEC chmod a+w unit-e-$HOST  # Needed to allow travis_wait to create a log file
 cd unit-e-$HOST
 
 BEGIN_FOLD configure
@@ -51,6 +51,7 @@ END_FOLD
 
 if [ "$RUN_TESTS" = "true" ]; then
   BEGIN_FOLD unit-tests
+  echo Running the unit tests with an increased timeout
   travis_wait DOCKER_EXEC LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/depends/$HOST/lib make $MAKEJOBS check VERBOSE=1
   END_FOLD
 fi
