@@ -8,6 +8,7 @@
 #include <test/test_unite.h>
 #include <test/test_unite_mocks.h>
 
+#include <proposer/block_builder.h>
 #include <wallet/wallet.h>
 
 #include <memory>
@@ -50,6 +51,8 @@ struct TestChain100Setup : public WalletTestingSetup {
 
   std::vector<CTransaction> m_coinbase_txns; // For convenience, coinbase transactions
   CKey coinbaseKey; // private/public key needed to spend coinbase transactions
+  std::shared_ptr<proposer::BlockBuilder> m_block_builder;
+  std::shared_ptr<staking::ActiveChain> m_active_chain;
 };
 
 #endif // UNITE_WALLET_TEST_WALLET_TEST_FIXTURE_H
