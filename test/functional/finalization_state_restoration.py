@@ -17,7 +17,6 @@ from test_framework.util import (
     generate_block,
     initialize_datadir,
     sync_blocks,
-    sync_mempools,
     wait_until,
 )
 

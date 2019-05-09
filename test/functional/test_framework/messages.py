@@ -491,16 +491,17 @@ class CTransaction():
 
     def is_finalizer_commit(self):
         name = self.get_type()
-        if (name == TxType.VOTE or
-            name == TxType.ADMIN or
-            name == TxType.DEPOSIT or
-            name == TxType.LOGOUT or
-            name == TxType.SLASH or
-            name == TxType.WITHDRAW):
+        if name in [
+            TxType.VOTE,
+            TxType.ADMIN,
+            TxType.DEPOSIT,
+            TxType.LOGOUT,
+            TxType.SLASH,
+            TxType.WITHDRAW,
+        ]:
             return True
 
-        if (name == TxType.COINBASE or
-            name == TxType.REGULAR):
+        if name == TxType.COINBASE or name == TxType.REGULAR:
             return False
 
         assert False, ('unknown type: %s' % name)
@@ -1392,16 +1393,18 @@ class msg_reject():
         self.message = deser_string(f)
         self.code = struct.unpack("<B", f.read(1))[0]
         self.reason = deser_string(f)
-        if (self.code != self.REJECT_MALFORMED and
-                (self.message == b"block" or self.message == b"tx")):
+        if (self.code != self.REJECT_MALFORMED and (
+                self.message == b"block" or self.message == b"tx")
+        ):
             self.data = deser_uint256(f)
 
     def serialize(self):
         r = ser_string(self.message)
         r += struct.pack("<B", self.code)
         r += ser_string(self.reason)
-        if (self.code != self.REJECT_MALFORMED and
-                (self.message == b"block" or self.message == b"tx")):
+        if (self.code != self.REJECT_MALFORMED and (
+                self.message == b"block" or self.message == b"tx")
+        ):
             r += ser_uint256(self.data)
         return r
 

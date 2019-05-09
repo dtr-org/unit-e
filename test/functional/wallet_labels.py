@@ -22,8 +22,6 @@ from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_equal,
-    assert_raises_rpc_error,
-    connect_nodes,
     connect_nodes_bi,
     sync_blocks,
     sync_mempools

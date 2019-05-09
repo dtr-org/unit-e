@@ -11,7 +11,16 @@ from test_framework.blocktools import create_block, create_coinbase, get_tip_sna
 from test_framework.messages import UNIT, COutPoint, CTransaction, CTxIn, CTxOut, FromHex, ToHex, msg_block
 from test_framework.script import CScript
 from test_framework.test_framework import UnitETestFramework
-from test_framework.util import assert_equal, assert_greater_than, assert_raises_rpc_error, bytes_to_hex_str, connect_nodes, get_bip9_status, satoshi_round, sync_blocks, wait_until
+from test_framework.util import (
+    assert_equal,
+    assert_greater_than,
+    assert_raises_rpc_error,
+    connect_nodes,
+    get_bip9_status,
+    satoshi_round,
+    sync_blocks,
+    wait_until,
+)
 from test_framework.mininode import P2PInterface
 from test_framework.regtest_mnemonics import regtest_mnemonics
 

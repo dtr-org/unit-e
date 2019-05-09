@@ -142,7 +142,7 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
         # 26
         #   \
         #    - 27 - 28 - 29 - b30
-        b30 = generate_block(node2, count=3)[-1]
+        generate_block(node2, count=3)[-1]  # b30
         assert_equal(node2.getblockcount(), 30)
         assert_equal(node0.getblockcount(), 28)
 

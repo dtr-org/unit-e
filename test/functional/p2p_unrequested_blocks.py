@@ -58,7 +58,6 @@ from test_framework.blocktools import (
     create_block,
     sign_coinbase,
     create_coinbase,
-    create_transaction,
     create_tx_with_script,
     get_tip_snapshot_meta,
     calc_snapshot_hash,

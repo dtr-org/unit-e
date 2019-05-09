@@ -5,7 +5,6 @@
 """Test segwit transactions and blocks on P2P network."""
 
 from binascii import hexlify
-import math
 import random
 import struct
 import time
@@ -18,8 +17,6 @@ from test_framework.blocktools import (
 )
 from test_framework.key import CECKey, CPubKey
 from test_framework.messages import (
-    BIP125_SEQUENCE_NUMBER,
-    CBlock,
     CBlockHeader,
     CInv,
     COutPoint,
@@ -27,7 +24,6 @@ from test_framework.messages import (
     CTxIn,
     CTxInWitness,
     CTxOut,
-    CTxWitness,
     MAX_BLOCK_BASE_SIZE,
     MSG_WITNESS_FLAG,
     NODE_NETWORK,
@@ -47,15 +43,12 @@ from test_framework.messages import (
 from test_framework.mininode import (
     P2PInterface,
     mininode_lock,
-    wait_until,
 )
 from test_framework.script import (
     CScript,
     CScriptNum,
     CScriptOp,
-    MAX_SCRIPT_ELEMENT_SIZE,
     OP_0,
-    OP_1,
     OP_3,
     OP_16,
     OP_2DROP,
@@ -69,7 +62,6 @@ from test_framework.script import (
     OP_EQUALVERIFY,
     OP_HASH160,
     OP_IF,
-    OP_RETURN,
     OP_TRUE,
     SIGHASH_ALL,
     SIGHASH_ANYONECANPAY,
@@ -87,10 +79,7 @@ from test_framework.util import (
     assert_equal,
     assert_in,
     assert_not_equal,
-    bytes_to_hex_str,
     connect_nodes,
-    disconnect_nodes,
-    get_bip9_status,
     get_unspent_coins,
     hex_str_to_bytes,
     sync_blocks,
@@ -739,8 +728,6 @@ class SegWitTest(UnitETestFramework):
     # Test that block requests to NODE_WITNESS peer are with MSG_WITNESS_FLAG
     def test_block_relay(self):
         self.log.info("Testing block relay")
-
-        blocktype = 2|MSG_WITNESS_FLAG
 
         # test_node has set NODE_WITNESS, so all getdata requests should be for
         # witness blocks.

@@ -59,7 +59,7 @@ class NULLDUMMYTest(UnitETestFramework):
         self.wit_address = self.nodes[0].addwitnessaddress(self.address)
         self.wit_ms_address = self.nodes[0].addmultisigaddress(1, [self.address], '', 'p2sh-segwit')['address']
 
-        p2p = self.nodes[0].add_p2p_connection(P2PInterface())
+        self.nodes[0].add_p2p_connection(P2PInterface())
 
         self.coinbase_blocks = self.nodes[0].generate(2) # Block 2
         coinbase_txid = []

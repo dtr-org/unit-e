@@ -12,9 +12,6 @@ The following checks are performed:
 """
 
 from test_framework.test_framework import UnitETestFramework
-from test_framework.messages import (
-    msg_block,
-)
 from test_framework.util import (
     assert_equal,
     assert_finalizationstate,
@@ -25,11 +22,9 @@ from test_framework.util import (
     disconnect_nodes,
     generate_block,
     sync_blocks,
-    wait_until,
 )
 from test_framework.messages import (
     CTransaction,
-    CBlock,
     FromHex,
 )
 from test_framework.regtest_mnemonics import regtest_mnemonics
@@ -37,10 +32,10 @@ from test_framework.regtest_mnemonics import regtest_mnemonics
 def make_vote_tx(finalizer, finalizer_address, target_hash, source_epoch, target_epoch, input_tx_id):
     finalizer_address = bytes_to_hex_str(base58check_to_bytes(finalizer_address)[::-1])
     vote = {
-	'validator_address': finalizer_address,
-	'target_hash': target_hash,
-	'target_epoch': target_epoch,
-	'source_epoch': source_epoch
+        'validator_address': finalizer_address,
+        'target_hash': target_hash,
+        'target_epoch': target_epoch,
+        'source_epoch': source_epoch
     }
     vtx = finalizer.createvotetransaction(vote, input_tx_id)
     vtx = finalizer.signrawtransactionwithwallet(vtx)

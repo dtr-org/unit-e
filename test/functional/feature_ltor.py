@@ -16,7 +16,6 @@ from time import time as time_time
 
 from test_framework.authproxy import JSONRPCException
 from test_framework.blocktools import (
-    SnapshotMeta,
     create_block,
     sign_coinbase,
     create_coinbase,

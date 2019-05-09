@@ -24,7 +24,6 @@ import threading
 from test_framework.messages import (
     CBlockHeader,
     CInv,
-    GrapheneTx,
     MIN_VERSION_SUPPORTED,
     msg_addr,
     msg_block,
@@ -61,7 +60,6 @@ from test_framework.messages import (
     MSG_TYPE_MASK,
     msg_verack,
     msg_version,
-    MSG_WITNESS_FLAG,
     NODE_NETWORK,
     NODE_WITNESS,
     sha256

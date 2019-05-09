@@ -23,6 +23,7 @@ SHELL_SCRIPTS=(
   lint-includes.sh
   lint-locale-dependence.sh
   lint-logs.sh
+  lint-python.sh
   lint-python-shebang.sh
   lint-python-utf8-encoding.sh
   lint-shell-locale.sh

@@ -3,7 +3,7 @@
 # usage:
 # - run contrib/devtools/run-functional-tests.sh from the repository root
 
-export LC_ALL=C
+export LC_ALL=C.UTF-8
 
 NUM_CORES=$(python -c 'import multiprocessing; print (max(4, multiprocessing.cpu_count() // 3 * 2))')
 

@@ -210,6 +210,7 @@ class BIP68_112_113Test(UnitETestFramework):
         self.nodes[0].add_p2p_connection(P2PDataStore())
 
         self.log.info("Generate blocks in the past for coinbase outputs.")
+
         # Convenience wrapper
         def tip_coin():
             return get_unspent_coins(self.nodes[0], 1)[0]
