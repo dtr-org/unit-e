@@ -9,6 +9,32 @@
 
 BOOST_AUTO_TEST_SUITE(finalization_params_tests)
 
+BOOST_AUTO_TEST_CASE(get_epoch) {
+  std::map<uint32_t, uint32_t> height_to_epoch{
+      {0, 0},
+      {1, 1},
+      {2, 1},
+      {3, 1},
+      {4, 1},
+      {5, 1},
+      {6, 2},
+      {9, 2},
+      {10, 2},
+      {11, 3},
+      {15, 3},
+      {16, 4},
+      {20, 4},
+      {25, 5},
+  };
+
+  finalization::Params params;
+  params.epoch_length = 5;
+
+  for (const auto &it : height_to_epoch) {
+    BOOST_CHECK_EQUAL(params.GetEpoch(it.first), it.second);
+  }
+}
+
 BOOST_AUTO_TEST_CASE(get_epoch_start_height) {
   finalization::Params params;
   params.epoch_length = 5;
@@ -39,6 +65,50 @@ BOOST_AUTO_TEST_CASE(get_epoch_checkpoint_height) {
   BOOST_CHECK_EQUAL(params.GetEpochCheckpointHeight(1), 50);
   BOOST_CHECK_EQUAL(params.GetEpochCheckpointHeight(2), 100);
   BOOST_CHECK_EQUAL(params.GetEpochCheckpointHeight(3), 150);
+}
+
+BOOST_AUTO_TEST_CASE(is_epoch_start) {
+  finalization::Params params;
+  params.epoch_length = 5;
+
+  BOOST_CHECK(!params.IsEpochStart(0));
+  BOOST_CHECK(params.IsEpochStart(1));
+  BOOST_CHECK(!params.IsEpochStart(2));
+  BOOST_CHECK(!params.IsEpochStart(3));
+  BOOST_CHECK(!params.IsEpochStart(4));
+  BOOST_CHECK(!params.IsEpochStart(5));
+  BOOST_CHECK(params.IsEpochStart(6));
+  BOOST_CHECK(params.IsEpochStart(11));
+
+  params.epoch_length = 42;
+  BOOST_CHECK(!params.IsEpochStart(0));
+  BOOST_CHECK(params.IsEpochStart(1));
+  BOOST_CHECK(!params.IsEpochStart(2));
+  BOOST_CHECK(!params.IsEpochStart(6));
+  BOOST_CHECK(params.IsEpochStart(43));
+  BOOST_CHECK(params.IsEpochStart(85));
+}
+
+BOOST_AUTO_TEST_CASE(is_checkpoint) {
+  finalization::Params params;
+  params.epoch_length = 5;
+
+  BOOST_CHECK(params.IsCheckpoint(0));
+  BOOST_CHECK(!params.IsCheckpoint(1));
+  BOOST_CHECK(!params.IsCheckpoint(2));
+  BOOST_CHECK(!params.IsCheckpoint(3));
+  BOOST_CHECK(!params.IsCheckpoint(4));
+  BOOST_CHECK(params.IsCheckpoint(5));
+  BOOST_CHECK(!params.IsCheckpoint(6));
+  BOOST_CHECK(params.IsCheckpoint(10));
+
+  params.epoch_length = 11;
+  BOOST_CHECK(params.IsCheckpoint(0));
+  BOOST_CHECK(!params.IsCheckpoint(1));
+  BOOST_CHECK(!params.IsCheckpoint(2));
+  BOOST_CHECK(!params.IsCheckpoint(5));
+  BOOST_CHECK(params.IsCheckpoint(11));
+  BOOST_CHECK(params.IsCheckpoint(22));
 }
 
 BOOST_AUTO_TEST_CASE(parse_params_invalid_json) {

@@ -73,7 +73,7 @@ bool FinalizationState::operator!=(const FinalizationState &other) const {
 Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
   LOCK(cs_esperanza);
 
-  assert(IsEpochStart(blockHeight) &&
+  assert(m_settings.IsEpochStart(blockHeight) &&
          "provided blockHeight is not the first block of a new epoch");
 
   IncrementDynasty();
@@ -872,11 +872,7 @@ uint32_t FinalizationState::GetEpoch(const CBlockIndex &blockIndex) const {
 }
 
 uint32_t FinalizationState::GetEpoch(const blockchain::Height block_height) const {
-  uint32_t epoch = block_height / m_settings.epoch_length;
-  if (block_height % m_settings.epoch_length != 0) {
-    ++epoch;
-  }
-  return epoch;
+  return m_settings.GetEpoch(block_height);
 }
 
 blockchain::Height FinalizationState::GetEpochStartHeight(const uint32_t epoch) const {
@@ -1005,7 +1001,7 @@ void FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
   assert(m_status == NEW);
   uint256 block_hash = block_index.GetBlockHash();
 
-  if (IsEpochStart(block_index.nHeight)) {
+  if (m_settings.IsEpochStart(block_index.nHeight)) {
     InitializeEpoch(block_index.nHeight);
   }
 
@@ -1013,7 +1009,7 @@ void FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
     ProcessNewCommit(tx);
   }
 
-  if (IsCheckpoint(block_index.nHeight)) {
+  if (m_settings.IsCheckpoint(block_index.nHeight)) {
     LogPrint(BCLog::FINALIZATION, /* Continued */
              "%s: Last block of the epoch, new m_recommended_target_hash=%s\n",
              __func__, block_hash.GetHex());
@@ -1067,16 +1063,8 @@ uint256 FinalizationState::GetLastTxHash(const uint160 &validatorAddress) const 
   return validator.m_last_transaction_hash;
 }
 
-bool FinalizationState::IsEpochStart(blockchain::Height block_height) const {
-  return block_height % m_settings.epoch_length == 1;
-}
-
-bool FinalizationState::IsCheckpoint(blockchain::Height blockHeight) const {
-  return blockHeight % m_settings.epoch_length == 0;
-}
-
 bool FinalizationState::IsJustifiedCheckpoint(blockchain::Height blockHeight) const {
-  if (!IsCheckpoint(blockHeight)) {
+  if (!m_settings.IsCheckpoint(blockHeight)) {
     return false;
   }
   auto const it = m_checkpoints.find(GetEpoch(blockHeight));
@@ -1084,7 +1072,7 @@ bool FinalizationState::IsJustifiedCheckpoint(blockchain::Height blockHeight) co
 }
 
 bool FinalizationState::IsFinalizedCheckpoint(blockchain::Height blockHeight) const {
-  if (!IsCheckpoint(blockHeight)) {
+  if (!m_settings.IsCheckpoint(blockHeight)) {
     return false;
   }
   auto const it = m_checkpoints.find(GetEpoch(blockHeight));
