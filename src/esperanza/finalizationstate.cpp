@@ -163,17 +163,27 @@ void FinalizationState::IncrementDynasty() {
 
   // skip dynasty increment for the hardcoded finalized epoch=0
   // as it's already "considered" incremented from -1 to 0.
-  if (m_current_epoch > 2 && GetCheckpoint(m_current_epoch - 2).m_is_finalized) {
-
-    m_current_dynasty += 1;
-    m_prev_dyn_deposits = m_cur_dyn_deposits;
-    m_cur_dyn_deposits += GetDynastyDelta(m_current_dynasty);
-    m_dynasty_start_epoch[m_current_dynasty] = m_current_epoch + 1;
-
-    LogPrint(BCLog::FINALIZATION, "%s: New current dynasty=%d\n", __func__,
-             m_current_dynasty);
-    // UNIT-E: we can clear old checkpoints (up to m_last_finalized_epoch - 1)
+  if (m_current_epoch < 3) {
+    return;
   }
+  if (!GetCheckpoint(m_current_epoch - 2).m_is_finalized) {
+    return;
+  }
+  m_current_dynasty += 1;
+  m_prev_dyn_deposits = m_cur_dyn_deposits;
+  m_cur_dyn_deposits += GetDynastyDelta(m_current_dynasty);
+  m_dynasty_start_epoch[m_current_dynasty] = m_current_epoch + 1;
+
+  for (auto it = m_checkpoints.begin(); it != m_checkpoints.end();) {
+    if (it->first < m_last_finalized_epoch) {
+      it = m_checkpoints.erase(it);
+    } else {
+      ++it;
+    }
+  }
+
+  LogPrint(BCLog::FINALIZATION, "%s: New current dynasty=%d\n", __func__,
+           m_current_dynasty);
 }
 
 ufp64::ufp64_t FinalizationState::GetCollectiveRewardFactor() {
@@ -317,8 +327,8 @@ Result FinalizationState::IsVotable(const Validator &validator,
   if (it == m_checkpoints.end()) {
     return fail(Result::VOTE_MALFORMED,
                 log_errors,
-                "%s: target_epoch=%d is in the future.\n", __func__,
-                targetEpoch);
+                "%s: target_epoch=%d not found. current_epoch=%d.\n", __func__,
+                targetEpoch, m_current_epoch);
   }
 
   auto &targetCheckpoint = it->second;
@@ -353,7 +363,7 @@ Result FinalizationState::IsVotable(const Validator &validator,
   if (it == m_checkpoints.end()) {
     return fail(Result::VOTE_MALFORMED,
                 log_errors,
-                "%s: source_epoch=%d is in the future. current_epoch=%d\n", __func__,
+                "%s: source_epoch=%d not found. current_epoch=%d\n", __func__,
                 sourceEpoch, m_current_epoch);
   }
 
@@ -1075,8 +1085,7 @@ bool FinalizationState::IsFinalizedCheckpoint(blockchain::Height blockHeight) co
   if (!m_settings.IsCheckpoint(blockHeight)) {
     return false;
   }
-  auto const it = m_checkpoints.find(GetEpoch(blockHeight));
-  return it != m_checkpoints.end() && it->second.m_is_finalized;
+  return GetEpoch(blockHeight) <= m_last_finalized_epoch;
 }
 
 FinalizationState::InitStatus FinalizationState::GetInitStatus() const {

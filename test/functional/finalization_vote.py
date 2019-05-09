@@ -10,9 +10,11 @@ VoteTest checks:
 from test_framework.util import (
     assert_equal,
     assert_finalizationstate,
+    assert_raises_rpc_error,
     connect_nodes,
     disconnect_nodes,
     generate_block,
+    make_vote_tx,
     sync_blocks,
 )
 from test_framework.test_framework import UnitETestFramework
@@ -135,7 +137,7 @@ class VoteTest(UnitETestFramework):
         # test that finalizers can vote after configured epoch block number
         generate_block(node0, count=4)
         assert_equal(node0.getblockcount(), 39)
-        self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node0)
+        prev_tx = self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node0)
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=node0)
         self.wait_for_vote_and_disconnect(finalizer=finalizer3, node=node0)
         generate_block(node0)
@@ -146,6 +148,34 @@ class VoteTest(UnitETestFramework):
                                          'lastFinalizedEpoch': 6,
                                          'validators': 3})
         self.log.info('Finalizers voted after configured block number')
+
+        generate_block(node0, count=4)
+        prev_tx = finalizer1.decoderawtransaction(prev_tx)['txid']
+
+        # test that node recognizes old and invalid votes.
+        tx = make_vote_tx(finalizer1, address1, node0.getblockhash(40), 5, 8, prev_tx)
+        assert_raises_rpc_error(-26, 'bad-vote-invalid', node0.sendrawtransaction, tx)
+        tx = make_vote_tx(finalizer1, address1, node0.getblockhash(40), 7, 9, prev_tx)
+        assert_raises_rpc_error(-26, 'bad-vote-invalid', node0.sendrawtransaction, tx)
+        tx = make_vote_tx(finalizer1, address1, node0.getblockhash(40), 5, 6, prev_tx)
+        assert_raises_rpc_error(-26, 'bad-vote-invalid', node0.sendrawtransaction, tx)
+        tx = make_vote_tx(finalizer1, address1, node0.getblockhash(40), 7, 6, prev_tx)
+        assert_raises_rpc_error(-26, 'bad-vote-invalid', node0.sendrawtransaction, tx)
+        self.log.info('Tested outdated and invalid vote votes')
+
+        # check that make_vote_tx works as expected (we really rely on this guy on tests above)
+        tx = make_vote_tx(finalizer1, address1, node0.getblockhash(40), 7, 8, prev_tx)
+        node0.sendrawtransaction(tx)
+        self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=node0)
+        self.wait_for_vote_and_disconnect(finalizer=finalizer3, node=node0)
+        generate_block(node0)
+        assert_equal(node0.getblockcount(), 45)
+        assert_finalizationstate(node0, {'currentDynasty': 6,
+                                         'currentEpoch': 9,
+                                         'lastJustifiedEpoch': 8,
+                                         'lastFinalizedEpoch': 7,
+                                         'validators': 3})
+        self.log.info('make_vote_tx works together with real finalizers')
 
         # UNIT-E TODO: there is a know issue https://github.com/dtr-org/unit-e/issues/643
         # that finalizer doesn't vote after processing the checkpoint.
