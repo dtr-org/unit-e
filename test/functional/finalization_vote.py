@@ -161,7 +161,7 @@ class VoteTest(UnitETestFramework):
         assert_raises_rpc_error(-26, 'bad-vote-invalid', node0.sendrawtransaction, tx)
         tx = make_vote_tx(finalizer1, address1, node0.getblockhash(40), 7, 6, prev_tx)
         assert_raises_rpc_error(-26, 'bad-vote-invalid', node0.sendrawtransaction, tx)
-        self.log.info('Bad configured votes cannot screw up things')
+        self.log.info('Tested outdated and invalid vote votes')
 
         # check that make_vote_tx works as expected (we really rely on this guy on tests above)
         tx = make_vote_tx(finalizer1, address1, node0.getblockhash(40), 7, 8, prev_tx)
