@@ -327,8 +327,8 @@ Result FinalizationState::IsVotable(const Validator &validator,
   if (it == m_checkpoints.end()) {
     return fail(Result::VOTE_MALFORMED,
                 log_errors,
-                "%s: target_epoch=%d is in the future.\n", __func__,
-                targetEpoch);
+                "%s: target_epoch=%d not found. current_epoch=%d.\n", __func__,
+                targetEpoch, m_current_epoch);
   }
 
   auto &targetCheckpoint = it->second;
@@ -363,7 +363,7 @@ Result FinalizationState::IsVotable(const Validator &validator,
   if (it == m_checkpoints.end()) {
     return fail(Result::VOTE_MALFORMED,
                 log_errors,
-                "%s: source_epoch=%d is in the future. current_epoch=%d\n", __func__,
+                "%s: source_epoch=%d not found. current_epoch=%d\n", __func__,
                 sourceEpoch, m_current_epoch);
   }
 
