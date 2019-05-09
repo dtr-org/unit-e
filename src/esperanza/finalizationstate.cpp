@@ -168,7 +168,7 @@ void FinalizationState::InstaJustify() {
 
 void FinalizationState::IncrementDynasty() {
   // finalized epoch is m_current_epoch - 2 because:
-  // justified(0) - finalized(1) - votes to justify(2) - m_current_epoch(3)
+  // finalized(0) - votes to justify(1) - m_current_epoch(2)
 
   // skip dynasty increment for the hardcoded finalized epoch=0
   // as it's already "considered" incremented from -1 to 0.
