@@ -253,7 +253,7 @@ class ListSinceBlockTest (UnitETestFramework):
         txid1 = self.nodes[1].sendrawtransaction(signedtx)
 
         # generate bb1-bb2 on right side
-        generate(self.nodes[2], 2, preserve_utxos=utxo_dicts, send_witness=True)
+        generate(self.nodes[2], 2, preserve_utxos=utxo_dicts)
 
         # send from nodes[2]; this will end up in bb3
         txid2 = self.nodes[2].sendrawtransaction(signedtx)
