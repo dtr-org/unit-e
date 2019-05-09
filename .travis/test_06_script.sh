@@ -51,7 +51,7 @@ END_FOLD
 
 if [ "$RUN_TESTS" = "true" ]; then
   BEGIN_FOLD unit-tests
-  echo Running the unit tests with an increased timeout
+  echo "Running the unit tests (this might take a while...)"
   travis_wait DOCKER_EXEC LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/depends/$HOST/lib make $MAKEJOBS check VERBOSE=1
   END_FOLD
 fi
