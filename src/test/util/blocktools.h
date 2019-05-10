@@ -46,7 +46,8 @@ struct BlockIndexFake {
 
   //! Stubs an active chain mock with stubs that use the block index from this
   //! instance and activates the chain which has the given tip.
-  void SetActiveChain(const CBlockIndex *tip, mocks::ActiveChainMock &active_chain_mock);
+  void SetupActiveChain(const CBlockIndex *tip,
+                        mocks::ActiveChainMock &active_chain_mock);
 };
 
 }  // namespace blocktools

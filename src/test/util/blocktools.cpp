@@ -4,6 +4,8 @@
 
 #include <test/util/blocktools.h>
 
+#include <boost/test/unit_test.hpp>
+
 namespace blocktools {
 
 CBlockIndex *BlockIndexFake::MakeBlockIndex(const uint256 &hash, CBlockIndex *const prev) {
@@ -26,16 +28,16 @@ CBlockIndex *BlockIndexFake::Generate(const std::size_t count, const uint256 &st
       return &starting_block->second;
     }
   }();
-  assert(starting_index);
-  assert(starting_index->phashBlock);
+  BOOST_REQUIRE(starting_index);
+  BOOST_REQUIRE(starting_index->phashBlock);
 
   CBlockIndex *current_index = starting_index;
   for (; height < count; ++height) {
     const uint256 hash = GetRandHash();
     current_index = MakeBlockIndex(hash, current_index);
-    assert(current_index);
-    assert(current_index->phashBlock);
-    assert(current_index->pprev);
+    BOOST_REQUIRE(current_index);
+    BOOST_REQUIRE(current_index->phashBlock);
+    BOOST_REQUIRE(current_index->pprev);
   }
 
   return current_index;
@@ -54,11 +56,12 @@ std::shared_ptr<std::vector<CBlockIndex *>> BlockIndexFake::GetChain(const uint2
     (*result)[ix] = current;
     current = current->pprev;
   } while (ix-- != 0);
-  assert(current == nullptr);
+  BOOST_REQUIRE(current == nullptr);
   return result;
 }
 
-void BlockIndexFake::SetActiveChain(const CBlockIndex *tip, mocks::ActiveChainMock &active_chain_mock) {
+void BlockIndexFake::SetupActiveChain(const CBlockIndex *tip,
+                                      mocks::ActiveChainMock &active_chain_mock) {
   assert(tip != nullptr);
   std::shared_ptr<std::vector<CBlockIndex *>> active_chain = GetChain(tip->GetBlockHash());
   active_chain_mock.mock_GetSize.SetStub([active_chain]() { return active_chain->size(); });

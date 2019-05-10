@@ -103,7 +103,7 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
       state.shuffle();
       original.emplace(block_index, std::move(state));
     }
-    block_index_fake.SetActiveChain(tip99, active_chain);
+    block_index_fake.SetupActiveChain(tip99, active_chain);
     BOOST_REQUIRE_EQUAL(original.size(), 100);
     BOOST_REQUIRE_EQUAL(active_chain.GetTip()->nHeight, 99);
   }
@@ -153,7 +153,7 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
   // accoring to the main chain. Simply move active chain forward but keep db as is.
   {
     const CBlockIndex *tip104 = block_index_fake.Generate(5, active_chain.GetTip()->GetBlockHash());
-    block_index_fake.SetActiveChain(tip104, active_chain);
+    block_index_fake.SetupActiveChain(tip104, active_chain);
     BOOST_REQUIRE(active_chain.GetTip()->nHeight == 104);
   }
 
