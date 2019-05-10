@@ -65,7 +65,7 @@ class FeatureStakingTest(UnitETestFramework):
             else:
                 assert not all_zeroes(previous_block_info['stake_modifier'])
 
-            result = node.generatetoaddress(1, address)
+            result = node.proposetoaddress(1, address)
             assert_equal(len(result), 1)
             current_block_hash = result[0]
             result = node.tracestake(start=height + 1, length=height + 2, reverse=True)
@@ -84,7 +84,7 @@ class FeatureStakingTest(UnitETestFramework):
         assert_equal(1, len(coins))
 
         self.log.info("Mine another block, this should make the first block reward mature")
-        node.generatetoaddress(1, address)
+        node.proposetoaddress(1, address)
         result = node.liststakeablecoins()
         coins = result['stakeable_coins']
         assert_equal(2, len(coins))
