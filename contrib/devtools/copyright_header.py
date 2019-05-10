@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2016-2018 The Bitcoin Core developers
+# Copyright (c) 2016-2017 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -16,26 +16,27 @@ import os
 
 EXCLUDE = [
     # auto generated:
-    'src/qt/unitestrings.cpp',
     'src/chainparamsseeds.h',
     # other external copyrights:
     'src/tinyformat.h',
     'test/functional/test_framework/bignum.py',
     # python init:
     '*__init__.py',
+    # tests cases for the copyright_header.py script:
+    'contrib/devtools/test_copyright_header.py'
 ]
 EXCLUDE_COMPILED = re.compile('|'.join([fnmatch.translate(m) for m in EXCLUDE]))
+
+INCLUDE = ['*.h', '*.cpp', '*.cc', '*.c', '*.py', '*.js', '*.ts', '*.rst']
+INCLUDE_COMPILED = re.compile('|'.join([fnmatch.translate(m) for m in INCLUDE]))
 
 EXCLUDE_DIRS = [
     # git subtrees
     "src/crypto/ctaes/",
-    "src/leveldb/",
     "src/secp256k1/",
     "src/univalue/",
+    "src/leveldb/",
 ]
-
-INCLUDE = ['*.h', '*.cpp', '*.cc', '*.c', '*.py']
-INCLUDE_COMPILED = re.compile('|'.join([fnmatch.translate(m) for m in INCLUDE]))
 
 def applies_to_file(filename):
     for excluded_dir in EXCLUDE_DIRS:
@@ -48,22 +49,15 @@ def applies_to_file(filename):
 # obtain list of files in repo according to INCLUDE and EXCLUDE
 ################################################################################
 
-GIT_LS_CMD = 'git ls-files --full-name'.split(' ')
-GIT_TOPLEVEL_CMD = 'git rev-parse --show-toplevel'.split(' ')
+GIT_LS_CMD = 'git ls-files'
 
-def call_git_ls(base_directory):
-    out = subprocess.check_output([*GIT_LS_CMD, base_directory])
+def call_git_ls():
+    out = subprocess.check_output(GIT_LS_CMD.split(' '))
     return [f for f in out.decode("utf-8").split('\n') if f != '']
 
-def call_git_toplevel():
-    "Returns the absolute path to the project root"
-    return subprocess.check_output(GIT_TOPLEVEL_CMD).strip().decode("utf-8")
-
-def get_filenames_to_examine(base_directory):
-    "Returns an array of absolute paths to any project files in the base_directory that pass the include/exclude filters"
-    root = call_git_toplevel()
-    filenames = call_git_ls(base_directory)
-    return sorted([os.path.join(root, filename) for filename in filenames if
+def get_filenames_to_examine():
+    filenames = call_git_ls()
+    return sorted([filename for filename in filenames if
                    applies_to_file(filename)])
 
 ################################################################################
@@ -71,7 +65,7 @@ def get_filenames_to_examine(base_directory):
 ################################################################################
 
 
-COPYRIGHT_WITH_C = 'Copyright \(c\)'
+COPYRIGHT_WITH_C = r'Copyright \(c\)'
 COPYRIGHT_WITHOUT_C = 'Copyright'
 ANY_COPYRIGHT_STYLE = '(%s|%s)' % (COPYRIGHT_WITH_C, COPYRIGHT_WITHOUT_C)
 
@@ -90,18 +84,41 @@ def compile_copyright_regex(copyright_style, year_style, name):
 EXPECTED_HOLDER_NAMES = [
     "Satoshi Nakamoto\n",
     "The Bitcoin Core developers\n",
+    "The Bitcoin Core developers \n",
     "Bitcoin Core Developers\n",
+    "the Bitcoin Core developers\n",
+    "The Bitcoin developers\n",
+    "The LevelDB Authors\. All rights reserved\.\n",
     "BitPay Inc\.\n",
+    "BitPay, Inc\.\n",
     "University of Illinois at Urbana-Champaign\.\n",
+    "MarcoFalke\n",
     "Pieter Wuille\n",
+    "Pieter Wuille +\*\n",
+    "Pieter Wuille, Gregory Maxwell +\*\n",
+    "Pieter Wuille, Andrew Poelstra +\*\n",
+    "Andrew Poelstra +\*\n",
     "Wladimir J. van der Laan\n",
     "Jeff Garzik\n",
+    "Diederik Huys, Pieter Wuille +\*\n",
+    "Thomas Daede, Cory Fields +\*\n",
     "Jan-Klaas Kollhof\n",
     "Sam Rushing\n",
     "ArtForz -- public domain half-a-node\n",
+    "The Unit-e developers\n",
+    "The Zcash developers\n",
+    "Jeremy Rubin\n",
+    "The PPCoin developers\n",
+    "The BlackCoin developers\n",
+    "The Particl Core developers\n",
+    "The Particl developers\n",
+    "The ShadowCoin developers\n",
+    "Institute of Formal and Applied Linguistics, Faculty of", # Multi-line
     "Intel Corporation",
-    "The Zcash developers",
-    "Jeremy Rubin",
+    "Anton Bachin",
+    "Gavin Andresen",
+    "The Bitcoin Unlimited developers",
+    "The Bitcoin ABC developers",
 ]
 
 DOMINANT_STYLE_COMPILED = {}
@@ -141,7 +158,7 @@ def file_has_without_c_style_copyright_for_holder(contents, holder_name):
 ################################################################################
 
 def read_file(filename):
-    return open(filename, 'r', encoding="utf8").read()
+    return open(os.path.abspath(filename), 'r', encoding="utf8").read()
 
 def gather_file_info(filename):
     info = {}
@@ -255,9 +272,12 @@ def print_report(file_infos, verbose):
     print(SEPARATOR)
 
 def exec_report(base_directory, verbose):
-    filenames = get_filenames_to_examine(base_directory)
+    original_cwd = os.getcwd()
+    os.chdir(base_directory)
+    filenames = get_filenames_to_examine()
     file_infos = [gather_file_info(f) for f in filenames]
     print_report(file_infos, verbose)
+    os.chdir(original_cwd)
 
 ################################################################################
 # report cmd
@@ -296,7 +316,7 @@ def report_cmd(argv):
 # query git for year of last change
 ################################################################################
 
-GIT_LOG_CMD = "git log --pretty=format:%%ai %s"
+GIT_LOG_CMD = "git log --pretty=format:%%ai --no-merges %s"
 
 def call_git_log(filename):
     out = subprocess.check_output((GIT_LOG_CMD % filename).split(' '))
@@ -317,13 +337,13 @@ def get_most_recent_git_change_year(filename):
 ################################################################################
 
 def read_file_lines(filename):
-    f = open(filename, 'r', encoding="utf8")
+    f = open(os.path.abspath(filename), 'r', encoding="utf8")
     file_lines = f.readlines()
     f.close()
     return file_lines
 
 def write_file_lines(filename, file_lines):
-    f = open(filename, 'w', encoding="utf8")
+    f = open(os.path.abspath(filename), 'w', encoding="utf8")
     f.write(''.join(file_lines))
     f.close()
 
@@ -331,10 +351,10 @@ def write_file_lines(filename, file_lines):
 # update header years execution
 ################################################################################
 
-COPYRIGHT = 'Copyright \(c\)'
+COPYRIGHT = 'Copyright \([cC]\)'
 YEAR = "20[0-9][0-9]"
 YEAR_RANGE = '(%s)(-%s)?' % (YEAR, YEAR)
-HOLDER = 'The Bitcoin Core developers'
+HOLDER = 'The Unit-e developers'
 UPDATEABLE_LINE_COMPILED = re.compile(' '.join([COPYRIGHT, YEAR_RANGE, HOLDER]))
 
 def get_updatable_copyright_line(file_lines):
@@ -391,32 +411,35 @@ def update_updatable_copyright(filename):
                               "Copyright updated! -> %s" % last_git_change_year)
 
 def exec_update_header_year(base_directory):
-    for filename in get_filenames_to_examine(base_directory):
+    original_cwd = os.getcwd()
+    os.chdir(base_directory)
+    for filename in get_filenames_to_examine():
         update_updatable_copyright(filename)
+    os.chdir(original_cwd)
 
 ################################################################################
 # update cmd
 ################################################################################
 
 UPDATE_USAGE = """
-Updates all the copyright headers of "The Bitcoin Core developers" which were
+Updates all the copyright headers of "The Unit-e developers" which were
 changed in a year more recent than is listed. For example:
 
-// Copyright (c) <firstYear>-<lastYear> The Bitcoin Core developers
+// Copyright (c) <firstYear>-<lastYear> The Unit-e developers
 
 will be updated to:
 
-// Copyright (c) <firstYear>-<lastModifiedYear> The Bitcoin Core developers
+// Copyright (c) <firstYear>-<lastModifiedYear> The Unit-e developers
 
 where <lastModifiedYear> is obtained from the 'git log' history.
 
 This subcommand also handles copyright headers that have only a single year. In those cases:
 
-// Copyright (c) <year> The Bitcoin Core developers
+// Copyright (c) <year> The Unit-e developers
 
 will be updated to:
 
-// Copyright (c) <year>-<lastModifiedYear> The Bitcoin Core developers
+// Copyright (c) <year>-<lastModifiedYear> The Unit-e developers
 
 where the update is appropriate.
 
@@ -445,26 +468,67 @@ def update_cmd(argv):
 
 def get_header_lines(header, start_year, end_year):
     lines = header.split('\n')[1:-1]
-    lines[0] = lines[0] % year_range_to_str(start_year, end_year)
-    return [line + '\n' for line in lines]
+    processed_header = ''
+    for line in lines:
+        if '%s' in line:
+            processed_header += line % year_range_to_str(start_year, end_year)
+        else:
+            processed_header += line
+        processed_header += '\n'
+    return processed_header
 
 CPP_HEADER = '''
-// Copyright (c) %s The Bitcoin Core developers
+// Copyright (c) %s The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+// file COPYING or https://opensource.org/licenses/MIT.
+
 '''
 
 def get_cpp_header_lines_to_insert(start_year, end_year):
     return reversed(get_header_lines(CPP_HEADER, start_year, end_year))
 
 PYTHON_HEADER = '''
-# Copyright (c) %s The Bitcoin Core developers
+# Copyright (c) %s The Unit-e developers
 # Distributed under the MIT software license, see the accompanying
-# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+# file COPYING or https://opensource.org/licenses/MIT.
 '''
 
 def get_python_header_lines_to_insert(start_year, end_year):
     return reversed(get_header_lines(PYTHON_HEADER, start_year, end_year))
+
+JAVASCRIPT_HEADER = '''
+/*
+ * Copyright (C) %s The Unit-e developers
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+'''
+
+def get_javascript_header_lines_to_insert(start_year, end_year):
+    return reversed(get_header_lines(JAVASCRIPT_HEADER, start_year, end_year))
+
+RST_HEADER = '''
+.. Copyright (c) %s The Unit-e developers
+   Distributed under the MIT software license, see the accompanying
+   file LICENSE or https://opensource.org/licenses/MIT.
+
+'''
+
+def get_rst_header_lines_to_insert(start_year, end_year):
+    return reversed(get_header_lines(RST_HEADER, start_year, end_year))
 
 ################################################################################
 # query git for year of last change
@@ -480,7 +544,7 @@ def get_git_change_year_range(filename):
 
 def file_already_has_core_copyright(file_lines):
     index, _ = get_updatable_copyright_line(file_lines)
-    return index is not None
+    return index != None
 
 ################################################################################
 # insert header execution
@@ -503,8 +567,20 @@ def insert_python_header(filename, file_lines, start_year, end_year):
         file_lines.insert(insert_idx, line)
     write_file_lines(filename, file_lines)
 
+def insert_javascript_header(filename, file_lines, start_year, end_year):
+    header_lines = get_javascript_header_lines_to_insert(start_year, end_year)
+    for line in header_lines:
+        file_lines.insert(0, line)
+    write_file_lines(filename, file_lines)
+
 def insert_cpp_header(filename, file_lines, start_year, end_year):
     header_lines = get_cpp_header_lines_to_insert(start_year, end_year)
+    for line in header_lines:
+        file_lines.insert(0, line)
+    write_file_lines(filename, file_lines)
+
+def insert_rst_header(filename, file_lines, start_year, end_year):
+    header_lines = get_rst_header_lines_to_insert(start_year, end_year)
     for line in header_lines:
         file_lines.insert(0, line)
     write_file_lines(filename, file_lines)
@@ -512,11 +588,15 @@ def insert_cpp_header(filename, file_lines, start_year, end_year):
 def exec_insert_header(filename, style):
     file_lines = read_file_lines(filename)
     if file_already_has_core_copyright(file_lines):
-        sys.exit('*** %s already has a copyright by The Bitcoin Core developers'
+        sys.exit('*** %s already has a copyright by The Unit-e developers'
                  % (filename))
     start_year, end_year = get_git_change_year_range(filename)
     if style == 'python':
         insert_python_header(filename, file_lines, start_year, end_year)
+    elif style == 'javascript':
+        insert_javascript_header(filename, file_lines, start_year, end_year)
+    elif style == 'rst':
+        insert_rst_header(filename, file_lines, start_year, end_year)
     else:
         insert_cpp_header(filename, file_lines, start_year, end_year)
 
@@ -525,7 +605,7 @@ def exec_insert_header(filename, style):
 ################################################################################
 
 INSERT_USAGE = """
-Inserts a copyright header for "The Bitcoin Core developers" at the top of the
+Inserts a copyright header for "The Unit-e developers" at the top of the
 file in either Python or C++ style as determined by the file extension. If the
 file is a Python file and it has a '#!' starting the first line, the header is
 inserted in the line below it.
@@ -539,7 +619,7 @@ where <year_introduced> is according to the 'git log' history. If
 
 "<current_year>"
 
-If the file already has a copyright for "The Bitcoin Core developers", the
+If the file already has a copyright for "The Unit-e developers", the
 script will exit.
 
 Usage:
@@ -557,11 +637,16 @@ def insert_cmd(argv):
     if not os.path.isfile(filename):
         sys.exit("*** bad filename: %s" % filename)
     _, extension = os.path.splitext(filename)
-    if extension not in ['.h', '.cpp', '.cc', '.c', '.py']:
+    if extension not in ['.h', '.cpp', '.cc', '.c', '.py', '.js', '.ts',
+                         '.rst']:
         sys.exit("*** cannot insert for file extension %s" % extension)
 
     if extension == '.py':
         style = 'python'
+    elif extension == '.js' or extension == '.ts':
+        style = 'javascript'
+    elif extension == '.rst':
+        style = 'rst'
     else:
         style = 'cpp'
     exec_insert_header(filename, style)
@@ -572,7 +657,7 @@ def insert_cmd(argv):
 
 USAGE = """
 copyright_header.py - utilities for managing copyright headers of 'The Unit-e
-Core developers' in repository source files.
+developers' in repository source files.
 
 Usage:
     $ ./copyright_header <subcommand>

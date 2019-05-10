@@ -1,245 +1,181 @@
 Developer Notes
 ===============
 
-<!-- markdown-toc start -->
-**Table of Contents**
-
-- [Developer Notes](#developer-notes)
-    - [Coding Style (General)](#coding-style-general)
-    - [Coding Style (C++)](#coding-style-c)
-    - [Coding Style (Python)](#coding-style-python)
-    - [Coding Style (Doxygen-compatible comments)](#coding-style-doxygen-compatible-comments)
-    - [Development tips and tricks](#development-tips-and-tricks)
-        - [Compiling for debugging](#compiling-for-debugging)
-        - [Compiling for gprof profiling](#compiling-for-gprof-profiling)
-        - [debug.log](#debuglog)
-        - [Testnet and Regtest modes](#testnet-and-regtest-modes)
-        - [DEBUG_LOCKORDER](#debug_lockorder)
-        - [Valgrind suppressions file](#valgrind-suppressions-file)
-        - [Compiling for test coverage](#compiling-for-test-coverage)
-        - [Performance profiling with perf](#performance-profiling-with-perf)
-    - [Locking/mutex usage notes](#lockingmutex-usage-notes)
-    - [Threads](#threads)
-    - [Ignoring IDE/editor files](#ignoring-ideeditor-files)
-- [Development guidelines](#development-guidelines)
-    - [General unit-e](#general-bitcoin-core)
-    - [Wallet](#wallet)
-    - [General C++](#general-c)
-    - [C++ data structures](#c-data-structures)
-    - [Strings and formatting](#strings-and-formatting)
-    - [Variable names](#variable-names)
-    - [Threads and synchronization](#threads-and-synchronization)
-    - [Scripts](#scripts)
-        - [Shebang](#shebang)
-    - [Source code organization](#source-code-organization)
-    - [GUI](#gui)
-    - [Subtrees](#subtrees)
-    - [Git and GitHub tips](#git-and-github-tips)
-    - [Scripted diffs](#scripted-diffs)
-    - [Release notes](#release-notes)
-    - [RPC interface guidelines](#rpc-interface-guidelines)
-
-<!-- markdown-toc end -->
-
-Coding Style (General)
-----------------------
+Style guide C++
+---------------
 
 Various coding styles have been used during the history of the codebase,
 and the result is not very consistent. However, we're now trying to converge to
-a single style, which is specified below. When writing patches, favor the new
-style over attempting to mimic the surrounding style, except for move-only
-commits.
+a single style. We are sticking to the
+[Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html).
 
-Do not submit patches solely to modify the style of existing code.
+This includes aiming for a [maximum line length of 80
+characters](https://google.github.io/styleguide/cppguide.html#Line_Length).
 
-Coding Style (C++)
-------------------
-
-- **Indentation and whitespace rules** as specified in
-[src/.clang-format](/src/.clang-format). You can use the provided
-[clang-format-diff script](/contrib/devtools/README.md#clang-format-diffpy)
-tool to clean up patches automatically before submission.
-  - Braces on new lines for classes, functions, methods.
-  - Braces on the same line for everything else.
-  - 4 space indentation (no tabs) for every block except namespaces.
-  - No indentation for `public`/`protected`/`private` or for `namespace`.
-  - No extra spaces inside parenthesis; don't do ( this )
-  - No space after function names; one space after `if`, `for` and `while`.
-  - If an `if` only has a single-statement `then`-clause, it can appear
-    on the same line as the `if`, without braces. In every other case,
-    braces are required, and the `then` and `else` clauses must appear
-    correctly indented on a new line.
+There are a few additional rules:
 
 - **Symbol naming conventions**. These are preferred in new code, but are not
 required when doing so would need changes to significant pieces of existing
 code.
-  - Variable (including function arguments) and namespace names are all lowercase, and may use `_` to
-    separate words (snake_case).
+  - Variable (including function arguments) and namespace names are all lowercase, and may use _ to separate words (snake_case).
     - Class member variables have a `m_` prefix.
+    - Public struct member variables don't have `m_` prefix.
     - Global variables have a `g_` prefix.
   - Constant names are all uppercase, and use `_` to separate words.
   - Class names, function names and method names are UpperCamelCase
     (PascalCase). Do not prefix class names with `C`.
-  - Test suite naming convention: The Boost test suite in file
-    `src/test/foo_tests.cpp` should be named `foo_tests`. Test suite names
-    must be unique.
+
+- **Includes**. Make sure to always use `<>` notation instead of the "".
+  This is done mostly for consistency with the current codebase.
+
+- **Forward declarations**. Forward declarations of classes and structs are allowed and welcome,
+especially when they solve circular dependencies problem or increase recompilation time. But note that
+forward declarations of functions and templated classes are prohibited according to Google Style Guide.
+
+- **If-Statements**.
+    - Always use braces around if statements, even blocks
+      that contain just one statement.
+    - Prefer early return as a guard clause
+      ```c++
+      if (!smth) {
+        return;
+      }
+
+      // continue with the valid case
+      ```
+
+- **namespace**.
+    - files in `src/` don't have namespace
+    - files in `src/directory` have `directory` namespace
+    - avoid nested directories/namespaces
+
+- **Uniform initialization**. Rationale:
+  [Uniform initialization isn't](https://medium.com/@barryrevzin/uniform-initialization-isnt-82533d3b9c11).
+  - In call sites: *Use parentheses to initialize in all cases. Use braces only for the specific behavior that braces provide.*
+  - When declaring classes: *Avoid writing class interfaces in which an ambiguity between uniform initialization and list-initializer syntax might arise.*
 
 - **Miscellaneous**
   - `++i` is preferred over `i++`.
   - `nullptr` is preferred over `NULL` or `(void*)0`.
   - `static_assert` is preferred over `assert` where possible. Generally; compile-time checking is preferred over run-time checking.
-  - `enum class` is preferred over `enum` where possible. Scoped enumerations avoid two potential pitfalls/problems with traditional C++ enumerations: implicit conversions to int, and name clashes due to enumerators being exported to the surrounding scope.
+  - Do not use the scope resolution unless it is required (that is: use `Type` instead of `::Type` if not ambigious otherwise)
 
-Block style example:
-```c++
-int g_count = 0;
+You can check the code for style violations by running
+[`contrib/devtools/lint-clang-format.py`](../contrib/devtools/lint-clang-format.py).
+Use the `--help` option to get more info how to use it.
 
-namespace foo {
-class Class
-{
-    std::string m_name;
+Copy the [`contrib/githooks/pre-commit`](../contrib/githooks/pre-commit) file to
+your `.git/hooks` directory and make it executable to automatically apply the
+defined style on your commits. If you don't want automatic changes, adapt the
+options of the call in the `pre-commit` file.
 
-public:
-    bool Function(const std::string& s, int n)
-    {
-        // Comment summarising what this section of code does
-        for (int i = 0; i < n; ++i) {
-            int total_sum = 0;
-            // When something fails, return early
-            if (!Something()) return false;
-            ...
-            if (SomethingElse(i)) {
-                total_sum += ComputeSomething(g_count);
-            } else {
-                DoSomething(m_name, total_sum);
-            }
-        }
+Style guide Python
+------------------
 
-        // Success return is usually at the end
-        return true;
-    }
-}
-} // namespace foo
+Refer to
+[/test/functional/README.md#style-guidelines](/test/functional/README.md#style-guidelines).
+You can check the code for style violations by running
+[`test/lint/lint-python.sh`](/test/lint/lint-python.sh).
+
+UNIT-E tag
+------------
+
+In case of comments and TODOs that are pertinent only to the UNIT-E code please create a code comment like:
+
+```
+//UNIT-E: very specific comment about unit-e
 ```
 
-Coding Style (Python)
----------------------
+Doxygen comments
+-----------------
 
-Refer to [/test/functional/README.md#style-guidelines](/test/functional/README.md#style-guidelines).
-
-Coding Style (Doxygen-compatible comments)
-------------------------------------------
-
-unit-e uses [Doxygen](http://www.doxygen.nl/) to generate its official documentation.
-
-Use Doxygen-compatible comment blocks for functions, methods, and fields.
+To facilitate the generation of documentation, use doxygen-compatible comment blocks for functions, methods and fields.
 
 For example, to describe a function use:
+
 ```c++
-/**
- * ... text ...
- * @param[in] arg1    A description
- * @param[in] arg2    Another argument description
- * @pre Precondition for function...
- */
-bool function(int arg1, const char *arg2)
+//! \brief one-line description
+//!
+//! ... optional long description ...
+//! @param[in] arg1    A description
+//! @param[in] arg2    Another argument description
+//! @pre Precondition for function...
+bool function(int arg1, const char *arg2) {
 ```
-A complete list of `@xxx` commands can be found at http://www.stack.nl/~dimitri/doxygen/manual/commands.html.
-As Doxygen recognizes the comments by the delimiters (`/**` and `*/` in this case), you don't
-*need* to provide any commands for a comment to be valid; just a description text is fine.
 
 To describe a class use the same construct above the class definition:
+
 ```c++
-/**
- * Alerts are for notifying old versions if they become too obsolete and
- * need to upgrade. The message is displayed in the status bar.
- * @see GetWarnings()
- */
-class CAlert
-{
+//! \brief one-line description
+//!
+//! Alerts are for notifying old versions if they become too obsolete and
+//! need to upgrade. The message is displayed in the status bar.
+//! @see GetWarnings()
+class CAlert {
 ```
 
 To describe a member or variable use:
-```c++
-int var; //!< Detailed description after the member
-```
 
-or
 ```c++
-//! Description before the member
+//! Detailed description
 int var;
 ```
 
-Also OK:
-```c++
-///
-/// ... text ...
-///
-bool function2(int arg1, const char *arg2)
-```
-
 Not OK (used plenty in the current source, but not picked up):
+
 ```c++
 //
 // ... text ...
 //
 ```
 
-A full list of comment syntaxes picked up by Doxygen can be found at https://www.stack.nl/~dimitri/doxygen/manual/docblocks.html,
-but the above styles are favored.
+A full list of comment syntaxes picked up by doxygen can be found at http://www.stack.nl/~dimitri/doxygen/manual/docblocks.html,
+but if possible use one of the above styles.
 
-Documentation can be generated with `make docs` and cleaned up with `make clean-docs`. The resulting files are located in `doc/doxygen/html`; open `index.html` to view the homepage.
-
-Before running `make docs`, you will need to install dependencies `doxygen` and `dot`. For example, on MacOS via Homebrew:
-```
-brew install doxygen --with-graphviz
-```
+Documentation can be generated with `make docs` and cleaned up with `make
+clean-docs`.
 
 Development tips and tricks
 ---------------------------
 
-### Compiling for debugging
+**compiling for debugging**
 
-Run configure with `--enable-debug` to add additional compiler flags that
-produce better debugging builds.
+Run configure with the --enable-debug option, then make. Or run configure with
+CXXFLAGS="-g -ggdb -O0" or whatever debug flags you need.
 
-### Compiling for gprof profiling
+**compiling for gprof profiling**
 
-Run configure with the `--enable-gprof` option, then make.
+Run configure with the --enable-gprof option, then make.
 
-### debug.log
+**debug.log**
 
 If the code is behaving strangely, take a look in the debug.log file in the data directory;
 error and debugging messages are written there.
 
-The `-debug=...` command-line option controls debugging; running with just `-debug` or `-debug=1` will turn
+The -debug=... command-line option controls debugging; running with just -debug or -debug=1 will turn
 on all categories (and give you a very large debug.log file).
 
-The Qt code routes `qDebug()` output to debug.log under category "qt": run with `-debug=qt`
-to see it.
+**testnet and regtest modes**
 
-### Testnet and Regtest modes
-
-Run with the `-testnet` option to run with "play unites" on the test network, if you
+Run with the -testnet option to run with "play unites" on the test network, if you
 are testing multi-machine code that needs to operate across the internet.
 
-If you are testing something that can run on one machine, run with the `-regtest` option.
-In regression test mode, blocks can be created on-demand; see [test/functional/](/test/functional) for tests
-that run in `-regtest` mode.
+If you are testing something that can run on one machine, run with the -regtest option.
+In regression test mode, blocks can be created on-demand; see test/functional/ for tests
+that run in -regtest mode.
 
-### DEBUG_LOCKORDER
+**DEBUG_LOCKORDER**
 
-unit-e is a multi-threaded application, and deadlocks or other
-multi-threading bugs can be very difficult to track down. The `--enable-debug`
-configure option adds `-DDEBUG_LOCKORDER` to the compiler flags. This inserts
-run-time checks to keep track of which locks are held, and adds warnings to the
-debug.log file if inconsistencies are detected.
+unit-e is a multithreaded application, and deadlocks or other multithreading bugs
+can be very difficult to track down. Compiling with -DDEBUG_LOCKORDER (configure
+CXXFLAGS="-DDEBUG_LOCKORDER -g") inserts run-time checks to keep track of which locks
+are held, and adds warnings to the debug.log file if inconsistencies are detected.
 
-### Valgrind suppressions file
+**Valgrind suppressions file**
 
 Valgrind is a programming tool for memory debugging, memory leak detection, and
 profiling. The repo contains a Valgrind suppressions file
-([`valgrind.supp`](https://github.com/bitcoin/bitcoin/blob/master/contrib/valgrind.supp))
+([`valgrind.supp`](https://github.com/dtr-org/unit-e/blob/master/contrib/valgrind.supp))
 which includes known Valgrind warnings in our dependencies that cannot be fixed
 in-tree. Example use:
 
@@ -250,7 +186,7 @@ $ valgrind --suppressions=contrib/valgrind.supp --leak-check=full \
 $ valgrind -v --leak-check=full src/unit-e -printtoconsole
 ```
 
-### Compiling for test coverage
+**compiling for test coverage**
 
 LCOV can be used to generate a test coverage report based upon `make check`
 execution. LCOV must be installed on your system (e.g. the `lcov` package
@@ -265,51 +201,6 @@ make cov
 
 # A coverage report will now be accessible at `./test_unite.coverage/index.html`.
 ```
-
-### Performance profiling with perf
-
-Profiling is a good way to get a precise idea of where time is being spent in
-code. One tool for doing profiling on Linux platforms is called
-[`perf`](http://www.brendangregg.com/perf.html), and has been integrated into
-the functional test framework. Perf can observe a running process and sample
-(at some frequency) where its execution is.
-
-Perf installation is contingent on which kernel version you're running; see
-[this StackExchange
-thread](https://askubuntu.com/questions/50145/how-to-install-perf-monitoring-tool)
-for specific instructions.
-
-Certain kernel parameters may need to be set for perf to be able to inspect the
-running process' stack.
-
-```sh
-$ sudo sysctl -w kernel.perf_event_paranoid=-1
-$ sudo sysctl -w kernel.kptr_restrict=0
-```
-
-Make sure you [understand the security
-trade-offs](https://lwn.net/Articles/420403/) of setting these kernel
-parameters.
-
-To profile a running unit-e process for 60 seconds, you could use an
-invocation of `perf record` like this:
-
-```sh
-$ perf record \
-    -g --call-graph dwarf --per-thread -F 140 \
-    -p `pgrep unit-e` -- sleep 60
-```
-
-You could then analyze the results by running
-
-```sh
-perf report --stdio | c++filt | less
-```
-
-or using a graphical tool like [Hotspot](https://github.com/KDAB/hotspot).
-
-See the functional test documentation for how to invoke perf within tests.
-
 
 **Sanitizers**
 
@@ -366,18 +257,18 @@ Locking/mutex usage notes
 -------------------------
 
 The code is multi-threaded, and uses mutexes and the
-`LOCK` and `TRY_LOCK` macros to protect data structures.
+LOCK/TRY_LOCK macros to protect data structures.
 
-Deadlocks due to inconsistent lock ordering (thread 1 locks `cs_main` and then
-`cs_wallet`, while thread 2 locks them in the opposite order: result, deadlock
-as each waits for the other to release its lock) are a problem. Compile with
-`-DDEBUG_LOCKORDER` (or use `--enable-debug`) to get lock order inconsistencies
-reported in the debug.log file.
+Deadlocks due to inconsistent lock ordering (thread 1 locks cs_main
+and then cs_wallet, while thread 2 locks them in the opposite order:
+result, deadlock as each waits for the other to release its lock) are
+a problem. Compile with -DDEBUG_LOCKORDER to get lock order
+inconsistencies reported in the debug.log file.
 
 Re-architecting the core code so there are better-defined interfaces
 between the various components is a goal, with any necessary locking
-done by the components (e.g. see the self-contained `CBasicKeyStore` class
-and its `cs_KeyStore` lock for example).
+done by the components (e.g. see the self-contained CKeyStore class
+and its cs_KeyStore lock for example).
 
 Threads
 -------
@@ -402,7 +293,13 @@ Threads
 
 - DumpAddresses : Dumps IP addresses of nodes to peers.dat.
 
+- ThreadFlushWalletDB : Close the wallet.dat file if it hasn't been used in 500ms.
+
 - ThreadRPCServer : Remote procedure call handler, listens on port 7181 for connections and services them.
+
+- unite-proposer : Proposes new blocks using the open wallets balance as stake.
+
+- unite-snapshot : Creates snapshots and deletes outdated ones
 
 - Shutdown : Does an orderly shutdown of everything.
 
@@ -447,11 +344,6 @@ pay attention to for reviewers of unit-e code.
 General unit-e
 ----------------------
 
-- New features should be exposed on RPC first, then can be made available in the GUI
-
-  - *Rationale*: RPC allows for better automatic testing. The test suite for
-    the GUI is very limited
-
 - Make sure pull requests pass Travis CI before merging
 
   - *Rationale*: Makes sure that they pass thorough testing, and that the tester will keep passing
@@ -495,11 +387,6 @@ General C++
 
   - *Rationale*: This avoids memory and resource leaks, and ensures exception safety
 
-- Use `MakeUnique()` to construct objects owned by `unique_ptr`s
-
-  - *Rationale*: `MakeUnique` is concise and ensures exception safety in complex expressions.
-    `MakeUnique` is a temporary project local implementation of `std::make_unique` (C++14).
-
 C++ data structures
 --------------------
 
@@ -521,21 +408,12 @@ C++ data structures
 
 - Vector bounds checking is only enabled in debug mode. Do not rely on it
 
-- Initialize all non-static class members where they are defined.
-  If this is skipped for a good reason (i.e., optimization on the critical
-  path), add an explicit comment about this
+- Make sure that constructors initialize all fields. If this is skipped for a
+  good reason (i.e., optimization on the critical path), add an explicit
+  comment about this
 
   - *Rationale*: Ensure determinism by avoiding accidental use of uninitialized
     values. Also, static analyzers balk about this.
-    Initializing the members in the declaration makes it easy to
-    spot uninitialized ones.
-
-```cpp
-class A
-{
-    uint32_t m_count{0};
-}
-```
 
 - By default, declare single-argument constructors `explicit`.
 
@@ -570,7 +448,7 @@ Strings and formatting
 
 - Use `ParseInt32`, `ParseInt64`, `ParseUInt32`, `ParseUInt64`, `ParseDouble` from `utilstrencodings.h` for number parsing
 
-  - *Rationale*: These functions do overflow checking, and avoid pesky locale issues.
+  - *Rationale*: These functions do overflow checking, and avoid pesky locale issues
 
 - Avoid using locale dependent functions if possible. You can use the provided
   [`lint-locale-dependence.sh`](/test/lint/lint-locale-dependence.sh)
@@ -615,13 +493,12 @@ E.g. in member initializers, prepend `_` to the argument name shadowing the
 member name:
 
 ```c++
-class AddressBookPage
-{
-    Mode m_mode;
+class AddressBookPage {
+    Mode mode;
 }
 
 AddressBookPage::AddressBookPage(Mode _mode) :
-      m_mode(_mode)
+      mode(_mode)
 ...
 ```
 
@@ -658,31 +535,6 @@ TRY_LOCK(cs_vNodes, lockNodes);
 }
 ```
 
-Scripts
---------------------------
-
-### Shebang
-
-- Use `#!/usr/bin/env bash` instead of obsolete `#!/bin/bash`.
-
-  - [*Rationale*](https://github.com/dylanaraps/pure-bash-bible#shebang):
-
-    `#!/bin/bash` assumes it is always installed to /bin/ which can cause issues;
-
-    `#!/usr/bin/env bash` searches the user's PATH to find the bash binary.
-
-  OK:
-
-```bash
-#!/usr/bin/env bash
-```
-
-  Wrong:
-
-```bash
-#!/bin/bash
-```
-
 Source code organization
 --------------------------
 
@@ -691,14 +543,9 @@ Source code organization
 
   - *Rationale*: Shorter and simpler header files are easier to read, and reduce compile time
 
-- Use only the lowercase alphanumerics (`a-z0-9`), underscore (`_`) and hyphen (`-`) in source code filenames.
-
-  - *Rationale*: `grep`:ing and auto-completing filenames is easier when using a consistent
-    naming pattern. Potential problems when building on case-insensitive filesystems are
-    avoided when using only lowercase characters in source code filenames.
-
 - Every `.cpp` and `.h` file should `#include` every header file it directly uses classes, functions or other
-  definitions from, even if those headers are already included indirectly through other headers.
+  definitions from, even if those headers are already included indirectly through other headers. One exception
+  is that a `.cpp` file does not need to re-include the includes already included in its corresponding `.h` file.
 
   - *Rationale*: Excluding headers because they are already indirectly included results in compilation
     failures when those indirect dependencies change. Furthermore, it obscures what the real code
@@ -714,135 +561,168 @@ Source code organization
 
 ```c++
 namespace mynamespace {
-...
+    ...
 } // namespace mynamespace
 
 namespace {
-...
+    ...
 } // namespace
 ```
 
   - *Rationale*: Avoids confusion about the namespace context
 
-- Use `#include <primitives/transaction.h>` bracket syntax instead of
-  `#include "primitives/transactions.h"` quote syntax.
+- Prefer `#include <primitives/transaction.h>` bracket syntax instead of
+  `#include "primitives/transactions.h"` quote syntax when possible.
 
   - *Rationale*: Bracket syntax is less ambiguous because the preprocessor
     searches a fixed list of include directories without taking location of the
     source file into account. This allows quoted includes to stand out more when
     the location of the source file actually is relevant.
 
-- Use include guards to avoid the problem of double inclusion. The header file
-  `foo/bar.h` should use the include guard identifier `UNITE_FOO_BAR_H`, e.g.
-
-```c++
-#ifndef UNITE_FOO_BAR_H
-#define UNITE_FOO_BAR_H
-...
-#endif // UNITE_FOO_BAR_H
-```
-
-GUI
------
-
-- Do not display or manipulate dialogs in model code (classes `*Model`)
-
-  - *Rationale*: Model classes pass through events and data from the core, they
-    should not interact with the user. That's where View classes come in. The converse also
-    holds: try to not directly access core data structures from Views.
-
-- Avoid adding slow or blocking code in the GUI thread. In particular do not
-  add new `interfaces::Node` and `interfaces::Wallet` method calls, even if they
-  may be fast now, in case they are changed to lock or communicate across
-  processes in the future.
-
-  Prefer to offload work from the GUI thread to worker threads (see
-  `RPCExecutor` in console code as an example) or take other steps (see
-  https://doc.qt.io/archives/qq/qq27-responsive-guis.html) to keep the GUI
-  responsive.
-
-  - *Rationale*: Blocking the GUI thread can increase latency, and lead to
-    hangs and deadlocks.
-
 Subtrees
 ----------
 
-Several parts of the repository are subtrees of software maintained elsewhere.
+Several parts of the repository are git subtrees of software maintained
+elsewhere. They are managed with
+[git-subtree](https://github.com/git/git/tree/master/contrib/subtree).
 
-Some of these are maintained by active developers of unit-e, in which case changes should probably go
-directly upstream without being PRed directly against the project.  They will be merged back in the next
-subtree merge.
+Some of these are maintained by active developers of Bitcoin Core, some are
+external projects without a tight relationship to Bitcoin Core.
 
-Others are external projects without a tight relationship with our project.  Changes to these should also
-be sent upstream but bugfixes may also be prudent to PR against unit-e so that they can be integrated
-quickly.  Cosmetic changes should be purely taken upstream.
+Changes on the parts of the code which are pulled in as a git subtree are
+ideally done through contributions to the original upstream and then pulled in
+via subtree updates in bitcoin upstream and then merged to unit-e with a bitcoin
+merge.
 
-There is a tool in `test/lint/git-subtree-check.sh` to check a subtree directory for consistency with
-its upstream repository.
+Where this is too slow changes might also be done via pull request to the
+Bitcoin Core version of the code. See the [bitcoin developer
+notes](https://github.com/dtr-org/unit-e/blob/master/doc/developer-notes.md#subtrees)
+for their policies on that.
 
-Current subtrees include:
+If something needs to be merged urgently we create a fork of the repo where the
+subtree is coming from, apply the patches there and merge that as subtree from
+our fork. This makes it clear where changes are coming from and it keeps the
+integrity of the git subtrees in the unit-e repository without local changes.
+
+### Current subtrees
+
+You can list the git subtrees of a repo with the command
+
+    git log | grep git-subtree-dir | awk '{ print $2 }' | sort | uniq
+
+These are the current subtrees and where they are coming from:
 
 - src/leveldb
-  - Upstream at https://github.com/google/leveldb ; Maintained by Google, but
-    open important PRs to Core to avoid delay.
-  - **Note**: Follow the instructions in [Upgrading LevelDB](#upgrading-leveldb) when
-    merging upstream changes to the LevelDB subtree.
+
+  Upstream at https://github.com/google/leveldb, maintained by Google
 
 - src/libsecp256k1
-  - Upstream at https://github.com/bitcoin-core/secp256k1/ ; actively maintained by Core contributors.
+
+  Upstream at https://github.com/bitcoin-core/secp256k1, actively maintained
+  by Bitcoin Core contributors.
+
+  Subtree pulled in from a fork of the upstream repo at
+  https://github.com/dtr-org/secp256k1-fork from the `unit-e` branch, maintained
+  by the Unit-e developers. It contains additional patches to enable the
+  multiset module.
 
 - src/crypto/ctaes
-  - Upstream at https://github.com/bitcoin-core/ctaes ; actively maintained by Core contributors.
+
+  Upstream at https://github.com/bitcoin-core/ctaes, actively maintained by
+  Bitcoin Core contributors.
 
 - src/univalue
-  - Upstream at https://github.com/bitcoin-core/univalue ; actively maintained by Core contributors, deviates from upstream https://github.com/jgarzik/univalue
 
-Upgrading LevelDB
----------------------
+  Upstream at https://github.com/jgarzik/univalue
 
-Extra care must be taken when upgrading LevelDB. This section explains issues
-you must be aware of.
+### Checking subtrees
 
-### File Descriptor Counts
+There is a tool in
+[test/lint/git-subtree-check.sh](/test/lint/git-subtree-check.sh)
+to check a subtree directory for consistency with its upstream repository. Run
+it for example as:
 
-In most configurations we use the default LevelDB value for `max_open_files`,
-which is 1000 at the time of this writing. If LevelDB actually uses this many
-file descriptors it will cause problems with Unit-e's `select()` loop, because
-it may cause new sockets to be created where the fd value is >= 1024. For this
-reason, on 64-bit Unix systems we rely on an internal LevelDB optimization that
-uses `mmap()` + `close()` to open table files without actually retaining
-references to the table file descriptors. If you are upgrading LevelDB, you must
-sanity check the changes to make sure that this assumption remains valid.
-
-In addition to reviewing the upstream changes in `env_posix.cc`, you can use `lsof` to
-check this. For example, on Linux this command will show open `.ldb` file counts:
-
-```bash
-$ lsof -p $(pidof unit-e) |\
-    awk 'BEGIN { fd=0; mem=0; } /ldb$/ { if ($4 == "mem") mem++; else fd++ } END { printf "mem = %s, fd = %s\n", mem, fd}'
-mem = 119, fd = 0
+```console
+$ test/lint/git-subtree-check.sh src/secp256k1
+src/secp256k1 in HEAD currently refers to tree 8ae830321a35bc7499991d5428bec2b231f0f154
+src/secp256k1 in HEAD was last updated in commit 520d78e7c9698245e8da1509661922068ffe67ed (tree 8ae830321a35bc7499991d5428bec2b231f0f154)
+src/secp256k1 in HEAD was last updated to upstream commit f43d43b1a4b9d2eb426d131f9a9b756de6a2cce2 (tree 8ae830321a35bc7499991d5428bec2b231f0f154)
+GOOD
 ```
 
-The `mem` value shows how many files are mmap'ed, and the `fd` value shows you
-many file descriptors these files are using. You should check that `fd` is a
-small number (usually 0 on 64-bit hosts).
+### Updating subtrees
 
-See the notes in the `SetMaxOpenFiles()` function in `dbwrapper.cc` for more
-details.
+Git subtrees are updated from the upstream repos as they are listed
+[above](#current-subtrees) using the `git subtree` command:
 
-### Consensus Compatibility
+    git subtree pull --prefix src/${prefix} ${remote_repo} ${ref} --squash
 
-It is possible for LevelDB changes to inadvertently change consensus
-compatibility between nodes. This happened in Unit-e 0.8 (when LevelDB was
-first introduced). When upgrading LevelDB you should review the upstream changes
-to check for issues affecting consensus compatibility.
+The `remote_repo` is the URL or path to the upstream repo, `ref` is the branch.
+The commits are squashed so that a subtree update consists of a commit
+containing all changes since the last update and a merge commit pulling in this
+commit into the code base.
 
-For example, if LevelDB had a bug that accidentally prevented a key from being
-returned in an edge case, and that bug was fixed upstream, the bug "fix" would
-be an incompatible consensus change. In this situation the correct behavior
-would be to revert the upstream fix before applying the updates to Unit-e's
-copy of LevelDB. In general you should be wary of any upstream changes affecting
-what data is returned from LevelDB queries.
+Git and GitHub tips
+---------------------
+
+- For resolving merge/rebase conflicts, it can be useful to enable diff3 style using
+  `git config merge.conflictstyle diff3`. Instead of
+
+        <<<
+        yours
+        ===
+        theirs
+        >>>
+
+  you will see
+
+        <<<
+        yours
+        |||
+        original
+        ===
+        theirs
+        >>>
+
+  This may make it much clearer what caused the conflict. In this style, you can often just look
+  at what changed between *original* and *theirs*, and mechanically apply that to *yours* (or the other way around).
+
+- When reviewing patches which change indentation in C++ files, use `git diff -w` and `git show -w`. This makes
+  the diff algorithm ignore whitespace changes. This feature is also available on github.com, by adding `?w=1`
+  at the end of any URL which shows a diff.
+
+- When reviewing patches that change symbol names in many places, use `git diff --word-diff`. This will instead
+  of showing the patch as deleted/added *lines*, show deleted/added *words*.
+
+- When reviewing patches that move code around, try using
+  `git diff --patience commit~:old/file.cpp commit:new/file/name.cpp`, and ignoring everything except the
+  moved body of code which should show up as neither `+` or `-` lines. In case it was not a pure move, this may
+  even work when combined with the `-w` or `--word-diff` options described above.
+
+- When looking at other's pull requests, it may make sense to add the following section to your `.git/config`
+  file:
+
+        [remote "upstream-pull"]
+                fetch = +refs/pull/*:refs/remotes/upstream-pull/*
+                url = git@github.com:dtr-org/unit-e.git
+
+  This will add an `upstream-pull` remote to your git repository, which can be fetched using `git fetch --all`
+  or `git fetch upstream-pull`. Afterwards, you can use `upstream-pull/NUMBER/head` in arguments to `git show`,
+  `git checkout` and anywhere a commit id would be acceptable to see the changes from pull request NUMBER.
+
+### GitHub issues
+
+We use GitHub issues as a way to report bugs or feature requests and track work.
+See our [conventions for GitHub
+issues](https://github.com/dtr-org/unit-e-docs/blob/master/project/issues.md)
+for details. These are used across all unit-e related repos.
+
+We use labels to classify and categorize issues and pull requests. The labels
+are defined in a [YAML file](../.github/labels/dtr-org-unit-e-labels.yaml) and
+applied to GitHub via the API. Here is an overview of all labels used in the
+`unit-e` repository.
+
+![GitHub labels](../.github/labels/dtr-org-unit-e-labels.svg)
 
 Scripted diffs
 --------------
@@ -860,33 +740,10 @@ To create a scripted-diff:
     - `-BEGIN VERIFY SCRIPT-`
     - `-END VERIFY SCRIPT-`
 
-The scripted-diff is verified by the tool `test/lint/commit-script-check.sh`. The tool's default behavior when supplied
-with a commit is to verify all scripted-diffs from the beginning of time up to said commit. Internally, the tool passes
-the first supplied argument to `git rev-list --reverse` to determine which commits to verify script-diffs for, ignoring
-commits that don't conform to the commit message format described above.
+The scripted-diff is verified by the tool `test/lint/commit-script-check.sh`
 
-For development, it might be more convenient to verify all scripted-diffs in a range `A..B`, for example:
-
-```bash
-test/lint/commit-script-check.sh origin/master..HEAD
-```
-
-Commit [`bb81e173`](https://github.com/bitcoin/bitcoin/commit/bb81e173) is an example of a scripted-diff.
-
-Release notes
--------------
-
-Release notes should be written for any PR that:
-
-- introduces a notable new feature
-- fixes a significant bug
-- changes an API or configuration model
-- makes any other visible change to the end-user experience.
-
-Release notes should be added to a PR-specific release note file at
-`/doc/release-notes-<PR number>.md` to avoid conflicts between multiple PRs.
-All `release-notes*` files are merged into a single
-[/doc/release-notes.md](/doc/release-notes.md) file prior to the release.
+Commit [`bb81e173`](https://github.com/bitcoin/bitcoin/commit/bb81e173) is an
+example of a scripted-diff.
 
 RPC interface guidelines
 --------------------------
@@ -912,9 +769,8 @@ A few guidelines for introducing and reviewing new RPC interfaces:
     parsers and formatters hard-code handling decimal numbers as floating point
     values, resulting in potential loss of precision. This is unacceptable for
     monetary values. **Always** use `AmountFromValue` and `ValueFromAmount` when
-    inputting or outputting monetary values. The only exceptions to this are
-    `prioritisetransaction` and `getblocktemplate` because their interface
-    is specified as-is in BIP22.
+    inputting or outputting monetary values. The only exceptions to this is
+    `prioritisetransaction` because their interface is specified as-is in BIP22.
 
 - Missing arguments and 'null' should be treated the same: as default values. If there is no
   default value, both cases should fail in the same way. The easiest way to follow this
@@ -945,11 +801,11 @@ A few guidelines for introducing and reviewing new RPC interfaces:
   - *Rationale*: Troubleshooting a node in safe mode is difficult if half the
     RPCs don't work.
 
-- Add every non-string RPC argument `(method, idx, name)` to the table `vRPCConvertParams` in `rpc/client.cpp`.
+- Add every non-string RPC argument `(method, idx, name)` to the table `vRPCConvertParams`
+  in `rpc/parameter_conversion.cpp`.
 
-  - *Rationale*: `unit-e-cli` and the GUI debug console use this table to determine how to
-    convert a plaintext command line to JSON. If the types don't match, the method can be unusable
-    from there.
+  - *Rationale*: `unit-e-cli` uses this table to determine how to convert a plaintext command
+    line to JSON. If the types don't match, the method can be unusable from there.
 
 - A RPC method must either be a wallet method or a non-wallet method. Do not
   introduce new methods such as `signrawtransaction` that differ in behavior

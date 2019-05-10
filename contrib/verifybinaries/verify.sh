@@ -12,6 +12,7 @@
 ###   signature check or the hash check doesn't pass. If an error occurs the return value is 2
 
 export LC_ALL=C
+
 function clean_up {
    for file in $*
    do
@@ -27,7 +28,7 @@ RCSUBDIR="test"
 HOST1="https://bitcoincore.org"
 HOST2="https://bitcoin.org"
 BASEDIR="/bin/"
-VERSIONPREFIX="bitcoin-core-"
+VERSIONPREFIX="unite-core-"
 RCVERSIONSTRING="rc"
 
 if [ ! -d "$WORKINGDIR" ]; then
