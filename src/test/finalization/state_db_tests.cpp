@@ -97,8 +97,8 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
   // Generate an active chain with 100 blocks
   {
     const CBlockIndex *tip99 = block_index_fake.Generate(100);
-    auto chain = block_index_fake.GetChain(tip99->GetBlockHash());
-    for (CBlockIndex *block_index : *chain) {
+    const std::vector<CBlockIndex *> chain = block_index_fake.GetChain(tip99->GetBlockHash());
+    for (CBlockIndex *block_index : chain) {
       FinalizationStateSpy state(finalization_params);
       state.shuffle();
       original.emplace(block_index, std::move(state));
@@ -112,8 +112,8 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
   {
     const CBlockIndex *tip50 = active_chain.AtHeight(50);
     const CBlockIndex *tip_fork1 = block_index_fake.Generate(100, tip50->GetBlockHash());
-    auto chain = block_index_fake.GetChain(tip_fork1->GetBlockHash());
-    for (CBlockIndex *block_index : *chain) {
+    const std::vector<CBlockIndex *> chain = block_index_fake.GetChain(tip_fork1->GetBlockHash());
+    for (CBlockIndex *block_index : chain) {
       FinalizationStateSpy state(finalization_params);
       state.shuffle();
       original.emplace(block_index, std::move(state));
@@ -126,8 +126,8 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
   {
     const CBlockIndex *tip80 = active_chain.AtHeight(80);
     const CBlockIndex *tip_fork2 = block_index_fake.Generate(100, tip80->GetBlockHash());
-    auto chain = block_index_fake.GetChain(tip_fork2->GetBlockHash());
-    for (CBlockIndex *block_index : *chain) {
+    const std::vector<CBlockIndex *> chain = block_index_fake.GetChain(tip_fork2->GetBlockHash());
+    for (CBlockIndex *block_index : chain) {
       FinalizationStateSpy state(finalization_params);
       state.shuffle();
       original.emplace(block_index, std::move(state));

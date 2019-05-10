@@ -18,14 +18,14 @@ CBlockIndex *BlockIndexFake::MakeBlockIndex(const uint256 &hash, CBlockIndex *co
 }
 
 CBlockIndex *BlockIndexFake::Generate(const std::size_t count, const uint256 &starting_point) {
-  auto starting_block = block_indexes.find(starting_point);
+  auto it = block_indexes.find(starting_point);
   std::size_t height = 0;
   CBlockIndex *const starting_index = [&]() {
-    if (starting_block == block_indexes.end()) {
+    if (it == block_indexes.end()) {
       ++height;
       return MakeBlockIndex(starting_point, nullptr);
     } else {
-      return &starting_block->second;
+      return &it->second;
     }
   }();
   BOOST_REQUIRE(starting_index);
@@ -43,16 +43,16 @@ CBlockIndex *BlockIndexFake::Generate(const std::size_t count, const uint256 &st
   return current_index;
 }
 
-std::shared_ptr<std::vector<CBlockIndex *>> BlockIndexFake::GetChain(const uint256 &tip_hash) {
+std::vector<CBlockIndex *> BlockIndexFake::GetChain(const uint256 &tip_hash) {
   auto it = block_indexes.find(tip_hash);
-  auto result = std::make_shared<std::vector<CBlockIndex *>>();
+  std::vector<CBlockIndex *> result;
   if (it == block_indexes.end()) {
     return result;
   }
   CBlockIndex *tip = &it->second;
-  result->resize(tip->nHeight + 1, nullptr);
+  result.resize(tip->nHeight + 1, nullptr);
   for (CBlockIndex *walk = tip; walk != nullptr; walk = walk->pprev) {
-    (*result)[walk->nHeight] = walk;
+    result[walk->nHeight] = walk;
   }
   return result;
 }
@@ -60,7 +60,7 @@ std::shared_ptr<std::vector<CBlockIndex *>> BlockIndexFake::GetChain(const uint2
 void BlockIndexFake::SetupActiveChain(const CBlockIndex *tip,
                                       mocks::ActiveChainMock &active_chain_mock) {
   assert(tip != nullptr);
-  std::shared_ptr<std::vector<CBlockIndex *>> active_chain = GetChain(tip->GetBlockHash());
+  auto active_chain = std::make_shared<std::vector<CBlockIndex *>>(GetChain(tip->GetBlockHash()));
   active_chain_mock.mock_GetSize.SetStub([active_chain]() { return active_chain->size(); });
   active_chain_mock.mock_GetHeight.SetStub([active_chain]() { return active_chain->size() - 1; });
   active_chain_mock.mock_GetDepth.SetStub([active_chain](const blockchain::Height height) {

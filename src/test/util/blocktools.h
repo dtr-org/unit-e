@@ -42,7 +42,7 @@ struct BlockIndexFake {
   CBlockIndex *Generate(std::size_t count, const uint256 &starting_point = uint256::zero);
 
   //! Retrieves a chain that ends in the specified tip.
-  std::shared_ptr<std::vector<CBlockIndex *>> GetChain(const uint256 &tip_hash);
+  std::vector<CBlockIndex *> GetChain(const uint256 &tip_hash);
 
   //! Stubs an active chain mock with stubs that use the block index from this
   //! instance and activates the chain which has the given tip.

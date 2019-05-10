@@ -71,13 +71,13 @@ BOOST_AUTO_TEST_CASE(BlockIndexFake_GetChain) {
 
   const CBlockIndex *tip = fake.Generate(10);
   BOOST_REQUIRE(tip);
-  const std::shared_ptr<std::vector<CBlockIndex *>> chain = fake.GetChain(tip->GetBlockHash());
+  const std::vector<CBlockIndex *> chain = fake.GetChain(tip->GetBlockHash());
 
-  BOOST_REQUIRE_EQUAL(chain->size(), 10);
+  BOOST_REQUIRE_EQUAL(chain.size(), 10);
 
   const CBlockIndex *previous = nullptr;
   for (std::size_t height = 0; height < 10; ++height) {
-    const CBlockIndex *const block_index = chain->at(height);
+    const CBlockIndex *const block_index = chain.at(height);
 
     BOOST_REQUIRE(block_index);
     BOOST_CHECK(block_index->phashBlock);
@@ -97,13 +97,13 @@ BOOST_AUTO_TEST_CASE(BlockIndexFake_Feature_Forks) {
   const CBlockIndex *tip1 = fake.Generate(10);
   BOOST_CHECK_EQUAL(fake.block_indexes.size(), 10);
 
-  std::shared_ptr<std::vector<CBlockIndex *>> chain1 = fake.GetChain(tip1->GetBlockHash());
-  BOOST_CHECK_EQUAL(chain1->size(), 10);
+  std::vector<CBlockIndex *> chain1 = fake.GetChain(tip1->GetBlockHash());
+  BOOST_CHECK_EQUAL(chain1.size(), 10);
 
   {
     const CBlockIndex *previous = nullptr;
-    for (std::size_t height = 0; height < chain1->size(); ++height) {
-      const CBlockIndex *const block_index = chain1->at(height);
+    for (std::size_t height = 0; height < chain1.size(); ++height) {
+      const CBlockIndex *const block_index = chain1.at(height);
 
       BOOST_REQUIRE(block_index);
       BOOST_CHECK(block_index->phashBlock);
@@ -115,18 +115,18 @@ BOOST_AUTO_TEST_CASE(BlockIndexFake_Feature_Forks) {
     BOOST_CHECK_EQUAL(previous, tip1);
   }
 
-  const CBlockIndex *tip2 = fake.Generate(3, chain1->at(5)->GetBlockHash());
+  const CBlockIndex *tip2 = fake.Generate(3, chain1.at(5)->GetBlockHash());
   // 10 blocks previously, plus an additional 3
   BOOST_CHECK_EQUAL(fake.block_indexes.size(), 13);
 
-  std::shared_ptr<std::vector<CBlockIndex *>> chain2 = fake.GetChain(tip2->GetBlockHash());
+  std::vector<CBlockIndex *> chain2 = fake.GetChain(tip2->GetBlockHash());
   // at height=5 there is the 6th block, plus 3 on top
-  BOOST_CHECK_EQUAL(chain2->size(), 9);
+  BOOST_CHECK_EQUAL(chain2.size(), 9);
 
   {
     const CBlockIndex *previous = nullptr;
-    for (std::size_t height = 0; height < chain2->size(); ++height) {
-      const CBlockIndex *const block_index = chain2->at(height);
+    for (std::size_t height = 0; height < chain2.size(); ++height) {
+      const CBlockIndex *const block_index = chain2.at(height);
 
       BOOST_REQUIRE(block_index);
       BOOST_CHECK(block_index->phashBlock);
