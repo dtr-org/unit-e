@@ -117,7 +117,7 @@ Setup:
   initiate transactions later, however.
 - They can now give out *Amulti* as address others can pay to.
 
-Later, when *V* BTC has been received on *Amulti*, and Bob and Carol want to
+Later, when *V* UTE has been received on *Amulti*, and Bob and Carol want to
 move the coins in their entirety to address *Asend*, with no change. Alice
 does not need to be involved.
 - One of them - let's assume Carol here - initiates the creation. She runs
