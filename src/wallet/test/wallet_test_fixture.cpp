@@ -25,6 +25,8 @@ WalletTestingSetup::WalletTestingSetup(
 {
     bool fFirstRun;
 
+    stake_validator_mock.mock_IsStakeMature.SetResult(true);
+
     f(settings);
     esperanza::WalletExtensionDeps deps(&settings, &stake_validator_mock);
 

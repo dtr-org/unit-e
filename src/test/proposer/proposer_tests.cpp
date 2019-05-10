@@ -114,25 +114,25 @@ BOOST_AUTO_TEST_CASE(not_proposing_stub_vs_actual_impl) {
 
 BOOST_AUTO_TEST_CASE(start_stop_and_status) {
   Fixture f{"-proposing=1"};
-  f.network_mock.result_GetNodeCount = 0;
+  f.network_mock.mock_GetNodeCount.SetResult(0);
   BOOST_CHECK_NO_THROW({
     auto p = f.MakeProposer();
     p->Start();
   });
   // destroying the proposer stops it
-  BOOST_CHECK(f.network_mock.invocations_GetNodeCount > 0);
+  BOOST_CHECK(f.network_mock.mock_GetNodeCount.CountInvocations() > 0);
   BOOST_CHECK_EQUAL(f.wallet->GetWalletExtension().GetProposerState().m_status, +proposer::Status::NOT_PROPOSING_NO_PEERS);
 }
 
 BOOST_AUTO_TEST_CASE(advance_to_blockchain_sync) {
   Fixture f{"-proposing=1"};
-  f.network_mock.result_GetNodeCount = 1;
-  f.chain_mock.result_GetInitialBlockDownloadStatus = SyncStatus::IMPORTING;
+  f.network_mock.mock_GetNodeCount.SetResult(1);
+  f.chain_mock.mock_GetInitialBlockDownloadStatus.SetResult(SyncStatus::IMPORTING);
   BOOST_CHECK_NO_THROW({
     auto p = f.MakeProposer();
     p->Start();
   });
-  BOOST_CHECK(f.chain_mock.invocations_GetInitialBlockDownloadStatus > 0);
+  BOOST_CHECK(f.chain_mock.mock_GetInitialBlockDownloadStatus.CountInvocations() > 0);
   BOOST_CHECK_EQUAL(f.wallet->GetWalletExtension().GetProposerState().m_status, +proposer::Status::NOT_PROPOSING_SYNCING_BLOCKCHAIN);
 }
 

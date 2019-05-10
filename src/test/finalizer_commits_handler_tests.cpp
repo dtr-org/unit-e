@@ -74,20 +74,20 @@ class Fixture {
     : repo(GetFinalizationParams()),
       commits(&active_chain, &repo, /*finalization::StateProcessor*/ nullptr) {
 
-    active_chain.stub_AtHeight = [this](blockchain::Height h) -> CBlockIndex * {
+    active_chain.mock_AtHeight.SetStub([this](blockchain::Height h) -> CBlockIndex * {
       auto const it = this->m_block_heights.find(h);
       if (it == this->m_block_heights.end()) {
         return nullptr;
       }
       return it->second;
-    };
-    active_chain.stub_GetBlockIndex = [this](const uint256 &hash) -> CBlockIndex * {
+    });
+    active_chain.mock_GetBlockIndex.SetStub([this](const uint256 &hash) -> CBlockIndex * {
       const auto it = m_block_indexes.find(hash);
       if (it == m_block_indexes.end()) {
         return nullptr;
       }
       return &it->second;
-    };
+    });
   }
 
   CBlockIndex &CreateBlockIndex() {
@@ -96,11 +96,11 @@ class Fixture {
     CBlockIndex &index = ins_res.first->second;
     index.nHeight = height;
     index.phashBlock = &ins_res.first->first;
-    index.pprev = active_chain.result_GetTip;
-    active_chain.result_GetTip = &index;
+    index.pprev = m_block_heights[height - 1];
+    active_chain.mock_GetTip.SetResult(&index);
     m_block_heights[index.nHeight] = &index;
     if (height == 0) {
-      active_chain.result_GetGenesis = &index;
+      active_chain.mock_GetGenesis.SetResult(&index);
     }
     return index;
   }
@@ -111,13 +111,13 @@ class Fixture {
     }
   }
 
-  mocks::ActiveChainMock active_chain;
+  mocks::ActiveChainFake active_chain;
   RepoMock repo;
   FinalizerCommitsHandlerSpy commits;
 
  private:
   blockchain::Height FindNextHeight() {
-    if (active_chain.result_GetTip == nullptr) {
+    if (active_chain.GetTip() == nullptr) {
       return 0;
     } else {
       return active_chain.GetTip()->nHeight + 1;

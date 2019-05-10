@@ -56,17 +56,17 @@ BOOST_AUTO_TEST_CASE(propose) {
     coins.emplace(&block, COutPoint{t3, 4}, CTxOut{70, CScript()});
     return coins;
   }();
-  f.active_chain_mock.result_GetTip = &f.tip;
-  f.active_chain_mock.stub_AtDepth = [&f](const blockchain::Depth depth) -> CBlockIndex * {
+  f.active_chain_mock.mock_GetTip.SetResult(&f.tip);
+  f.active_chain_mock.mock_AtDepth.SetStub([&f](const blockchain::Depth depth) -> CBlockIndex * {
     if (depth == 1) {
       return &f.at_depth_1;
     }
     return nullptr;
-  };
-  f.stake_validator_mock.checkkernelfunc = [&](uint256 kernel) {
+  });
+  f.stake_validator_mock.mock_CheckKernel.SetStub([&](CAmount, const uint256 &kernel, blockchain::Difficulty) {
     return kernel == k2;
-  };
-  f.stake_validator_mock.computekernelfunc = [&](const CBlockIndex *, const staking::Coin &coin, blockchain::Time) {
+  });
+  f.stake_validator_mock.mock_ComputeKernelHash.SetStub([&](const CBlockIndex *, const staking::Coin &coin, blockchain::Time) {
     if (coin.GetTransactionId() == t1) {
       return k1;
     }
@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(propose) {
       return k3;
     }
     return coin.GetTransactionId();
-  };
+  });
   const boost::optional<proposer::EligibleCoin> coin = [&] {
     LOCK(f.active_chain_mock.GetLock());
     return logic->TryPropose(coins);
