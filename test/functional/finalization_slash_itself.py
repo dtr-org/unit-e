@@ -143,11 +143,11 @@ class FinalizationSlashSelfTest(UnitETestFramework):
         vote = fork2.decoderawtransaction(fork2.getrawtransaction(fork2.getrawmempool()[0]))
         assert_equal(vote['txtype'], TxType.VOTE.value)
 
-        fork2.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
+        fork2.proposetoaddress(1, fork1.getnewaddress('', 'bech32'))
         assert_equal(len(fork2.getrawmempool()), 0)
 
         # check if there is slashing after voting
-        fork2.generatetoaddress(3, fork1.getnewaddress('', 'bech32'))
+        fork2.proposetoaddress(3, fork1.getnewaddress('', 'bech32'))
         assert_equal(fork2.getblockcount(), 26)
         assert_finalizationstate(fork2, {'currentEpoch': 6,
                                          'lastJustifiedEpoch': 4,
