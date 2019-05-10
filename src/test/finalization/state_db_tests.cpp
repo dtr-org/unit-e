@@ -173,9 +173,9 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
     db->LoadStatesHigherThan(59, &restored);
     BOOST_CHECK_EQUAL(restored.size(), 140);
 
-    for (auto it = restored.begin(); it != restored.end(); ++it) {
-      const CBlockIndex *index = it->first;
-      const esperanza::FinalizationState &state = it->second;
+    for (auto &it : restored) {
+      const CBlockIndex *index = it.first;
+      const esperanza::FinalizationState &state = it.second;
       BOOST_CHECK(index->nHeight >= 60);
 
       const auto oit = original.find(index);

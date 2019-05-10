@@ -74,14 +74,14 @@ void BlockIndexFake::SetupActiveChain(const CBlockIndex *tip,
   });
   active_chain_mock.mock_GetTip.SetStub([active_chain]() {
     BOOST_REQUIRE_MESSAGE(
-        active_chain->size() > 0,
+        !active_chain->empty(),
         "GetTip() called on an empty chain (this is probably an error in mocking, "
         "an active chain should at least always contain a genesis block).");
     return active_chain->back();
   });
   active_chain_mock.mock_GetGenesis.SetStub([active_chain]() {
     BOOST_REQUIRE_MESSAGE(
-        active_chain->size() > 0,
+        !active_chain->empty(),
         "GetGenesis() called on an empty chain (this is probably an error in mocking, "
         "an active chain should at least always contain a genesis block).");
     return active_chain->at(0);
