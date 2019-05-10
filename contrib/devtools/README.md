@@ -115,7 +115,7 @@ couldn't mess with the sources.
 
 Setup
 ---------
-Configuring the github-merge tool for the bitcoin repository is done in the following way:
+Configuring the github-merge tool for the unite repository is done in the following way:
 
     git config githubmerge.repository dtr-org/unit-e
     git config githubmerge.testcmd "make -j4 check" (adapt to whatever you want to use for testing)
@@ -150,7 +150,7 @@ for further details.
 optimize-pngs.py
 ================
 
-A script to optimize png files in the bitcoin
+A script to optimize png files in the unite
 repository (requires pngcrush).
 
 security-check.py and test-security-check.py
@@ -173,10 +173,10 @@ If only supported symbols are used the return value will be 0 and the output wil
 
 If there are 'unsupported' symbols, the return value will be 1 a list like this will be printed:
 
-    .../64/test_bitcoin: symbol memcpy from unsupported version GLIBC_2.14
-    .../64/test_bitcoin: symbol __fdelt_chk from unsupported version GLIBC_2.15
-    .../64/test_bitcoin: symbol std::out_of_range::~out_of_range() from unsupported version GLIBCXX_3.4.15
-    .../64/test_bitcoin: symbol _ZNSt8__detail15_List_nod from unsupported version GLIBCXX_3.4.15
+    .../64/test_unite: symbol memcpy from unsupported version GLIBC_2.14
+    .../64/test_unite: symbol __fdelt_chk from unsupported version GLIBC_2.15
+    .../64/test_unite: symbol std::out_of_range::~out_of_range() from unsupported version GLIBCXX_3.4.15
+    .../64/test_unite: symbol _ZNSt8__detail15_List_nod from unsupported version GLIBCXX_3.4.15
 
 update-translations.py
 ======================

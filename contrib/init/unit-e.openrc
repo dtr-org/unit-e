@@ -2,24 +2,24 @@
 
 # backward compatibility for existing gentoo layout 
 #
-if [ -d "/var/lib/bitcoin/.bitcoin" ]; then
-	UNIT_E_DEFAULT_DATADIR="/var/lib/bitcoin/.bitcoin"
+if [ -d "/var/lib/unite/.unit-e" ]; then
+	UNIT_E_DEFAULT_DATADIR="/var/lib/unite/.unit-e"
 else
 	UNIT_E_DEFAULT_DATADIR="/var/lib/unit-e"
 fi
 
-UNIT_E_CONFIGFILE=${UNIT_E_CONFIGFILE:-/etc/bitcoin/unit-e.conf}
+UNIT_E_CONFIGFILE=${UNIT_E_CONFIGFILE:-/etc/unite/unit-e.conf}
 UNIT_E_PIDDIR=${UNIT_E_PIDDIR:-/var/run/unit-e}
 UNIT_E_PIDFILE=${UNIT_E_PIDFILE:-${UNIT_E_PIDDIR}/unit-e.pid}
 UNIT_E_DATADIR=${UNIT_E_DATADIR:-${UNIT_E_DEFAULT_DATADIR}}
-UNIT_E_USER=${UNIT_E_USER:-${BITCOIN_USER:-bitcoin}}
-UNIT_E_GROUP=${UNIT_E_GROUP:-bitcoin}
+UNIT_E_USER=${UNIT_E_USER:-${UNITE_USER:-unite}}
+UNIT_E_GROUP=${UNIT_E_GROUP:-unite}
 UNIT_E_BIN=${UNIT_E_BIN:-/usr/bin/unit-e}
 UNIT_E_NICE=${UNIT_E_NICE:-${NICELEVEL:-0}}
-UNIT_E_OPTS="${UNIT_E_OPTS:-${BITCOIN_OPTS}}"
+UNIT_E_OPTS="${UNIT_E_OPTS:-${UNITE_OPTS}}"
 
 name="unit-e Daemon"
-description="Bitcoin cryptocurrency P2P network daemon"
+description="Unit-e cryptocurrency P2P network daemon"
 
 command="/usr/bin/unit-e"
 command_args="-pid=\"${UNIT_E_PIDFILE}\" \
@@ -84,7 +84,7 @@ checkconfig()
 		eerror "It is recommended that you also set alertnotify so you are "
 		eerror "notified of problems:"
 		eerror ""
-		eerror "ie: alertnotify=echo %%s | mail -s \"Bitcoin Alert\"" \
+		eerror "ie: alertnotify=echo %%s | mail -s \"Unit-e Alert\"" \
 			"admin@foo.com"
 		eerror ""
 		return 1

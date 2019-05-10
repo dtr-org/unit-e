@@ -6,10 +6,10 @@
 
 import os
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import UnitETestFramework
 
 
-class ConfArgsTest(BitcoinTestFramework):
+class ConfArgsTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 1
@@ -74,12 +74,12 @@ class ConfArgsTest(BitcoinTestFramework):
             f.write("datadir=" + new_data_dir + "\n")
             f.write(conf_file_contents)
 
-        # Temporarily disabled, because this test would access the user's home dir (~/.bitcoin)
+        # Temporarily disabled, because this test would access the user's home dir (~/.unit-e)
         #self.nodes[0].assert_start_raises_init_error(['-conf=' + conf_file], 'Error reading configuration file: specified data directory "' + new_data_dir + '" does not exist.')
 
         # Create the directory and ensure the config file now works
         os.mkdir(new_data_dir)
-        # Temporarily disabled, because this test would access the user's home dir (~/.bitcoin)
+        # Temporarily disabled, because this test would access the user's home dir (~/.unit-e)
         #self.start_node(0, ['-conf='+conf_file, '-wallet=w1'])
         #self.stop_node(0)
         #assert os.path.exists(os.path.join(new_data_dir, 'regtest', 'blocks'))

@@ -13,7 +13,7 @@ can be found in the contrib/init folder.
 Service User
 ---------------------------------
 
-All three Linux startup configurations assume the existence of a "bitcoin" user
+All three Linux startup configurations assume the existence of a "unite" user
 and group.  They must be created before attempting to use these scripts.
 The macOS configuration assumes unit-e will be set up for the current user.
 
@@ -54,29 +54,29 @@ Paths
 All three configurations assume several paths that might need to be adjusted.
 
 Binary:              `/usr/bin/unit-e`  
-Configuration file:  `/etc/bitcoin/unit-e.conf`  
+Configuration file:  `/etc/unite/unit-e.conf`  
 Data directory:      `/var/lib/unit-e`  
 PID file:            `/var/run/unit-e/unit-e.pid` (OpenRC and Upstart) or `/run/unit-e/unit-e.pid` (systemd)
 Lock file:           `/var/lock/subsys/unit-e` (CentOS)  
 
 The configuration file, PID directory (if applicable) and data directory
-should all be owned by the bitcoin user and group.  It is advised for security
+should all be owned by the unite user and group.  It is advised for security
 reasons to make the configuration file and data directory only readable by the
-bitcoin user and group.  Access to unit-e-cli and other unit-e rpc clients
+unite user and group.  Access to unit-e-cli and other unit-e rpc clients
 can then be controlled by group membership.
 
 NOTE: When using the systemd .service file, the creation of the aforementioned
 directories and the setting of their permissions is automatically handled by
-systemd. Directories are given a permission of 710, giving the bitcoin group
+systemd. Directories are given a permission of 710, giving the unite group
 access to files under it _if_ the files themselves give permission to the
-bitcoin group to do so (e.g. when `-sysperms` is specified). This does not allow
+unite group to do so (e.g. when `-sysperms` is specified). This does not allow
 for the listing of files under the directory.
 
 NOTE: It is not currently possible to override `datadir` in
-`/etc/bitcoin/unit-e.conf` with the current systemd, OpenRC, and Upstart init
+`/etc/unite/unit-e.conf` with the current systemd, OpenRC, and Upstart init
 files out-of-the-box. This is because the command line options specified in the
 init files take precedence over the configurations in
-`/etc/bitcoin/unit-e.conf`. However, some init systems have their own
+`/etc/unite/unit-e.conf`. However, some init systems have their own
 configuration mechanisms that would allow for overriding the command line
 options specified in the init files (e.g. setting `UNIT_E_DATADIR` for
 OpenRC).
@@ -84,9 +84,9 @@ OpenRC).
 ### macOS
 
 Binary:              `/usr/local/bin/unit-e`  
-Configuration file:  `~/Library/Application Support/Bitcoin/unit-e.conf`  
-Data directory:      `~/Library/Application Support/Bitcoin`  
-Lock file:           `~/Library/Application Support/Bitcoin/.lock`  
+Configuration file:  `~/Library/Application Support/Unit-e/unit-e.conf`  
+Data directory:      `~/Library/Application Support/Unit-e`  
+Lock file:           `~/Library/Application Support/Unit-e/.lock`  
 
 Installing Service Configuration
 -----------------------------------
@@ -129,14 +129,14 @@ setting the UNIT_E and FLAGS environment variables in the file
 
 ### macOS
 
-Copy org.bitcoin.unit-e.plist into ~/Library/LaunchAgents. Load the launch agent by
-running `launchctl load ~/Library/LaunchAgents/org.bitcoin.unit-e.plist`.
+Copy org.unite.unit-e.plist into ~/Library/LaunchAgents. Load the launch agent by
+running `launchctl load ~/Library/LaunchAgents/org.unite.unit-e.plist`.
 
 This Launch Agent will cause unit-e to start whenever the user logs in.
 
 NOTE: This approach is intended for those wanting to run unit-e as the current user.
-You will need to modify org.bitcoin.unit-e.plist if you intend to use it as a
-Launch Daemon with a dedicated bitcoin user.
+You will need to modify org.unite.unit-e.plist if you intend to use it as a
+Launch Daemon with a dedicated unite user.
 
 Auto-respawn
 -----------------------------------

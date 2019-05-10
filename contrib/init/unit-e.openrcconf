@@ -1,7 +1,7 @@
 # /etc/conf.d/unit-e: config file for /etc/init.d/unit-e
 
 # Config file location
-#UNIT_E_CONFIGFILE="/etc/bitcoin/unit-e.conf"
+#UNIT_E_CONFIGFILE="/etc/unite/unit-e.conf"
 
 # What directory to write pidfile to?  (created and owned by $UNIT_E_USER)
 #UNIT_E_PIDDIR="/var/run/unit-e"
@@ -13,8 +13,8 @@
 #UNIT_E_DATADIR="/var/lib/unit-e"
 
 # User and group to own unit-e process
-#UNIT_E_USER="bitcoin"
-#UNIT_E_GROUP="bitcoin"
+#UNIT_E_USER="unite"
+#UNIT_E_GROUP="unite"
 
 # Path to unit-e executable
 #UNIT_E_BIN="/usr/bin/unit-e"

@@ -5,17 +5,17 @@
 # See "man systemd.service" for details.
 
 # Note that almost all daemon options could be specified in
-# /etc/bitcoin/unit-e.conf, except for those explicitly specified as arguments
+# /etc/unite/unit-e.conf, except for those explicitly specified as arguments
 # in ExecStart=
 
 [Unit]
-Description=Bitcoin daemon
+Description=Unit-e daemon
 After=network.target
 
 [Service]
 ExecStart=/usr/bin/unit-e -daemon \
                             -pid=/run/unit-e/unit-e.pid \
-                            -conf=/etc/bitcoin/unit-e.conf \
+                            -conf=/etc/unite/unit-e.conf \
                             -datadir=/var/lib/unit-e
 
 # Process management
@@ -28,16 +28,16 @@ Restart=on-failure
 # Directory creation and permissions
 ####################################
 
-# Run as bitcoin:bitcoin
-User=bitcoin
-Group=bitcoin
+# Run as unite:unite
+User=unite
+Group=unite
 
 # /run/unit-e
 RuntimeDirectory=unit-e
 RuntimeDirectoryMode=0710
 
-# /etc/bitcoin
-ConfigurationDirectory=bitcoin
+# /etc/unite
+ConfigurationDirectory=unite
 ConfigurationDirectoryMode=0710
 
 # /var/lib/unit-e

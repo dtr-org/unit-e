@@ -9,7 +9,7 @@ Building with Visual Studio is an alternative to the Linux based [cross-compiler
 
 Dependencies
 ---------------------
-A number of [open source libraries](https://github.com/bitcoin/bitcoin/blob/master/doc/dependencies.md) are required in order to be able to build Bitcoin.
+A number of [open source libraries](https://github.com/bitcoin/bitcoin/blob/master/doc/dependencies.md) are required in order to be able to build Unit-e.
 
 Options for installing the dependencies in a Visual Studio compatible manner are:
 

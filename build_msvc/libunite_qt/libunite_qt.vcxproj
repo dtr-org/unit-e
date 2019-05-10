@@ -26,16 +26,16 @@
     <ProjectGuid>{2B4ABFF8-D1FD-4845-88C9-1F3C0A6512BF}</ProjectGuid>
   </PropertyGroup>
   <ItemGroup>
-    <CustomBuild Include="..\..\src\qt\bitcoin.qrc">
-      <Command>"$(QTDIR)\bincc.exe" -name bitcoin "%(Fullpath)" -o .\GeneratedFiles\qrc_bitcoin.cpp</Command>
+    <CustomBuild Include="..\..\src\qt\unite.qrc">
+      <Command>"$(QTDIR)\bincc.exe" -name unite "%(Fullpath)" -o .\GeneratedFiles\qrc_unite.cpp</Command>
       <Message>Qt rcc generation for %(Identity)</Message>
-      <Outputs>.\GeneratedFiles\qrc_bitcoin.cpp</Outputs>
+      <Outputs>.\GeneratedFiles\qrc_unite.cpp</Outputs>
       <AdditionalInputs>(QTDIR)\bincc.exe</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\..\src\qt\bitcoin_locale.qrc">
-      <Command>"$(QTDIR)\bincc.exe" -name bitcoin_locale "%(Fullpath)" -o .\GeneratedFiles\qrc_bitcoin_locale.cpp</Command>
+    <CustomBuild Include="..\..\src\qt\unite_locale.qrc">
+      <Command>"$(QTDIR)\bincc.exe" -name unite_locale "%(Fullpath)" -o .\GeneratedFiles\qrc_unite_locale.cpp</Command>
       <Message>Qt rcc generation for %(Identity)</Message>
-      <Outputs>.\GeneratedFiles\qrc_bitcoin_locale.cpp</Outputs>
+      <Outputs>.\GeneratedFiles\qrc_unite_locale.cpp</Outputs>
       <AdditionalInputs>(QTDIR)\bincc.exe</AdditionalInputs>
     </CustomBuild>
     <None Include="..\..\src\qt\forms\addressbookpage.ui" />
@@ -55,283 +55,283 @@
     <None Include="..\..\src\qt\forms\sendcoinsentry.ui" />
     <None Include="..\..\src\qt\forms\signverifymessagedialog.ui" />
     <None Include="..\..\src\qt\forms\transactiondescdialog.ui" />
-    <None Include="..\..\src\qt\locale\bitcoin_af.ts">
+    <None Include="..\..\src\qt\locale\unite_af.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_af_ZA.ts">
+    <None Include="..\..\src\qt\locale\unite_af_ZA.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_am.ts">
+    <None Include="..\..\src\qt\locale\unite_am.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_ar.ts">
+    <None Include="..\..\src\qt\locale\unite_ar.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_be_BY.ts">
+    <None Include="..\..\src\qt\locale\unite_be_BY.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_bg.ts">
+    <None Include="..\..\src\qt\locale\unite_bg.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_bg_BG.ts">
+    <None Include="..\..\src\qt\locale\unite_bg_BG.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_ca.ts">
+    <None Include="..\..\src\qt\locale\unite_ca.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_ca%40valencia.ts">
+    <None Include="..\..\src\qt\locale\unite_ca%40valencia.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_ca_ES.ts">
+    <None Include="..\..\src\qt\locale\unite_ca_ES.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_cs.ts">
+    <None Include="..\..\src\qt\locale\unite_cs.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_cy.ts">
+    <None Include="..\..\src\qt\locale\unite_cy.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_da.ts">
+    <None Include="..\..\src\qt\locale\unite_da.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_de.ts">
+    <None Include="..\..\src\qt\locale\unite_de.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_el.ts">
+    <None Include="..\..\src\qt\locale\unite_el.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_el_GR.ts">
+    <None Include="..\..\src\qt\locale\unite_el_GR.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_en.ts">
+    <None Include="..\..\src\qt\locale\unite_en.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_en_GB.ts">
+    <None Include="..\..\src\qt\locale\unite_en_GB.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_eo.ts">
+    <None Include="..\..\src\qt\locale\unite_eo.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_es.ts">
+    <None Include="..\..\src\qt\locale\unite_es.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_es_AR.ts">
+    <None Include="..\..\src\qt\locale\unite_es_AR.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_es_CL.ts">
+    <None Include="..\..\src\qt\locale\unite_es_CL.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_es_CO.ts">
+    <None Include="..\..\src\qt\locale\unite_es_CO.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_es_DO.ts">
+    <None Include="..\..\src\qt\locale\unite_es_DO.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_es_ES.ts">
+    <None Include="..\..\src\qt\locale\unite_es_ES.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_es_MX.ts">
+    <None Include="..\..\src\qt\locale\unite_es_MX.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_es_UY.ts">
+    <None Include="..\..\src\qt\locale\unite_es_UY.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_es_VE.ts">
+    <None Include="..\..\src\qt\locale\unite_es_VE.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_et.ts">
+    <None Include="..\..\src\qt\locale\unite_et.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_et_EE.ts">
+    <None Include="..\..\src\qt\locale\unite_et_EE.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_eu_ES.ts">
+    <None Include="..\..\src\qt\locale\unite_eu_ES.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_fa.ts">
+    <None Include="..\..\src\qt\locale\unite_fa.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_fa_IR.ts">
+    <None Include="..\..\src\qt\locale\unite_fa_IR.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_fi.ts">
+    <None Include="..\..\src\qt\locale\unite_fi.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_fr.ts">
+    <None Include="..\..\src\qt\locale\unite_fr.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_fr_CA.ts">
+    <None Include="..\..\src\qt\locale\unite_fr_CA.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_fr_FR.ts">
+    <None Include="..\..\src\qt\locale\unite_fr_FR.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_gl.ts">
+    <None Include="..\..\src\qt\locale\unite_gl.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_he.ts">
+    <None Include="..\..\src\qt\locale\unite_he.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_hi_IN.ts">
+    <None Include="..\..\src\qt\locale\unite_hi_IN.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_hr.ts">
+    <None Include="..\..\src\qt\locale\unite_hr.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_hu.ts">
+    <None Include="..\..\src\qt\locale\unite_hu.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_id.ts">
+    <None Include="..\..\src\qt\locale\unite_id.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_id_ID.ts">
+    <None Include="..\..\src\qt\locale\unite_id_ID.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_is.ts">
+    <None Include="..\..\src\qt\locale\unite_is.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_it.ts">
+    <None Include="..\..\src\qt\locale\unite_it.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_it_IT.ts">
+    <None Include="..\..\src\qt\locale\unite_it_IT.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_ja.ts">
+    <None Include="..\..\src\qt\locale\unite_ja.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_ka.ts">
+    <None Include="..\..\src\qt\locale\unite_ka.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_kk_KZ.ts">
+    <None Include="..\..\src\qt\locale\unite_kk_KZ.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_ko.ts">
+    <None Include="..\..\src\qt\locale\unite_ko.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_ko_KR.ts">
+    <None Include="..\..\src\qt\locale\unite_ko_KR.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_ku_IQ.ts">
+    <None Include="..\..\src\qt\locale\unite_ku_IQ.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_ky.ts">
+    <None Include="..\..\src\qt\locale\unite_ky.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_la.ts">
+    <None Include="..\..\src\qt\locale\unite_la.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_lt.ts">
+    <None Include="..\..\src\qt\locale\unite_lt.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_lv_LV.ts">
+    <None Include="..\..\src\qt\locale\unite_lv_LV.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_mk_MK.ts">
+    <None Include="..\..\src\qt\locale\unite_mk_MK.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_ml.ts">
+    <None Include="..\..\src\qt\locale\unite_ml.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_mn.ts">
+    <None Include="..\..\src\qt\locale\unite_mn.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_ms_MY.ts">
+    <None Include="..\..\src\qt\locale\unite_ms_MY.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_nb.ts">
+    <None Include="..\..\src\qt\locale\unite_nb.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_ne.ts">
+    <None Include="..\..\src\qt\locale\unite_ne.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_nl.ts">
+    <None Include="..\..\src\qt\locale\unite_nl.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_pam.ts">
+    <None Include="..\..\src\qt\locale\unite_pam.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_pl.ts">
+    <None Include="..\..\src\qt\locale\unite_pl.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_pt_BR.ts">
+    <None Include="..\..\src\qt\locale\unite_pt_BR.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_pt_PT.ts">
+    <None Include="..\..\src\qt\locale\unite_pt_PT.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_ro.ts">
+    <None Include="..\..\src\qt\locale\unite_ro.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_ro_RO.ts">
+    <None Include="..\..\src\qt\locale\unite_ro_RO.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_ru.ts">
+    <None Include="..\..\src\qt\locale\unite_ru.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_ru_RU.ts">
+    <None Include="..\..\src\qt\locale\unite_ru_RU.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_sk.ts">
+    <None Include="..\..\src\qt\locale\unite_sk.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_sl_SI.ts">
+    <None Include="..\..\src\qt\locale\unite_sl_SI.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_sn.ts">
+    <None Include="..\..\src\qt\locale\unite_sn.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_sq.ts">
+    <None Include="..\..\src\qt\locale\unite_sq.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_sr.ts">
+    <None Include="..\..\src\qt\locale\unite_sr.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_sr%40latin.ts">
+    <None Include="..\..\src\qt\locale\unite_sr%40latin.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_sv.ts">
+    <None Include="..\..\src\qt\locale\unite_sv.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_szl.ts">
+    <None Include="..\..\src\qt\locale\unite_szl.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_ta.ts">
+    <None Include="..\..\src\qt\locale\unite_ta.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_th_TH.ts">
+    <None Include="..\..\src\qt\locale\unite_th_TH.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_tr.ts">
+    <None Include="..\..\src\qt\locale\unite_tr.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_tr_TR.ts">
+    <None Include="..\..\src\qt\locale\unite_tr_TR.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_uk.ts">
+    <None Include="..\..\src\qt\locale\unite_uk.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_ur_PK.ts">
+    <None Include="..\..\src\qt\locale\unite_ur_PK.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_uz%40Cyrl.ts">
+    <None Include="..\..\src\qt\locale\unite_uz%40Cyrl.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_vi.ts">
+    <None Include="..\..\src\qt\locale\unite_vi.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_vi_VN.ts">
+    <None Include="..\..\src\qt\locale\unite_vi_VN.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_zh.ts">
+    <None Include="..\..\src\qt\locale\unite_zh.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_zh_CN.ts">
+    <None Include="..\..\src\qt\locale\unite_zh_CN.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_zh_HK.ts">
+    <None Include="..\..\src\qt\locale\unite_zh_HK.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qt\locale\bitcoin_zh_TW.ts">
+    <None Include="..\..\src\qt\locale\unite_zh_TW.ts">
       <DeploymentContent>true</DeploymentContent>
     </None>
     <CustomBuild Include="..\..\src\qt\paymentrequest.proto">
@@ -346,10 +346,10 @@
     </CustomBuild>
     <None Include="..\..\src\qt\macdockiconhandler.mm" />
     <None Include="..\..\src\qt\macnotificationhandler.mm" />
-    <None Include="..\..\src\qtes\icons\bitcoin.icns">
+    <None Include="..\..\src\qtes\icons\unite.icns">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="..\..\src\qtes\src\bitcoin.svg">
+    <None Include="..\..\src\qtes\src\unite.svg">
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="..\..\src\qtes\src\clock_0.svg">
@@ -409,8 +409,8 @@
     <None Include="..\..\src\qtes\src\verify.svg">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="GeneratedFiles\bitcoin.moc" />
-    <None Include="GeneratedFiles\bitcoinamountfield.moc" />
+    <None Include="GeneratedFiles\unite.moc" />
+    <None Include="GeneratedFiles\uniteamountfield.moc" />
     <None Include="GeneratedFiles\intro.moc" />
     <None Include="GeneratedFiles\overviewpage.moc" />
     <None Include="GeneratedFilespcconsole.moc" />
@@ -428,13 +428,13 @@
     <Image Include="..\..\src\qtes\icons\address-book.png">
       <DeploymentContent>true</DeploymentContent>
     </Image>
-    <Image Include="..\..\src\qtes\icons\bitcoin.ico">
+    <Image Include="..\..\src\qtes\icons\unite.ico">
       <DeploymentContent>true</DeploymentContent>
     </Image>
-    <Image Include="..\..\src\qtes\icons\bitcoin.png">
+    <Image Include="..\..\src\qtes\icons\unite.png">
       <DeploymentContent>true</DeploymentContent>
     </Image>
-    <Image Include="..\..\src\qtes\icons\bitcoin_testnet.ico">
+    <Image Include="..\..\src\qtes\icons\unite_testnet.ico">
       <DeploymentContent>true</DeploymentContent>
     </Image>
     <Image Include="..\..\src\qtes\icons\chevron.png">
@@ -694,15 +694,15 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GeneratedFiles\qrc_bitcoin.cpp" />
-    <ClCompile Include="GeneratedFiles\qrc_bitcoin_locale.cpp" />
-    <CustomBuild Include="..\..\src\qt\bitcoin.cpp">
+    <ClCompile Include="GeneratedFiles\qrc_unite.cpp" />
+    <ClCompile Include="GeneratedFiles\qrc_unite_locale.cpp" />
+    <CustomBuild Include="..\..\src\qt\unite.cpp">
       <Command>"$(QTDIR)\bin\moc.exe" "%(Fullpath)" -o .\GeneratedFiles\%(Filename).moc $(MOC_DEF)</Command>
       <Message>Qt moc generation for %(Identity)</Message>
       <Outputs>.\GeneratedFiles\%(Filename).moc</Outputs>
       <AdditionalInputs>(QTDIR)\bin\moc.exe</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="..\..\src\qt\bitcoinamountfield.cpp">
+    <CustomBuild Include="..\..\src\qt\uniteamountfield.cpp">
       <Command>"$(QTDIR)\bin\moc.exe" "%(Fullpath)" -o .\GeneratedFiles\%(Filename).moc $(MOC_DEF)</Command>
       <Message>Qt moc generation for %(Identity)</Message>
       <Outputs>.\GeneratedFiles\%(Filename).moc</Outputs>
@@ -730,10 +730,10 @@
     <ClCompile Include="GeneratedFiles\moc_addresstablemodel.cpp" />
     <ClCompile Include="GeneratedFiles\moc_askpassphrasedialog.cpp" />
     <ClCompile Include="GeneratedFiles\moc_bantablemodel.cpp" />
-    <ClCompile Include="GeneratedFiles\moc_bitcoinaddressvalidator.cpp" />
-    <ClCompile Include="GeneratedFiles\moc_bitcoinamountfield.cpp" />
-    <ClCompile Include="GeneratedFiles\moc_bitcoingui.cpp" />
-    <ClCompile Include="GeneratedFiles\moc_bitcoinunits.cpp" />
+    <ClCompile Include="GeneratedFiles\moc_uniteaddressvalidator.cpp" />
+    <ClCompile Include="GeneratedFiles\moc_uniteamountfield.cpp" />
+    <ClCompile Include="GeneratedFiles\moc_unitegui.cpp" />
+    <ClCompile Include="GeneratedFiles\moc_uniteunits.cpp" />
     <ClCompile Include="GeneratedFiles\moc_callback.cpp" />
     <ClCompile Include="GeneratedFiles\moc_clientmodel.cpp" />
     <ClCompile Include="GeneratedFiles\moc_coincontroldialog.cpp" />

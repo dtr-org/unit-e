@@ -16,8 +16,8 @@ BEGIN
     BEGIN
         BLOCK "040904E4" // U.S. English - multilingual (hex)
         BEGIN
-            VALUE "CompanyName",        "Bitcoin"
-            VALUE "FileDescription",    "unit-e (Bitcoin node with a JSON-RPC server)"
+            VALUE "CompanyName",        "Unit-e"
+            VALUE "FileDescription",    "unit-e (Unit-e node with a JSON-RPC server)"
             VALUE "FileVersion",        VER_FILEVERSION_STR
             VALUE "InternalName",       "unit-e"
             VALUE "LegalCopyright",     COPYRIGHT_STR

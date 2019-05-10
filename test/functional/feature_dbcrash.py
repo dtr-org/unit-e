@@ -32,7 +32,7 @@ import sys
 import time
 
 from test_framework.messages import COIN, COutPoint, CTransaction, CTxIn, CTxOut, ToHex
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import UnitETestFramework
 from test_framework.util import assert_equal, create_confirmed_utxos, hex_str_to_bytes
 
 HTTP_DISCONNECT_ERRORS = [http.client.CannotSendRequest]
@@ -41,7 +41,7 @@ try:
 except AttributeError:
     pass
 
-class ChainstateWriteCrashTest(BitcoinTestFramework):
+class ChainstateWriteCrashTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 4
         self.setup_clean_chain = False

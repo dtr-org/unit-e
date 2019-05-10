@@ -3,7 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/unite-config.h>
 #endif
 
 #include <chainparams.h>
@@ -41,12 +41,12 @@ static bool WalletAppInit(int argc, char* argv[])
         return false;
     }
     if (argc < 2 || HelpRequested(gArgs)) {
-        std::string usage = strprintf("%s bitcoin-wallet version", PACKAGE_NAME) + " " + FormatFullVersion() + "\n\n" +
+        std::string usage = strprintf("%s unite-wallet version", PACKAGE_NAME) + " " + FormatFullVersion() + "\n\n" +
                                       "wallet-tool is an offline tool for creating and interacting with unit-e wallet files.\n" +
                                       "By default wallet-tool will act on wallets in the default mainnet wallet directory in the datadir.\n" +
                                       "To change the target wallet, use the -datadir, -wallet and -testnet/-regtest arguments.\n\n" +
                                       "Usage:\n" +
-                                     "  bitcoin-wallet [options] <command>\n\n" +
+                                     "  unite-wallet [options] <command>\n\n" +
                                      gArgs.GetHelpMessage();
 
         fprintf(stdout, "%s", usage.c_str());
@@ -96,7 +96,7 @@ int main(int argc, char* argv[])
     }
 
     if (method.empty()) {
-        fprintf(stderr, "No method provided. Run `bitcoin-wallet -help` for valid methods.\n");
+        fprintf(stderr, "No method provided. Run `unite-wallet -help` for valid methods.\n");
         return EXIT_FAILURE;
     }
 

@@ -3,8 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_TXMEMPOOL_H
-#define BITCOIN_TXMEMPOOL_H
+#ifndef UNITE_TXMEMPOOL_H
+#define UNITE_TXMEMPOOL_H
 
 #include <memory>
 #include <set>
@@ -516,7 +516,7 @@ public:
      *
      * The second guarantee above is not currently enforced, but
      * https://github.com/bitcoin/bitcoin/pull/14193 will fix it. No known code
-     * in bitcoin currently depends on second guarantee, but it is important to
+     * in unite currently depends on second guarantee, but it is important to
      * fix for third party code that needs be able to frequently poll the
      * mempool without locking `cs_main` and without encountering missing
      * transactions during reorgs.
@@ -851,4 +851,4 @@ struct DisconnectedBlockTransactions {
     }
 };
 
-#endif // BITCOIN_TXMEMPOOL_H
+#endif // UNITE_TXMEMPOOL_H

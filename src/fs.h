@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_FS_H
-#define BITCOIN_FS_H
+#ifndef UNITE_FS_H
+#define UNITE_FS_H
 
 #include <stdio.h>
 #include <string>
@@ -92,4 +92,4 @@ namespace fsbridge {
 #endif // WIN32 && __GLIBCXX__
 };
 
-#endif // BITCOIN_FS_H
+#endif // UNITE_FS_H

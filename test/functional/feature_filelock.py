@@ -5,10 +5,10 @@
 """Check that it's not possible to start a second unit-e instance using the same datadir or wallet."""
 import os
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import UnitETestFramework
 from test_framework.test_node import ErrorMatch
 
-class FilelockTest(BitcoinTestFramework):
+class FilelockTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 2

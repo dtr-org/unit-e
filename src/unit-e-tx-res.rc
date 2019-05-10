@@ -16,8 +16,8 @@ BEGIN
     BEGIN
         BLOCK "040904E4" // U.S. English - multilingual (hex)
         BEGIN
-            VALUE "CompanyName",        "Bitcoin"
-            VALUE "FileDescription",    "unit-e-tx (CLI Bitcoin transaction editor utility)"
+            VALUE "CompanyName",        "Unit-e"
+            VALUE "FileDescription",    "unit-e-tx (CLI Unit-e transaction editor utility)"
             VALUE "FileVersion",        VER_FILEVERSION_STR
             VALUE "InternalName",       "unit-e-tx"
             VALUE "LegalCopyright",     COPYRIGHT_STR

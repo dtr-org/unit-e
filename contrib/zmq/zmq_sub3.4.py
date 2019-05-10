@@ -6,7 +6,7 @@
 """
     ZMQ example using python3's asyncio
 
-    Bitcoin should be started with the command line arguments:
+    Unit-e should be started with the command line arguments:
         unit-e -testnet -daemon \
                 -zmqpubrawtx=tcp://127.0.0.1:27181 \
                 -zmqpubrawblock=tcp://127.0.0.1:27181 \

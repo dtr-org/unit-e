@@ -1,4 +1,4 @@
-# TOR SUPPORT IN BITCOIN
+# TOR SUPPORT IN UNIT-E
 
 It is possible to run unit-e as a Tor hidden service, and connect to such services.
 
@@ -44,17 +44,17 @@ reachable from the Tor network. Add these lines to your /etc/tor/torrc (or equiv
 config file): *Needed for Tor version 0.2.7.0 and older versions of Tor only. For newer
 versions of Tor see [Section 3](#3-automatically-listen-on-tor).*
 
-	HiddenServiceDir /var/lib/tor/bitcoin-service/
+	HiddenServiceDir /var/lib/tor/unite-service/
 	HiddenServicePort 7182 127.0.0.1:7182
 	HiddenServicePort 17182 127.0.0.1:17182
 
 The directory can be different of course, but (both) port numbers should be equal to
 your unit-e's P2P listen port (7182 by default).
 
-	-externalip=X   You can tell bitcoin about its publicly reachable address using
+	-externalip=X   You can tell unite about its publicly reachable address using
 	                this option, and this can be a .onion address. Given the above
 	                configuration, you can find your .onion address in
-	                /var/lib/tor/bitcoin-service/hostname. For connections
+	                /var/lib/tor/unite-service/hostname. For connections
 	                coming from unroutable addresses (such as 127.0.0.1, where the
 	                Tor proxy typically runs), .onion addresses are given
 	                preference for your node to advertise itself with.

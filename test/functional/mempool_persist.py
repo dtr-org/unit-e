@@ -39,11 +39,11 @@ from decimal import Decimal
 import os
 import time
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import UnitETestFramework
 from test_framework.util import assert_equal, assert_raises_rpc_error, wait_until
 
 
-class MempoolPersistTest(BitcoinTestFramework):
+class MempoolPersistTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 3
         self.extra_args = [[], ["-persistmempool=0"], []]

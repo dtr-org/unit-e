@@ -5,8 +5,8 @@
 
 // Compile-time verification of assumptions we make.
 
-#ifndef BITCOIN_COMPAT_ASSUMPTIONS_H
-#define BITCOIN_COMPAT_ASSUMPTIONS_H
+#ifndef UNITE_COMPAT_ASSUMPTIONS_H
+#define UNITE_COMPAT_ASSUMPTIONS_H
 
 #include <limits>
 
@@ -14,7 +14,7 @@
 // Example(s): We use assert(...) extensively with the assumption of it never
 //             being a noop at runtime.
 #if defined(NDEBUG)
-# error "Bitcoin cannot be compiled without assertions."
+# error "Unit-e cannot be compiled without assertions."
 #endif
 
 // Assumption: We assume the floating-point types to fulfill the requirements of
@@ -46,4 +46,4 @@ static_assert(sizeof(int) == 4, "32-bit int assumed");
 // * We are NOT assuming a specific value for std::locale("").name().
 // * We are NOT assuming a specific value for std::numeric_limits<char>::is_signed.
 
-#endif // BITCOIN_COMPAT_ASSUMPTIONS_H
+#endif // UNITE_COMPAT_ASSUMPTIONS_H

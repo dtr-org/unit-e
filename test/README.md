@@ -6,9 +6,9 @@ etc.
 This directory contains the following sets of tests:
 
 - [functional](/test/functional) which test the functionality of
-unit-e and bitcoin-qt by interacting with them through the RPC and P2P
+unit-e and unite-qt by interacting with them through the RPC and P2P
 interfaces.
-- [util](/test/util) which tests the bitcoin utilities, currently only
+- [util](/test/util) which tests the unite utilities, currently only
 unit-e-tx.
 - [lint](/test/lint/) which perform various static analysis checks.
 
@@ -200,7 +200,7 @@ For ways to generate more granular profiles, see the README in
 
 ### Util tests
 
-Util tests can be run locally by running `test/util/bitcoin-util-test.py`.
+Util tests can be run locally by running `test/util/unite-util-test.py`.
 Use the `-v` option for verbose output.
 
 ### Lint tests

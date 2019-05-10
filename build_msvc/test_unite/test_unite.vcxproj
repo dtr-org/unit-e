@@ -24,33 +24,33 @@
     <ClCompile Include="..\..\src\test\*_properties.cpp" />
     <ClCompile Include="..\..\src\test\gen\*_gen.cpp" />
     <ClCompile Include="..\..\src\wallet\test\*_tests.cpp" />
-    <ClCompile Include="..\..\src\test\test_bitcoin.cpp" />
-    <ClCompile Include="..\..\src\test\test_bitcoin_main.cpp" />
+    <ClCompile Include="..\..\src\test\test_unite.cpp" />
+    <ClCompile Include="..\..\src\test\test_unite_main.cpp" />
     <ClCompile Include="..\..\src\wallet\test\*_fixture.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\libbitcoinconsensus\libbitcoinconsensus.vcxproj">
+    <ProjectReference Include="..\libuniteconsensus\libuniteconsensus.vcxproj">
       <Project>{2b384fa8-9ee1-4544-93cb-0d733c25e8ce}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\libbitcoin_cli\libbitcoin_cli.vcxproj">
+    <ProjectReference Include="..\libunite_cli\libunite_cli.vcxproj">
       <Project>{0667528c-d734-4009-adf9-c0d6c4a5a5a6}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\libbitcoin_common\libbitcoin_common.vcxproj">
+    <ProjectReference Include="..\libunite_common\libunite_common.vcxproj">
       <Project>{7c87e378-df58-482e-aa2f-1bc129bc19ce}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\libbitcoin_crypto\libbitcoin_crypto.vcxproj">
+    <ProjectReference Include="..\libunite_crypto\libunite_crypto.vcxproj">
       <Project>{6190199c-6cf4-4dad-bfbd-93fa72a760c1}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\libbitcoin_server\libbitcoin_server.vcxproj">
+    <ProjectReference Include="..\libunite_server\libunite_server.vcxproj">
       <Project>{460fee33-1fe1-483f-b3bf-931ff8e969a5}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\libbitcoin_util\libbitcoin_util.vcxproj">
+    <ProjectReference Include="..\libunite_util\libunite_util.vcxproj">
       <Project>{b53a5535-ee9d-4c6f-9a26-f79ee3bc3754}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\libbitcoin_wallet\libbitcoin_wallet.vcxproj">
+    <ProjectReference Include="..\libunite_wallet\libunite_wallet.vcxproj">
       <Project>{93b86837-b543-48a5-a89b-7c87abb77df2}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\libbitcoin_zmq\libbitcoin_zmq.vcxproj">
+    <ProjectReference Include="..\libunite_zmq\libunite_zmq.vcxproj">
       <Project>{792d487f-f14c-49fc-a9de-3fc150f31c3f}</Project>
     </ProjectReference>
     <ProjectReference Include="..\libunivalue\libunivalue.vcxproj">
@@ -67,7 +67,7 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{A56B73DB-D46D-4882-8374-1FE3FFA08F07}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>test_bitcoin</RootNamespace>
+    <RootNamespace>test_unite</RootNamespace>
     <VcpkgTriplet Condition="'$(Platform)'=='Win32'">x86-windows-static</VcpkgTriplet>
     <VcpkgTriplet Condition="'$(Platform)'=='x64'">x64-windows-static</VcpkgTriplet>
   </PropertyGroup>

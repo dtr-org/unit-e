@@ -24,7 +24,7 @@ make
 make install # optional
 ```
 
-This will build bitcoin-qt as well, if the dependencies are met.
+This will build unite-qt as well, if the dependencies are met.
 
 Dependencies
 ---------------------
@@ -98,7 +98,7 @@ ZMQ dependencies (provides ZMQ API):
 
 GUI dependencies:
 
-If you want to build bitcoin-qt, make sure that the required packages for Qt development
+If you want to build unite-qt, make sure that the required packages for Qt development
 are installed. Qt 5 is necessary to build the GUI.
 To build without GUI pass `--without-gui`.
 
@@ -110,7 +110,7 @@ libqrencode (optional) can be installed with:
 
     sudo apt-get install libqrencode-dev
 
-Once these are installed, they will be found by configure and a bitcoin-qt executable will be
+Once these are installed, they will be found by configure and a unite-qt executable will be
 built by default.
 
 
@@ -199,7 +199,7 @@ Hardening enables the following features:
 
     To test that you have built PIE executable, install scanelf, part of paxutils, and use:
 
-    	scanelf -e ./bitcoin
+    	scanelf -e ./unite
 
     The output should contain:
 
@@ -213,7 +213,7 @@ Hardening enables the following features:
     executable without the non-executable stack protection.
 
     To verify that the stack is non-executable after compiling use:
-    `scanelf -e ./bitcoin`
+    `scanelf -e ./unite`
 
     The output should contain:
 	STK/REL/PTL
@@ -245,7 +245,7 @@ This example lists the steps necessary to setup and build a command line only, n
 
     pacman -S git base-devel boost libevent python
     git clone https://github.com/bitcoin/bitcoin.git
-    cd bitcoin/
+    cd unite/
     ./autogen.sh
     ./configure --disable-wallet --without-gui --without-miniupnpc
     make check

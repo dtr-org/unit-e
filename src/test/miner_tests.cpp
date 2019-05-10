@@ -18,7 +18,7 @@
 #include <util/system.h>
 #include <util/strencodings.h>
 
-#include <test/test_bitcoin.h>
+#include <test/test_unite.h>
 
 #include <memory>
 

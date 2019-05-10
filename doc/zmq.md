@@ -6,7 +6,7 @@ providing various message-oriented semantics such as publish/subscribe,
 request/reply, and push/pull.
 
 The unit-e daemon can be configured to act as a trusted "border
-router", implementing the bitcoin wire protocol and relay, making
+router", implementing the unite wire protocol and relay, making
 consensus decisions, maintaining the local blockchain database,
 broadcasting locally generated transactions into the network, and
 providing a queryable RPC interface to interact on a polled basis for
@@ -115,5 +115,5 @@ retrieve the chain from the last known block to the new tip.
 
 There are several possibilities that ZMQ notification can get lost
 during transmission depending on the communication type you are
-using. Bitcoind appends an up-counting sequence number to each
+using. The unit-e daemon appends an up-counting sequence number to each
 notification which allows listeners to detect lost notifications.

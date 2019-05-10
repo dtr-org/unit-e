@@ -3,7 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/unite-config.h>
 #endif
 
 #include <clientversion.h>
@@ -33,7 +33,7 @@ static const int CONTINUE_EXECUTION=-1;
 
 const std::function<std::string(const char*)> G_TRANSLATION_FUN = nullptr;
 
-static void SetupBitcoinTxArgs()
+static void SetupUnitETxArgs()
 {
     SetupHelpOptions(gArgs);
 
@@ -78,7 +78,7 @@ static int AppInitRawTx(int argc, char* argv[])
     //
     // Parameters
     //
-    SetupBitcoinTxArgs();
+    SetupUnitETxArgs();
     std::string error;
     if (!gArgs.ParseParameters(argc, argv, error)) {
         fprintf(stderr, "Error parsing command line arguments: %s\n", error.c_str());
@@ -98,8 +98,8 @@ static int AppInitRawTx(int argc, char* argv[])
     if (argc < 2 || HelpRequested(gArgs)) {
         // First part of help message is specific to this utility
         std::string strUsage = PACKAGE_NAME " unit-e-tx utility version " + FormatFullVersion() + "\n\n" +
-            "Usage:  unit-e-tx [options] <hex-tx> [commands]  Update hex-encoded bitcoin transaction\n" +
-            "or:     unit-e-tx [options] -create [commands]   Create hex-encoded bitcoin transaction\n" +
+            "Usage:  unit-e-tx [options] <hex-tx> [commands]  Update hex-encoded Unit-e transaction\n" +
+            "or:     unit-e-tx [options] -create [commands]   Create hex-encoded Unit-e transaction\n" +
             "\n";
         strUsage += gArgs.GetHelpMessage();
 
@@ -789,7 +789,7 @@ static int CommandLineRawTx(int argc, char* argv[])
             if (argc < 2)
                 throw std::runtime_error("too few parameters");
 
-            // param: hex-encoded bitcoin transaction
+            // param: hex-encoded Unit-e transaction
             std::string strHexTx(argv[1]);
             if (strHexTx == "-")                 // "-" implies standard input
                 strHexTx = readStdin();

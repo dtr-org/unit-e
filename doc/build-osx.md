@@ -44,7 +44,7 @@ Build unit-e
 1. Clone the unit-e source code:
 
         git clone https://github.com/bitcoin/bitcoin
-        cd bitcoin
+        cd unite
 
 2.  Build unit-e:
 
@@ -82,22 +82,22 @@ unit-e is now available at `./src/unit-e`
 
 Before running, you may create an empty configuration file:
 
-    mkdir -p "/Users/${USER}/Library/Application Support/Bitcoin"
+    mkdir -p "/Users/${USER}/Library/Application Support/Unit-e"
 
-    touch "/Users/${USER}/Library/Application Support/Bitcoin/unit-e.conf"
+    touch "/Users/${USER}/Library/Application Support/Unit-e/unit-e.conf"
 
-    chmod 600 "/Users/${USER}/Library/Application Support/Bitcoin/unit-e.conf"
+    chmod 600 "/Users/${USER}/Library/Application Support/Unit-e/unit-e.conf"
 
 The first time you run unit-e, it will start downloading the blockchain. This process could take many hours, or even days on slower than average systems.
 
 You can monitor the download process by looking at the debug.log file:
 
-    tail -f $HOME/Library/Application\ Support/Bitcoin/debug.log
+    tail -f $HOME/Library/Application\ Support/Unit-e/debug.log
 
 Other commands:
 -------
 
-    ./src/unit-e -daemon # Starts the bitcoin daemon.
+    ./src/unit-e -daemon # Starts the unite daemon.
     ./src/unit-e-cli --help # Outputs a list of command-line options.
     ./src/unit-e-cli help # Outputs a list of RPC commands when the daemon is running.
 
@@ -203,7 +203,7 @@ build process to remain somewhat deterministic. Here's how it works:
   that have been previously (deterministically) built in order to create a
   final dmg.
 - The Apple keyholder uses this unsigned app to create a detached signature,
-  using the script that is also included there. Detached signatures are available from this [repository](https://github.com/bitcoin-core/bitcoin-detached-sigs).
+  using the script that is also included there. Detached signatures are available from this [repository](https://github.com/bitcoin-core/unite-detached-sigs).
 - Builders feed the unsigned app + detached signature back into Gitian. It
   uses the pre-built tools to recombine the pieces into a deterministic dmg.
 

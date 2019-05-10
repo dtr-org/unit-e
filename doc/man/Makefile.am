@@ -5,13 +5,13 @@ if BUILD_UNIT_E
 endif
 
 if ENABLE_QT
-  dist_man1_MANS+=bitcoin-qt.1
+  dist_man1_MANS+=unite-qt.1
 endif
 
-if BUILD_BITCOIN_CLI
+if BUILD_UNITE_CLI
   dist_man1_MANS+=unit-e-cli.1
 endif
 
-if BUILD_BITCOIN_TX
+if BUILD_UNITE_TX
   dist_man1_MANS+=unit-e-tx.1
 endif

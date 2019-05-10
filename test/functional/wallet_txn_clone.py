@@ -5,7 +5,7 @@
 """Test the wallet accounts properly when there are cloned transactions with malleated scriptsigs."""
 
 import io
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_equal,
     bytes_to_hex_str as b2x,
@@ -15,7 +15,7 @@ from test_framework.util import (
 )
 from test_framework.messages import CTransaction, COIN
 
-class TxnMallTest(BitcoinTestFramework):
+class TxnMallTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 4
 
