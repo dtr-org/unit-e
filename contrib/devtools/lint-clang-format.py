@@ -57,7 +57,7 @@ def help(argv):
 
 def main(argv):
   if ("-h" in argv) or ("--help" in argv):
-    return help(argv);
+    return help(argv)
   autoformat = "--replace" in argv
   autogitadd = autoformat and "--git-add" in argv
   iscurrentcommit = "--check-commit" in argv

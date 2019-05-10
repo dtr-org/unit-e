@@ -97,10 +97,13 @@ def test_codesign(mocker):
     log = Log("test_codesign")
 
     class TemporaryDirectoryMock():
+
         def __init__(self, dirname):
             self.dirname = dirname
+
         def __enter__(self):
             return self.dirname
+
         def __exit__(self, *args):
             pass
 
@@ -306,8 +309,10 @@ def test_find_osslsigncode(mocker):
         def __init__(self, rc, rp=''):
             self.rc = rc
             self.rp = rp
+
         def wait(self):
             return self.rc
+
         def communicate(self):
             return (self.rp.encode()+b'\n', b'')
 
