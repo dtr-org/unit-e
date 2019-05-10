@@ -52,10 +52,10 @@ class DeprecatedRpcTest(UnitETestFramework):
         # - setlabel
         #
         address0 = self.nodes[0].getnewaddress('', 'bech32')
-        self.nodes[0].generatetoaddress(101, address0)
+        self.nodes[0].proposetoaddress(101, address0)
         self.sync_all()
         address1 = self.nodes[1].getnewaddress('', 'bech32')
-        self.nodes[1].generatetoaddress(101, address1)
+        self.nodes[1].proposetoaddress(101, address1)
 
         self.log.info("- getaccount")
         assert_raises_rpc_error(-32, "getaccount is deprecated", self.nodes[0].getaccount, address0)
