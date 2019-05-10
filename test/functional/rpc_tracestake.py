@@ -23,7 +23,7 @@ class RpcTraceStakeTest(UnitETestFramework):
         node = self.nodes[0]
         self.setup_stake_coins(node)
         address = node.getnewaddress('', 'bech32')
-        node.generatetoaddress(1, address)
+        node.proposetoaddress(1, address)
         result = node.tracestake(start=1, length=2)
         assert_matches(result, [
             {
