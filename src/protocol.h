@@ -69,100 +69,100 @@ namespace NetMsgType {
 /**
  * The version message provides information about the transmitting node to the
  * receiving node at the beginning of a connection.
- * @see https://bitcoin.org/en/developer-reference#version
+ * @see https://docs.unit-e.io/reference/p2p/version.html
  */
 extern const char *VERSION;
 /**
  * The verack message acknowledges a previously-received version message,
  * informing the connecting node that it can begin to send other messages.
- * @see https://bitcoin.org/en/developer-reference#verack
+ * @see https://docs.unit-e.io/reference/p2p/verack.html
  */
 extern const char *VERACK;
 /**
  * The addr (IP address) message relays connection information for peers on the
  * network.
- * @see https://bitcoin.org/en/developer-reference#addr
+ * @see https://docs.unit-e.io/reference/p2p/addr.html
  */
 extern const char *ADDR;
 /**
  * The inv message (inventory message) transmits one or more inventories of
  * objects known to the transmitting peer.
- * @see https://bitcoin.org/en/developer-reference#inv
+ * @see https://docs.unit-e.io/reference/p2p/inv.html
  */
 extern const char *INV;
 /**
  * The getdata message requests one or more data objects from another node.
- * @see https://bitcoin.org/en/developer-reference#getdata
+ * @see https://docs.unit-e.io/reference/p2p/getdata.html
  */
 extern const char *GETDATA;
 /**
  * The merkleblock message is a reply to a getdata message which requested a
  * block using the inventory type MSG_MERKLEBLOCK.
  * @since protocol version 70001 as described by BIP37.
- * @see https://bitcoin.org/en/developer-reference#merkleblock
+ * @see https://docs.unit-e.io/reference/p2p/merkleblock.html
  */
 extern const char *MERKLEBLOCK;
 /**
  * The getblocks message requests an inv message that provides block header
  * hashes starting from a particular point in the block chain.
- * @see https://bitcoin.org/en/developer-reference#getblocks
+ * @see https://docs.unit-e.io/reference/p2p/getblocks.html
  */
 extern const char *GETBLOCKS;
 /**
  * The getheaders message requests a headers message that provides block
  * headers starting from a particular point in the block chain.
  * @since protocol version 31800.
- * @see https://bitcoin.org/en/developer-reference#getheaders
+ * @see https://docs.unit-e.io/reference/p2p/getheaders.html
  */
 extern const char *GETHEADERS;
 /**
  * The tx message transmits a single transaction.
- * @see https://bitcoin.org/en/developer-reference#tx
+ * @see https://docs.unit-e.io/reference/p2p/tx.html
  */
 extern const char *TX;
 /**
  * The headers message sends one or more block headers to a node which
  * previously requested certain headers with a getheaders message.
  * @since protocol version 31800.
- * @see https://bitcoin.org/en/developer-reference#headers
+ * @see https://docs.unit-e.io/reference/p2p/headers.html
  */
 extern const char *HEADERS;
 /**
  * The block message transmits a single serialized block.
- * @see https://bitcoin.org/en/developer-reference#block
+ * @see https://docs.unit-e.io/reference/p2p/block.html
  */
 extern const char *BLOCK;
 /**
  * The getaddr message requests an addr message from the receiving node,
  * preferably one with lots of IP addresses of other receiving nodes.
- * @see https://bitcoin.org/en/developer-reference#getaddr
+ * @see https://docs.unit-e.io/reference/p2p/getaddr.html
  */
 extern const char *GETADDR;
 /**
  * The mempool message requests the TXIDs of transactions that the receiving
  * node has verified as valid but which have not yet appeared in a block.
  * @since protocol version 60002.
- * @see https://bitcoin.org/en/developer-reference#mempool
+ * @see https://docs.unit-e.io/reference/p2p/mempool.html
  */
 extern const char *MEMPOOL;
 /**
  * The ping message is sent periodically to help confirm that the receiving
  * peer is still connected.
- * @see https://bitcoin.org/en/developer-reference#ping
+ * @see https://docs.unit-e.io/reference/p2p/ping.html
  */
 extern const char *PING;
 /**
  * The pong message replies to a ping message, proving to the pinging node that
  * the ponging node is still alive.
  * @since protocol version 60001 as described by BIP31.
- * @see https://bitcoin.org/en/developer-reference#pong
+ * @see https://docs.unit-e.io/reference/p2p/pong.html
  */
 extern const char *PONG;
 /**
  * The notfound message is a reply to a getdata message which requested an
  * object the receiving node does not have available for relay.
  * @since protocol version 70001.
- * @see https://bitcoin.org/en/developer-reference#notfound
+ * @see https://docs.unit-e.io/reference/p2p/notfound.html
  */
 extern const char *NOTFOUND;
 /**
@@ -171,7 +171,7 @@ extern const char *NOTFOUND;
  * @since protocol version 70001 as described by BIP37.
  *   Only available with service bit NODE_BLOOM since protocol version
  *   70011 as described by BIP111.
- * @see https://bitcoin.org/en/developer-reference#filterload
+ * @see https://docs.unit-e.io/reference/p2p/filterload.html
  */
 extern const char *FILTERLOAD;
 /**
@@ -180,7 +180,7 @@ extern const char *FILTERLOAD;
  * @since protocol version 70001 as described by BIP37.
  *   Only available with service bit NODE_BLOOM since protocol version
  *   70011 as described by BIP111.
- * @see https://bitcoin.org/en/developer-reference#filteradd
+ * @see https://docs.unit-e.io/reference/p2p/filteradd.html
  */
 extern const char *FILTERADD;
 /**
@@ -189,21 +189,21 @@ extern const char *FILTERADD;
  * @since protocol version 70001 as described by BIP37.
  *   Only available with service bit NODE_BLOOM since protocol version
  *   70011 as described by BIP111.
- * @see https://bitcoin.org/en/developer-reference#filterclear
+ * @see https://docs.unit-e.io/reference/p2p/filterclear.html
  */
 extern const char *FILTERCLEAR;
 /**
  * The reject message informs the receiving node that one of its previous
  * messages has been rejected.
  * @since protocol version 70002 as described by BIP61.
- * @see https://bitcoin.org/en/developer-reference#reject
+ * @see https://docs.unit-e.io/reference/p2p/reject.html
  */
 extern const char *REJECT;
 /**
  * Indicates that a node prefers to receive new block announcements via a
  * "headers" message rather than an "inv".
  * @since protocol version 70012 as described by BIP130.
- * @see https://bitcoin.org/en/developer-reference#sendheaders
+ * @see https://docs.unit-e.io/reference/p2p/sendheaders.html
  */
 extern const char *SENDHEADERS;
 /**
