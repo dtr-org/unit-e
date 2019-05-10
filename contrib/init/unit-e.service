@@ -1,11 +1,11 @@
 # It is not recommended to modify this file in-place, because it will
 # be overwritten during package upgrades. If you want to add further
 # options or overwrite existing ones then use
-# $ systemctl edit bitcoind.service
+# $ systemctl edit unit-e.service
 # See "man systemd.service" for details.
 
 # Note that almost all daemon options could be specified in
-# /etc/bitcoin/bitcoin.conf, except for those explicitly specified as arguments
+# /etc/bitcoin/unit-e.conf, except for those explicitly specified as arguments
 # in ExecStart=
 
 [Unit]
@@ -13,16 +13,16 @@ Description=Bitcoin daemon
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/bitcoind -daemon \
-                            -pid=/run/bitcoind/bitcoind.pid \
-                            -conf=/etc/bitcoin/bitcoin.conf \
-                            -datadir=/var/lib/bitcoind
+ExecStart=/usr/bin/unit-e -daemon \
+                            -pid=/run/unit-e/unit-e.pid \
+                            -conf=/etc/bitcoin/unit-e.conf \
+                            -datadir=/var/lib/unit-e
 
 # Process management
 ####################
 
 Type=forking
-PIDFile=/run/bitcoind/bitcoind.pid
+PIDFile=/run/unit-e/unit-e.pid
 Restart=on-failure
 
 # Directory creation and permissions
@@ -32,16 +32,16 @@ Restart=on-failure
 User=bitcoin
 Group=bitcoin
 
-# /run/bitcoind
-RuntimeDirectory=bitcoind
+# /run/unit-e
+RuntimeDirectory=unit-e
 RuntimeDirectoryMode=0710
 
 # /etc/bitcoin
 ConfigurationDirectory=bitcoin
 ConfigurationDirectoryMode=0710
 
-# /var/lib/bitcoind
-StateDirectory=bitcoind
+# /var/lib/unit-e
+StateDirectory=unit-e
 StateDirectoryMode=0710
 
 # Hardening measures

@@ -49,7 +49,7 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{2B384FA8-9EE1-4544-93CB-0D733C25E8CE}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>bitcoind</RootNamespace>
+    <RootNamespace>unit-e</RootNamespace>
     <ProjectName>libbitcoin_consensus</ProjectName>
     <VcpkgTriplet Condition="'$(Platform)'=='Win32'">x86-windows-static</VcpkgTriplet>
     <VcpkgTriplet Condition="'$(Platform)'=='x64'">x64-windows-static</VcpkgTriplet>

@@ -2,9 +2,9 @@
 
 *.exe
 src/bitcoin
-src/bitcoind
-src/bitcoin-cli
-src/bitcoin-tx
+src/unit-e
+src/unit-e-cli
+src/unit-e-tx
 src/bitcoin-wallet
 src/test/test_bitcoin
 src/test/test_bitcoin_fuzzy

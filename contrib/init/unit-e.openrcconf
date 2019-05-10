@@ -1,0 +1,33 @@
+# /etc/conf.d/unit-e: config file for /etc/init.d/unit-e
+
+# Config file location
+#UNIT_E_CONFIGFILE="/etc/bitcoin/unit-e.conf"
+
+# What directory to write pidfile to?  (created and owned by $UNIT_E_USER)
+#UNIT_E_PIDDIR="/var/run/unit-e"
+
+# What filename to give the pidfile
+#UNIT_E_PIDFILE="${UNIT_E_PIDDIR}/unit-e.pid"
+
+# Where to write unit-e data (be mindful that the blockchain is large)
+#UNIT_E_DATADIR="/var/lib/unit-e"
+
+# User and group to own unit-e process
+#UNIT_E_USER="bitcoin"
+#UNIT_E_GROUP="bitcoin"
+
+# Path to unit-e executable
+#UNIT_E_BIN="/usr/bin/unit-e"
+
+# Nice value to run unit-e under
+#UNIT_E_NICE=0
+
+# Additional options (avoid -conf and -datadir, use flags above)
+#UNIT_E_OPTS=""
+
+# The timeout in seconds OpenRC will wait for unit-e to terminate
+# after a SIGTERM has been raised.
+# Note that this will be mapped as argument to start-stop-daemon's
+# '--retry' option, which means you can specify a retry schedule
+# here. For more information see man 8 start-stop-daemon.
+UNIT_E_SIGTERM_TIMEOUT=60

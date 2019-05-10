@@ -1,7 +1,7 @@
 dist_man1_MANS=
 
-if BUILD_BITCOIND
-  dist_man1_MANS+=bitcoind.1
+if BUILD_UNIT_E
+  dist_man1_MANS+=unit-e.1
 endif
 
 if ENABLE_QT
@@ -9,9 +9,9 @@ if ENABLE_QT
 endif
 
 if BUILD_BITCOIN_CLI
-  dist_man1_MANS+=bitcoin-cli.1
+  dist_man1_MANS+=unit-e-cli.1
 endif
 
 if BUILD_BITCOIN_TX
-  dist_man1_MANS+=bitcoin-tx.1
+  dist_man1_MANS+=unit-e-tx.1
 endif

@@ -7,7 +7,7 @@
     ZMQ example using python3's asyncio
 
     Bitcoin should be started with the command line arguments:
-        bitcoind -testnet -daemon \
+        unit-e -testnet -daemon \
                 -zmqpubrawtx=tcp://127.0.0.1:27181 \
                 -zmqpubrawblock=tcp://127.0.0.1:27181 \
                 -zmqpubhashtx=tcp://127.0.0.1:27181 \

@@ -34,7 +34,7 @@ outgoing connections, but more is possible.
 
 In a typical situation, this suffices to run behind a Tor proxy:
 
-	./bitcoind -proxy=127.0.0.1:9050
+	./unit-e -proxy=127.0.0.1:9050
 
 
 ## 2. Run a Bitcoin Core hidden server
@@ -49,7 +49,7 @@ versions of Tor see [Section 3](#3-automatically-listen-on-tor).*
 	HiddenServicePort 17182 127.0.0.1:17182
 
 The directory can be different of course, but (both) port numbers should be equal to
-your bitcoind's P2P listen port (7182 by default).
+your unit-e's P2P listen port (7182 by default).
 
 	-externalip=X   You can tell bitcoin about its publicly reachable address using
 	                this option, and this can be a .onion address. Given the above
@@ -71,25 +71,25 @@ your bitcoind's P2P listen port (7182 by default).
 
 In a typical situation, where you're only reachable via Tor, this should suffice:
 
-	./bitcoind -proxy=127.0.0.1:9050 -externalip=57qr3yd1nyntf5k.onion -listen
+	./unit-e -proxy=127.0.0.1:9050 -externalip=57qr3yd1nyntf5k.onion -listen
 
 (obviously, replace the .onion address with your own). It should be noted that you still
 listen on all devices and another node could establish a clearnet connection, when knowing
 your address. To mitigate this, additionally bind the address of your Tor proxy:
 
-	./bitcoind ... -bind=127.0.0.1
+	./unit-e ... -bind=127.0.0.1
 
 If you don't care too much about hiding your node, and want to be reachable on IPv4
 as well, use `discover` instead:
 
-	./bitcoind ... -discover
+	./unit-e ... -discover
 
 and open port 7182 on your firewall (or use -upnp).
 
 If you only want to use Tor to reach .onion addresses, but not use it as a proxy
 for normal IPv4/IPv6 communication, use:
 
-	./bitcoind -onion=127.0.0.1:9050 -externalip=57qr3yd1nyntf5k.onion -discover
+	./unit-e -onion=127.0.0.1:9050 -externalip=57qr3yd1nyntf5k.onion -discover
 
 ## 3. Automatically listen on Tor
 
@@ -108,12 +108,12 @@ To show verbose debugging information, pass `-debug=tor`.
 
 Connecting to Tor's control socket API requires one of two authentication methods to be
 configured. It also requires the control socket to be enabled, e.g. put `ControlPort 9051`
-in `torrc` config file. For cookie authentication the user running bitcoind must have read
+in `torrc` config file. For cookie authentication the user running unit-e must have read
 access to the `CookieAuthFile` specified in Tor configuration. In some cases this is
 preconfigured and the creation of a hidden service is automatic. If permission problems
 are seen with `-debug=tor` they can be resolved by adding both the user running Tor and
-the user running bitcoind to the same group and setting permissions appropriately. On
-Debian-based systems the user running bitcoind can be added to the debian-tor group,
+the user running unit-e to the same group and setting permissions appropriately. On
+Debian-based systems the user running unit-e can be added to the debian-tor group,
 which has the appropriate permissions.
 
 An alternative authentication method is the use
