@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(BlockIndexFake_GenerateHash) {
 
   auto check = [&](const std::uint64_t height, const std::uint64_t fork_number) {
     const uint256 hash = fake.GenerateHash(height, fork_number);
-    // nota bene: GetUint64 takes the index of a byte
+    // nota bene: GetUint64 takes the index of a uint64 (good ol' pointer arithmetic)
     BOOST_CHECK_EQUAL(hash.GetUint64(0), height);
     BOOST_CHECK_EQUAL(hash.GetUint64(1), fork_number);
   };

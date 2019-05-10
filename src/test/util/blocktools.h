@@ -21,7 +21,7 @@ struct BlockIndexFake {
 
   //! Creates a new CBlockIndex in block_indexes and returns a pointer to it.
   //!
-  //! The height and pointer to previous block are deduced from the previous
+  //! The height and pointer to the previous block are deduced from the previous
   //! block index. If none is given (nullptr) a block at height 0 without a
   //! predecessor is created.
   //!
