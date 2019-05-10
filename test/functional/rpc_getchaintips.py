@@ -26,7 +26,7 @@ class GetChainTipsTest (UnitETestFramework):
         self.setup_stake_coins(self.nodes[0], self.nodes[2])
 
         # start with 200 blocks
-        self.nodes[0].generatetoaddress(200, self.nodes[0].getnewaddress('', 'bech32'))
+        self.nodes[0].proposetoaddress(200, self.nodes[0].getnewaddress('', 'bech32'))
         self.sync_all()
 
         tips = self.nodes[0].getchaintips ()
