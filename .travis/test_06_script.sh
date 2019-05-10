@@ -50,7 +50,6 @@ END_FOLD
 
 if [ "$RUN_TESTS" = "true" ]; then
   BEGIN_FOLD unit-tests
-  echo "Running the unit tests (this might take a while...)"
   while sleep 9m; do echo "=====[ $SECONDS seconds still running ]====="; done &
   KEEPALIVE_PID=$!
   DOCKER_EXEC LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/depends/$HOST/lib make $MAKEJOBS check VERBOSE=1
