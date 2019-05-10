@@ -44,19 +44,16 @@ CBlockIndex *BlockIndexFake::Generate(const std::size_t count, const uint256 &st
 }
 
 std::shared_ptr<std::vector<CBlockIndex *>> BlockIndexFake::GetChain(const uint256 &tip_hash) {
-  auto tip = block_indexes.find(tip_hash);
+  auto it = block_indexes.find(tip_hash);
   auto result = std::make_shared<std::vector<CBlockIndex *>>();
-  if (tip == block_indexes.end()) {
+  if (it == block_indexes.end()) {
     return result;
   }
-  CBlockIndex *current = &tip->second;
-  result->resize(current->nHeight + 1, nullptr);
-  std::size_t ix = current->nHeight;
-  do {
-    (*result)[ix] = current;
-    current = current->pprev;
-  } while (ix-- != 0);
-  BOOST_REQUIRE(current == nullptr);
+  CBlockIndex *tip = &it->second;
+  result->resize(tip->nHeight + 1, nullptr);
+  for (CBlockIndex *walk = tip; walk != nullptr; walk = walk->pprev) {
+    (*result)[walk->nHeight] = walk;
+  }
   return result;
 }
 
