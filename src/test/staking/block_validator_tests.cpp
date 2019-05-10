@@ -9,7 +9,7 @@
 #include <consensus/merkle.h>
 #include <key/mnemonic/mnemonic.h>
 #include <test/test_unite.h>
-#include <test/util/blocktools.h>
+#include <test/util/util.h>
 #include <timedata.h>
 
 #include <boost/test/unit_test.hpp>
@@ -18,70 +18,6 @@ namespace {
 
 std::unique_ptr<blockchain::Behavior> b =
     blockchain::Behavior::NewFromParameters(blockchain::Parameters::TestNet());
-
-struct KeyFixture {
-  CExtKey ext_key;
-  CPubKey pub_key;
-  std::vector<unsigned char> pub_key_data;
-};
-
-KeyFixture MakeKeyFixture(const std::string &seed_words = "cook note face vicious suggest company unit smart lobster tongue dune diamond faculty solid thought") {
-  // a block is signed by the proposer, thus we need some key setup here
-  const key::mnemonic::Seed seed(seed_words);
-  const CExtKey &ext_key = seed.GetExtKey();
-  // public key for signing block
-  const CPubKey pub_key = ext_key.key.GetPubKey();
-  return {
-      ext_key,
-      pub_key,
-      std::vector<unsigned char>(pub_key.begin(), pub_key.end())};
-}
-
-CTransactionRef MakeCoinbaseTransaction(const KeyFixture &key_fixture = MakeKeyFixture(), const blockchain::Height height = 0) {
-
-  CMutableTransaction tx;
-  tx.SetType(TxType::COINBASE);
-
-  // meta input: block height, snapshot hash, terminator
-  CScript script_sig = CScript() << CScriptNum::serialize(4711)
-                                 << ToByteVector(uint256S("689dae90b6913ff34a64750dd537177afa58b3d012803a10793d74f1ebb88da9"));
-  tx.vin.emplace_back(COutPoint(), script_sig);
-  // stake
-  tx.vin.emplace_back(uint256(), 1);
-  tx.vin[1].scriptWitness.stack.emplace_back();  // signature, not checked
-  tx.vin[1].scriptWitness.stack.emplace_back(key_fixture.pub_key_data);
-  // can be spent by anyone, simply yields "true"
-  CScript script_pub_key = CScript() << OP_TRUE;
-  tx.vout.emplace_back(50, script_pub_key);
-  return MakeTransactionRef(CTransaction(tx));
-}
-
-//! \brief creates a minimal block that passes validation without looking at the chain
-CBlock MinimalBlock(const KeyFixture &key_fixture = MakeKeyFixture()) {
-  // a block is signed by the proposer, thus we need some key setup here
-  const key::mnemonic::Seed seed("cook note face vicious suggest company unit smart lobster tongue dune diamond faculty solid thought");
-  const CExtKey &ext_key = seed.GetExtKey();
-  // public key for signing block
-  const CPubKey pub_key = ext_key.key.GetPubKey();
-  const auto pub_key_data = std::vector<unsigned char>(pub_key.begin(), pub_key.end());
-
-  CBlock block;
-  block.nTime = b->CalculateProposingTimestamp(std::time(nullptr));
-  block.vtx.emplace_back(MakeCoinbaseTransaction(key_fixture));
-  {
-    CMutableTransaction tx;
-    tx.SetType(TxType::REGULAR);
-    block.vtx.push_back(MakeTransactionRef(CTransaction(tx)));
-  }
-  block.hashMerkleRoot = BlockMerkleRoot(block);
-  block.hash_witness_merkle_root = BlockWitnessMerkleRoot(block);
-  block.hash_finalizer_commits_merkle_root = BlockFinalizerCommitsMerkleRoot(block);
-  const uint256 blockHash = block.GetHash();
-
-  ext_key.key.Sign(blockHash, block.signature);
-
-  return block;
-}
 
 void CheckGenesisBlock(const blockchain::Parameters &parameters) {
   // the behaviour has to be from the correct parameters,
@@ -108,7 +44,7 @@ BOOST_AUTO_TEST_CASE(check_empty_block) {
   const staking::BlockValidationResult validation_result = block_validator->CheckBlock(block, nullptr);
 
   BOOST_CHECK(!validation_result);
-  BOOST_CHECK_MESSAGE(validation_result.Is(Error::NO_TRANSACTIONS), validation_result.GetRejectionMessage());
+  BOOST_CHECK_MESSAGE(validation_result.Is(Error::INVALID_BLOCK_SIZE), validation_result.GetRejectionMessage());
 }
 
 BOOST_AUTO_TEST_CASE(check_first_transaction_not_a_coinbase_transaction) {

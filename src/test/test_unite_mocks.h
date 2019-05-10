@@ -341,6 +341,7 @@ class BlockValidatorMock : public staking::BlockValidator, public Mock {
   MethodMock<decltype(&staking::BlockValidator::CheckBlockHeader)> mock_CheckBlockHeader{this};
   MethodMock<decltype(&staking::BlockValidator::ContextualCheckBlock)> mock_ContextualCheckBlock{this};
   MethodMock<decltype(&staking::BlockValidator::ContextualCheckBlockHeader)> mock_ContextualCheckBlockHeader{this};
+  MethodMock<decltype(&staking::BlockValidator::CheckTransaction)> mock_CheckTransaction{this};
   MethodMock<decltype(&staking::BlockValidator::CheckCoinbaseTransaction)> mock_CheckCoinbaseTransaction{this};
 
   BlockValidationResult CheckBlock(const CBlock &block, BlockValidationInfo *info) const override {
@@ -354,6 +355,9 @@ class BlockValidatorMock : public staking::BlockValidator, public Mock {
   }
   BlockValidationResult ContextualCheckBlockHeader(const CBlockHeader &block_header, const CBlockIndex &block_index, blockchain::Time time, BlockValidationInfo *info) const override {
     return mock_ContextualCheckBlockHeader(block_header, block_index, time, info);
+  }
+  BlockValidationResult CheckTransaction(const CTransaction &tx) const override {
+    return mock_CheckTransaction(tx);
   }
   BlockValidationResult CheckCoinbaseTransaction(const CBlock &block, const CTransaction &coinbase_tx) const override {
     return mock_CheckCoinbaseTransaction(block, coinbase_tx);

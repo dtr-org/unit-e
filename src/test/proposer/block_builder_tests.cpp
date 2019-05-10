@@ -131,7 +131,7 @@ BOOST_AUTO_TEST_CASE(build_block_and_validate) {
   }();
 
   const staking::Coin coin1(&block1, {uint256::zero, 0}, {70, CScript()});
-  const staking::Coin coin2(&block2, {uint256::zero, 0}, {20, CScript()});
+  const staking::Coin coin2(&block2, {uint256::zero, 1}, {20, CScript()});
 
   staking::CoinSet coins;
   coins.insert(coin1);

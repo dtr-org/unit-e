@@ -8,8 +8,21 @@
 
 namespace blockchain {
 
+namespace {
+//! \brief Calculates the absolute minimum serialized size a tx can possibly have.
+//!
+//! That is: A transaction with one input, one output, and they are all empty.
+std::size_t CalculateAbsoluteTransactionSizeMinimum() {
+  CMutableTransaction mut_tx;
+  mut_tx.vin.emplace_back();
+  mut_tx.vout.emplace_back();
+  const CTransaction tx(mut_tx);
+  return GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
+}
+}  // namespace
+
 Behavior::Behavior(const Parameters &parameters) noexcept
-    : m_parameters(parameters) {
+    : m_parameters(parameters), m_absolute_transaction_size_minimum(CalculateAbsoluteTransactionSizeMinimum()) {
   CheckConsistency();
 }
 
@@ -58,6 +71,23 @@ const Settings &Behavior::GetDefaultSettings() const {
   return m_parameters.default_settings;
 }
 
+std::size_t Behavior::GetTransactionWeight(const CTransaction &tx) const {
+  return ::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * (m_parameters.witness_scale_factor - 1) + ::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION);
+}
+
+std::size_t Behavior::GetBlockWeight(const CBlock &block) const {
+  return ::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * (m_parameters.witness_scale_factor - 1) + ::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION);
+}
+
+std::size_t Behavior::GetTransactionInputWeight(const CTxIn &txin) const {
+  // scriptWitness size is added here because witnesses and txins are split up in segwit serialization.
+  return ::GetSerializeSize(txin, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * (m_parameters.witness_scale_factor - 1) + ::GetSerializeSize(txin, SER_NETWORK, PROTOCOL_VERSION) + ::GetSerializeSize(txin.scriptWitness.stack, SER_NETWORK, PROTOCOL_VERSION);
+}
+
+bool Behavior::IsInMoneyRange(const CAmount amount) const {
+  return amount >= 0 && amount <= m_parameters.expected_maximum_supply;
+}
+
 std::string Behavior::GetNetworkName() const {
   return std::string(m_parameters.network_name);
 }
@@ -72,6 +102,10 @@ const std::vector<unsigned char> &Behavior::GetBase58Prefix(Base58Type type) con
 
 const std::string &Behavior::GetBech32Prefix() const {
   return m_parameters.bech32_human_readable_prefix;
+}
+
+std::size_t Behavior::GetAbsoluteTransactionSizeMinimum() const {
+  return m_absolute_transaction_size_minimum;
 }
 
 std::unique_ptr<Behavior> Behavior::New(Dependency<::ArgsManager> args) {

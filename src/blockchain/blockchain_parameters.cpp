@@ -30,17 +30,18 @@ Parameters Parameters::Base() noexcept {
   p.maximum_block_size = 1000000;
   p.maximum_block_weight = 4000000;
   p.maximum_block_serialized_size = 4000000;
-  p.maximum_block_sigops_cost = 80000;
+  p.maximum_sigops_count = 80000;
+  p.witness_scale_factor = 4;
   p.coinbase_maturity = 100;
   p.stake_maturity = 200;
   p.stake_maturity_activation_height = 400;
-  p.initial_supply = 1500000000 * UNIT;                       // 1.5 billion UTE
-  const int64_t expected_maximum_supply = 2718275100 * UNIT;  // e billion UTE
+  p.initial_supply = 1500000000 * UNIT;           // 1.5 billion UTE
+  p.expected_maximum_supply = 2718275100 * UNIT;  // e billion UTE
   const int64_t avg_blocks_per_year = 60 * 60 * 24 * 365 / p.block_time_seconds;
   const int64_t expected_emission_years = 50;
-  p.reward = (expected_maximum_supply - p.initial_supply) / (avg_blocks_per_year * expected_emission_years);
+  p.reward = (p.expected_maximum_supply - p.initial_supply) / (avg_blocks_per_year * expected_emission_years);
   p.immediate_reward_fraction = ufp64::div_2uint(1, 10);
-  assert(expected_maximum_supply == p.initial_supply + (p.reward * avg_blocks_per_year * expected_emission_years));
+  assert(p.expected_maximum_supply == p.initial_supply + (p.reward * avg_blocks_per_year * expected_emission_years));
   p.reward_function = [](const Parameters &p, Height h) -> CAmount {
     return ufp64::mul_to_uint(p.immediate_reward_fraction, p.reward);
   };

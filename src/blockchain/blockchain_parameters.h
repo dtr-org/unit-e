@@ -143,13 +143,18 @@ struct Parameters {
   //! and the block signature (which does not count towards MAX_BLOCK_SIZE).
   std::uint32_t maximum_block_serialized_size;
 
+  //! \brief The factor between the legacy max block size and the new max block weight.
+  //!
+  //! For details see https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2017-January/013504.html
+  std::uint32_t witness_scale_factor;
+
   //! \brief The maximum allowed number of signature check operations in a block.
   //!
   //! This is a constant which used to be hardcoded in bitcoin and is parameterized
   //! in here. Each opcode is associated with a cost and validity is checked
   //! according to the total cost that it effects (which basically is computing
   //! power required for validation).
-  std::uint32_t maximum_block_sigops_cost;
+  std::uint32_t maximum_sigops_count;
 
   //! \brief Rewards from proposing blocks can only be spent after the maturity period.
   Height coinbase_maturity;
@@ -167,6 +172,9 @@ struct Parameters {
 
   //! \brief The initial amount of premined coins.
   CAmount initial_supply;
+
+  //! \brief The expected maximum amount of money in circulation ever.
+  CAmount expected_maximum_supply;
 
   //! \brief The base block reward
   CAmount reward;

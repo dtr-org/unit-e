@@ -71,7 +71,7 @@ class UnitEInjector : public Injector<UnitEInjector> {
   COMPONENT(LegacyValidationInterface, staking::LegacyValidationInterface, staking::LegacyValidationInterface::LegacyImpl,
             staking::ActiveChain,
             staking::BlockValidator,
-            staking::StakeValidator)
+            staking::Network)
 
   COMPONENT(BlockRewardValidator, staking::BlockRewardValidator, staking::BlockRewardValidator::New,
             blockchain::Behavior)
