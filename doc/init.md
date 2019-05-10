@@ -53,11 +53,11 @@ Paths
 
 All three configurations assume several paths that might need to be adjusted.
 
-Binary:              `/usr/bin/unit-e`  
-Configuration file:  `/etc/unite/unit-e.conf`  
-Data directory:      `/var/lib/unit-e`  
+Binary:              `/usr/bin/unit-e`
+Configuration file:  `/etc/unite/unit-e.conf`
+Data directory:      `/var/lib/unit-e`
 PID file:            `/var/run/unit-e/unit-e.pid` (OpenRC and Upstart) or `/run/unit-e/unit-e.pid` (systemd)
-Lock file:           `/var/lock/subsys/unit-e` (CentOS)  
+Lock file:           `/var/lock/subsys/unit-e` (CentOS)
 
 The configuration file, PID directory (if applicable) and data directory
 should all be owned by the unite user and group.  It is advised for security
@@ -83,10 +83,10 @@ OpenRC).
 
 ### macOS
 
-Binary:              `/usr/local/bin/unit-e`  
-Configuration file:  `~/Library/Application Support/Unit-e/unit-e.conf`  
-Data directory:      `~/Library/Application Support/Unit-e`  
-Lock file:           `~/Library/Application Support/Unit-e/.lock`  
+Binary:              `/usr/local/bin/unit-e`
+Configuration file:  `~/Library/Application Support/Unit-e/unit-e.conf`
+Data directory:      `~/Library/Application Support/Unit-e`
+Lock file:           `~/Library/Application Support/Unit-e/.lock`
 
 Installing Service Configuration
 -----------------------------------
