@@ -61,7 +61,7 @@ class TestNode():
     To make things easier for the test writer, any unrecognised messages will
     be dispatched to the RPC connection."""
 
-    def __init__(self, i, datadir, *, rpchost, timewait, unit-e, unit_e_cli, coverage_dir, cwd, extra_conf=None, extra_args=None, use_cli=False, start_perf=False):
+    def __init__(self, i, datadir, *, rpchost, timewait, unit_e, unit_e_cli, coverage_dir, cwd, extra_conf=None, extra_args=None, use_cli=False, start_perf=False):
         """
         Kwargs:
             start_perf (bool): If True, begin profiling the node with `perf` as soon as
@@ -74,7 +74,7 @@ class TestNode():
         self.stderr_dir = os.path.join(self.datadir, "stderr")
         self.rpchost = rpchost
         self.rpc_timeout = timewait
-        self.binary = unit-e
+        self.binary = unit_e
         self.coverage_dir = coverage_dir
         self.cwd = cwd
         if extra_conf is not None:
