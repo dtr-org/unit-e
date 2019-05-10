@@ -3,6 +3,7 @@
 # Unit-e
 
 [![Build Status](https://travis-ci.com/dtr-org/unit-e.svg?token=bm5dxUvwqj2MkNmT6JSA&branch=master)](https://travis-ci.com/dtr-org/unit-e)
+[![pullreminders](https://pullreminders.com/badge.svg)](https://pullreminders.com?ref=badge)
 
 The unit-e client is the first implementation for the Unit-e cryptocurrency
 network protocol, implemented in C++.
