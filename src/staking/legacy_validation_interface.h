@@ -24,6 +24,7 @@ namespace staking {
 
 class ActiveChain;
 class BlockValidator;
+class Network;
 class StakeValidator;
 
 //! \brief Interface which is compatible with "old style" checks.
@@ -82,6 +83,8 @@ class LegacyValidationInterface {
 
   virtual ~LegacyValidationInterface() = default;
 
+
+
   //! \brief Instantiates an instance of the old validation functions.
   //!
   //! Although the old functions do not require all these dependencies
@@ -90,7 +93,12 @@ class LegacyValidationInterface {
   static std::unique_ptr<LegacyValidationInterface> LegacyImpl(
       Dependency<ActiveChain> active_chain,
       Dependency<BlockValidator> block_validator,
-      Dependency<StakeValidator> stake_validator);
+      Dependency<Network> network);
+
+  static std::unique_ptr<LegacyValidationInterface> New(
+      Dependency<ActiveChain> active_chain,
+      Dependency<BlockValidator> block_validator,
+      Dependency<Network> network);
 
   //! \brief Instantiates an instance of the old validation functions.
   //!

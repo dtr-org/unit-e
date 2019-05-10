@@ -14,6 +14,7 @@
 #include <primitives/block.h>
 #include <staking/active_chain.h>
 #include <staking/block_validator.h>
+#include <staking/network.h>
 #include <staking/stake_validator.h>
 #include <uint256.h>
 #include <validation.h>
@@ -202,11 +203,83 @@ class LegacyValidationImpl : public LegacyValidationInterface {
   }
 };
 
+class NewValidationLogic : public LegacyValidationInterface {
+ private:
+  const Dependency<ActiveChain> m_active_chain;
+  const Dependency<BlockValidator> m_block_validator;
+  const Dependency<Network> m_network;
+  LegacyValidationImpl m_legacy_validation;
+
+ public:
+  NewValidationLogic(
+      const Dependency<ActiveChain> active_chain,
+      const Dependency<BlockValidator> block_validator,
+      const Dependency<Network> network)
+      : m_active_chain(active_chain),
+        m_block_validator(block_validator),
+        m_network(network),
+        m_legacy_validation(block_validator) {}
+
+  bool CheckBlockHeader(
+      const CBlockHeader &block,
+      CValidationState &validation_state,
+      const Consensus::Params &consensus_params) override {
+    staking::BlockValidationInfo &info = validation_state.GetBlockValidationInfo();
+    const staking::BlockValidationResult result = m_block_validator->CheckBlockHeader(block, &info);
+    return staking::CheckResult(result, validation_state);
+  }
+
+  bool CheckBlock(
+      const CBlock &block,
+      CValidationState &validation_state,
+      const Consensus::Params &consensus_params,
+      bool check_merkle_root) override {
+    staking::BlockValidationInfo &info = validation_state.GetBlockValidationInfo();
+    const staking::BlockValidationResult result = m_block_validator->CheckBlock(block, &info);
+    return staking::CheckResult(result, validation_state);
+  }
+
+  bool ContextualCheckBlock(
+      const CBlock &block,
+      CValidationState &validation_state,
+      const Consensus::Params &consensus_params,
+      const CBlockIndex *prev_block) override {
+    staking::BlockValidationInfo &info = validation_state.GetBlockValidationInfo();
+    const auto adjusted_time = static_cast<blockchain::Time>(m_network->GetTime());
+    const staking::BlockValidationResult result = m_block_validator->ContextualCheckBlock(block, *prev_block, adjusted_time, &info);
+    return staking::CheckResult(result, validation_state);
+  }
+
+  bool ContextualCheckBlockHeader(
+      const CBlockHeader &block,
+      CValidationState &validation_state,
+      const CChainParams &chainparams,
+      const CBlockIndex *prev_block,
+      std::int64_t adjusted_time) override {
+    staking::BlockValidationInfo &info = validation_state.GetBlockValidationInfo();
+    // UNIT-E TODO:
+    // bitcoin/ContextualCheckBlockHeader does not invoke CheckBlockHeader,
+    // but CheckBlockHeader in unit-e checks the timestamp to match with
+    // the each-16-seconds-rule. This call is bypassed by marking it successful.
+    info.MarkCheckBlockHeaderSuccessfull();
+    const staking::BlockValidationResult result = m_block_validator->ContextualCheckBlockHeader(
+        block, *prev_block, static_cast<blockchain::Time>(adjusted_time), &info);
+    return staking::CheckResult(result, validation_state);
+  }
+};
+
 std::unique_ptr<LegacyValidationInterface> LegacyValidationInterface::LegacyImpl(
     const Dependency<ActiveChain> active_chain,
     const Dependency<BlockValidator> block_validator,
-    const Dependency<StakeValidator> stake_validator) {
+    const Dependency<Network> network) {
   return std::unique_ptr<LegacyValidationInterface>(new LegacyValidationImpl(block_validator));
+}
+
+std::unique_ptr<LegacyValidationInterface> LegacyValidationInterface::New(
+    const Dependency<ActiveChain> active_chain,
+    const Dependency<BlockValidator> block_validator,
+    const Dependency<Network> network) {
+  return std::unique_ptr<LegacyValidationInterface>(new NewValidationLogic(active_chain, block_validator, network));
 }
 
 std::unique_ptr<LegacyValidationInterface> LegacyValidationInterface::Old() {

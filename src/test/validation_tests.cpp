@@ -30,24 +30,28 @@ struct Fixture {
   mocks::ActiveChainMock active_chain;
   std::unique_ptr<staking::BlockValidator> block_validator =
       staking::BlockValidator::New(blockchain_behavior.get());
-  mocks::StakeValidatorMock stake_validator;
+  mocks::NetworkMock network;
   std::unique_ptr<staking::LegacyValidationInterface> validation;
 
   explicit Fixture(decltype(&staking::LegacyValidationInterface::LegacyImpl) factory)
-      : validation(factory(&active_chain, block_validator.get(), &stake_validator)) {}
+      : validation(factory(&active_chain, block_validator.get(), &network)) {}
 };
 struct LegacyImpl : public Fixture {
   LegacyImpl() : Fixture(staking::LegacyValidationInterface::LegacyImpl) {}
 };
-using TestFixtures = boost::mpl::list<LegacyImpl>;
+struct NewImpl : public Fixture {
+  NewImpl() : Fixture(staking::LegacyValidationInterface::New) {}
+};
+using TestFixtures = boost::mpl::list<LegacyImpl, NewImpl>;
 
 }  // namespace
 
 BOOST_FIXTURE_TEST_SUITE(validation_tests, TestingSetup)
 
-CMutableTransaction CreateTx() {
+CMutableTransaction CreateTx(const TxType txtype = TxType::REGULAR) {
 
   CMutableTransaction mut_tx;
+  mut_tx.SetType(txtype);
 
   CBasicKeyStore keystore;
   CKey k;
@@ -109,6 +113,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_too_many_transactions, F, TestFixtures)
   auto tx_weight = GetTransactionWeight(CTransaction(CreateTx()));
 
   CBlock block;
+  block.vtx.push_back(MakeTransactionRef(CreateTx(TxType::COINBASE)));
   for (int i = 0; i <= (MAX_BLOCK_WEIGHT / tx_weight * WITNESS_SCALE_FACTOR) + 1; ++i) {
     block.vtx.push_back(MakeTransactionRef(CreateTx()));
   }

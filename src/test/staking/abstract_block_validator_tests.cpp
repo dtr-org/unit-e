@@ -72,8 +72,12 @@ class SomeBlockValidator : public staking::AbstractBlockValidator {
     return staking::BlockValidationResult::success;
   }
 
+  staking::BlockValidationResult CheckTransaction(const CTransaction& transaction) const override {
+    return staking::BlockValidationResult::success;
+  }
+
   staking::BlockValidationResult CheckCoinbaseTransaction(const CBlock &block, const CTransaction &coinbase_tx) const override {
-    return staking::BlockValidationResult();
+    return staking::BlockValidationResult::success;
   }
 };
 

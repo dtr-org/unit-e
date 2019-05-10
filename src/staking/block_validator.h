@@ -115,6 +115,11 @@ class BlockValidator {
       const CTransaction &coinbase_tx  //!< [in] The coinbase transaction to check
       ) const = 0;
 
+  //! \brief checks a transaction to be well-formed
+  virtual BlockValidationResult CheckTransaction(
+      const CTransaction &tx  //!< [in] The transaction to check
+      ) const = 0;
+
   virtual ~BlockValidator() = default;
 
   static std::unique_ptr<BlockValidator> New(Dependency<blockchain::Behavior>);
@@ -165,6 +170,7 @@ class AbstractBlockValidator : public BlockValidator {
       const CBlockIndex &prev_block,
       blockchain::Time adjusted_time,
       BlockValidationInfo *block_validation_info) const final;
+
 };
 
 }  // namespace staking

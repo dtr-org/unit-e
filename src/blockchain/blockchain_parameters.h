@@ -143,6 +143,9 @@ struct Parameters {
   //! and the block signature (which does not count towards MAX_BLOCK_SIZE).
   std::uint32_t maximum_block_serialized_size;
 
+  //! \brief
+  std::uint32_t witness_scale_factor;
+
   //! \brief The maximum allowed number of signature check operations in a block.
   //!
   //! This is a constant which used to be hardcoded in bitcoin and is parameterized

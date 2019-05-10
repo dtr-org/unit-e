@@ -44,7 +44,7 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
       return err;
     }
     case staking::BlockValidationError::COINBASE_TRANSACTION_AT_POSITION_OTHER_THAN_FIRST: {
-      static ValidationError err("bad-cb-out-of-order");
+      static ValidationError err("bad-cb-multiple");
       return err;
     }
     case staking::BlockValidationError::COINBASE_TRANSACTION_WITHOUT_OUTPUT: {
@@ -56,7 +56,7 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
       return err;
     }
     case staking::BlockValidationError::MERKLE_ROOT_DUPLICATE_TRANSACTIONS: {
-      static ValidationError err("bad-txns-duplicate");
+      static ValidationError err("bad-txnmrklroot");
       return err;
     }
     case staking::BlockValidationError::MERKLE_ROOT_MISMATCH: {
@@ -91,6 +91,42 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
       static ValidationError err("bad-blk-public-key");
       return err;
     }
+    case staking::BlockValidationError::INVALID_BLOCK_WEIGHT: {
+      static ValidationError err("bad-blk-length");
+      return err;
+    }
+    case staking::BlockValidationError::INVALID_TRANSACTION_DUPLICATE_INPUTS: {
+      static ValidationError err("bad-txns-inputs-duplicate");
+      return err;
+    }
+    case staking::BlockValidationError::INVALID_TRANSACTION_NEGATIVE_OUTPUT: {
+      static ValidationError err("bad-txns-vout-negative");
+      return err;
+    }
+    case staking::BlockValidationError::INVALID_TRANSACTION_NO_INPUTS: {
+      static ValidationError err("bad-txns-vin-empty");
+      return err;
+    }
+    case staking::BlockValidationError::INVALID_TRANSACTION_NO_OUTPUTS: {
+      static ValidationError err("bad-txns-vout-empty");
+      return err;
+    }
+    case staking::BlockValidationError::INVALID_TRANSACTION_NULL_INPUT: {
+      static ValidationError err("bad-txns-prevout-null", 10);
+      return err;
+    }
+    case staking::BlockValidationError::INVALID_TRANSACTION_OUTPUT_PAYS_TOO_MUCH: {
+      static ValidationError err("bad-txns-vout-toolarge");
+      return err;
+    }
+    case staking::BlockValidationError::INVALID_TRANSACTION_PAYS_TOO_MUCH: {
+      static ValidationError err("bad-txns-txouttotal-toolarge");
+      return err;
+    }
+    case staking::BlockValidationError::INVALID_TRANSACTION_TOO_BIG: {
+      static ValidationError err("bad-txns-oversize");
+      return err;
+    }
     case staking::BlockValidationError::INVALID_META_INPUT_PREVOUT: {
       static ValidationError err("bad-cb-meta-input-prevout");
       return err;
@@ -120,7 +156,7 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
       return err;
     }
     case staking::BlockValidationError::NO_TRANSACTIONS: {
-      static ValidationError err("bad-blk-no-transactions");
+      static ValidationError err("bad-blk-length");
       return err;
     }
     case staking::BlockValidationError::PREVIOUS_BLOCK_DOESNT_MATCH: {
