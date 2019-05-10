@@ -23,7 +23,7 @@ class RpcTraceChainTest(UnitETestFramework):
         node = self.nodes[0]
         self.setup_stake_coins(node)
         address = node.getnewaddress('', 'bech32')
-        node.generatetoaddress(1, address)
+        node.proposetoaddress(1, address)
         result = node.tracechain(start=1, length=2)
         script_pub_key_pattern = {
             'asm': str,
