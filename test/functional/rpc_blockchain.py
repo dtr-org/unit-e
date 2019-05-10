@@ -65,7 +65,7 @@ class BlockchainTest(UnitETestFramework):
         fund_proof = self.nodes[0].gettxoutproof([funding_txid])
         self.nodes[0].importprunedfunds(genesis_tx_hex, fund_proof)
 
-        self.nodes[0].generatetoaddress(200, self.nodes[0].getnewaddress('', 'bech32'))
+        self.nodes[0].proposetoaddress(200, self.nodes[0].getnewaddress('', 'bech32'))
 
         self._test_getblockchaininfo()
         self._test_getchaintxstats()
