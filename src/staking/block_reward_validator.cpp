@@ -26,7 +26,6 @@ class BlockRewardValidatorImpl : public BlockRewardValidator {
     assert(MoneyRange(input_amount));
     assert(MoneyRange(fees));
 
-    const CBlockIndex &prev_block = *index.pprev;
     CAmount total_reward = fees + m_behavior->CalculateBlockReward(index.nHeight);
 
     std::size_t num_reward_outputs = 1;
