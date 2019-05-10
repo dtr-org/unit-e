@@ -30,8 +30,7 @@ class LegacyValidationImpl : public LegacyValidationInterface {
   bool CheckBlockHeader(
       const CBlockHeader &block,
       CValidationState &validation_state,
-      const Consensus::Params &consensus_params,
-      bool check_proof_of_work) override {
+      const Consensus::Params &consensus_params) override {
     // This function used to check proof of work only. It will check timestamps in PoS,
     // so it's not superfluous, but with PoW removed it is currently simply returning true.
     return true;
@@ -41,7 +40,6 @@ class LegacyValidationImpl : public LegacyValidationInterface {
       const CBlock &block,
       CValidationState &state,
       const Consensus::Params &consensus_params,
-      bool check_proof_of_work,
       bool check_merkle_root) override {
 
     // These are checks that are independent of context.
@@ -52,7 +50,7 @@ class LegacyValidationImpl : public LegacyValidationInterface {
 
     // Check that the header is valid (particularly PoW).  This is mostly
     // redundant with the call in AcceptBlockHeader.
-    if (!CheckBlockHeader(block, state, consensus_params, check_proof_of_work)) {
+    if (!CheckBlockHeader(block, state, consensus_params)) {
       return false;
     }
 
@@ -136,7 +134,7 @@ class LegacyValidationImpl : public LegacyValidationInterface {
                          strprintf("%s: witness merkle commitment mismatch", __func__));
       }
     }
-    if (check_proof_of_work && check_merkle_root) {
+    if (check_merkle_root) {
       block.fChecked = true;
     }
     return true;

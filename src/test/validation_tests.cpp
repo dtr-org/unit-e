@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_empty, F, TestFixtures) {
   assert(block.vtx.empty());
 
   CValidationState state;
-  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false, false);
+  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-blk-length");
 }
@@ -114,7 +114,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_too_many_transactions, F, TestFixtures)
   }
 
   CValidationState state;
-  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false, false);
+  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-blk-length");
 }
@@ -126,7 +126,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_coinbase_missing, F, TestFixtures) {
   block.vtx.push_back(MakeTransactionRef(CTransaction(CreateTx())));
 
   CValidationState state;
-  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false, false);
+  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-cb-missing");
 }
@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_duplicate_coinbase, F, TestFixtures) {
   block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
 
   CValidationState state;
-  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false, false);
+  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-cb-multiple");
 }
@@ -161,7 +161,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_too_many_sigs, F, TestFixtures) {
   block.vtx.push_back(MakeTransactionRef(CTransaction(tx)));
 
   CValidationState state;
-  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false, false);
+  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-blk-sigops");
 }
@@ -175,7 +175,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_merkle_root, F, TestFixtures) {
   block.hashMerkleRoot = GetRandHash();
 
   CValidationState state;
-  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false, true);
+  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), true);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txnmrklroot");
 }
@@ -194,7 +194,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_merkle_root_mutated, F, TestFixtures) {
   block.hashMerkleRoot = BlockMerkleRoot(block, &ignored);
 
   CValidationState state;
-  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false, true);
+  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), true);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-duplicate");
 }
@@ -211,7 +211,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_duplicates_tx, F, TestFixtures) {
   block.vtx.push_back(MakeTransactionRef(tx));
 
   CValidationState state;
-  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false, false);
+  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-duplicate");
 }
@@ -227,7 +227,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_tx_order, F, TestFixtures) {
   SortTxs(block, true);
 
   CValidationState state;
-  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false, false);
+  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-tx-ordering");
 }
@@ -295,7 +295,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_witness, F, TestFixtures) {
   block.hash_witness_merkle_root = GetRandHash();
 
   CValidationState state;
-  fixture.validation->CheckBlock(block, state, consensus_params, false, true);
+  fixture.validation->CheckBlock(block, state, consensus_params, true);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-witness-merkle-match");
 }

@@ -50,34 +50,13 @@ class LegacyValidationInterface {
   virtual bool CheckBlockHeader(
       const CBlockHeader &block,
       CValidationState &validation_state,
-      const Consensus::Params &consensus_params,
-      bool check_proof_of_work) = 0;
-
-  //! Short hand (virtual functions do not go well with default parameters)
-  //! for CheckBlockHeader(block, validation_state, consensus_params, true);
-  bool CheckBlockHeader(
-      const CBlockHeader &block,
-      CValidationState &validation_state,
-      const Consensus::Params &consensus_params) {
-    return CheckBlockHeader(block, validation_state, consensus_params, true);
-  }
+      const Consensus::Params &consensus_params) = 0;
 
   virtual bool CheckBlock(
       const CBlock &block,
       CValidationState &validation_state,
       const Consensus::Params &consensus_params,
-      bool check_proof_of_work,
       bool check_merkle_root) = 0;
-
-  //! Short hand (virtual functions do not go well with default parameters)
-  //! for CheckBlock(block, validation_state, consensus_params, check_proof_of_work, true);
-  bool CheckBlock(
-      const CBlock &block,
-      CValidationState &validation_state,
-      const Consensus::Params &consensus_params,
-      bool check_proof_of_work) {
-    return CheckBlock(block, validation_state, consensus_params, check_proof_of_work, true);
-  }
 
   //! Short hand (virtual functions do not go well with default parameters)
   //! CheckBlock(block, validation_state, consensus_params, true, true);
@@ -85,7 +64,7 @@ class LegacyValidationInterface {
       const CBlock &block,
       CValidationState &validation_state,
       const Consensus::Params &consensus_params) {
-    return CheckBlock(block, validation_state, consensus_params, true, true);
+    return CheckBlock(block, validation_state, consensus_params, true);
   }
 
   virtual bool ContextualCheckBlock(
