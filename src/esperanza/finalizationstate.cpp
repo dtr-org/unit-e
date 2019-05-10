@@ -155,8 +155,8 @@ void FinalizationState::InstaJustify() {
   m_last_justified_epoch = m_current_epoch - 1;
 
   if (m_current_epoch > 1) {
-    uint32_t prev_justified = m_current_epoch - 2;
-    if (GetCheckpoint(prev_justified).m_is_justified) {
+    uint32_t to_be_finalized = m_current_epoch - 2;
+    if (GetCheckpoint(to_be_finalized).m_is_justified) {
       cp.m_is_finalized = true;
       m_last_finalized_epoch = m_last_justified_epoch;
     }
@@ -202,19 +202,14 @@ ufp64::ufp64_t FinalizationState::GetCollectiveRewardFactor() {
     return 0;
   }
 
-  // we use "m_current_epoch - 2" epoch to retrieve dynasty votes because:
-  // -1 as m_current_epoch is already incremented inside of InitializeEpoch
-  // before this function is invoked
-  // -1 because when we store votes we use vote.m_target_epoch which is always
-  // one below the m_current_epoch
-  const uint32_t checkpoint_epoch = m_current_epoch - 2;
+  assert(m_last_finalized_epoch == m_current_epoch - 2);
 
   ufp64::ufp64_t curVoteFraction = ufp64::div_2uint(
-      GetCheckpoint(checkpoint_epoch).GetCurDynastyVotes(m_expected_source_epoch),
+      GetCheckpoint(m_last_finalized_epoch).GetCurDynastyVotes(m_expected_source_epoch),
       m_cur_dyn_deposits);
 
   ufp64::ufp64_t prevVoteFraction = ufp64::div_2uint(
-      GetCheckpoint(checkpoint_epoch).GetPrevDynastyVotes(m_expected_source_epoch),
+      GetCheckpoint(m_last_finalized_epoch).GetPrevDynastyVotes(m_expected_source_epoch),
       m_prev_dyn_deposits);
 
   ufp64::ufp64_t voteFraction = ufp64::min(curVoteFraction, prevVoteFraction);
@@ -257,10 +252,6 @@ uint64_t FinalizationState::GetDepositSize(const uint160 &validatorAddress) cons
   } else {
     return 0;
   }
-}
-
-uint32_t FinalizationState::GetExpectedSourceEpoch() const {
-  return m_expected_source_epoch;
 }
 
 uint32_t FinalizationState::GetRecommendedTargetEpoch() const {

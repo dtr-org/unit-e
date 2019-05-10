@@ -85,6 +85,10 @@ void FinalizationStateSpy::shuffle() {
 
 #undef ConstRand
 
+uint32_t FinalizationStateSpy::GetExpectedSourceEpoch() const {
+  return m_expected_source_epoch;
+}
+
 void FinalizationStateSpy::CreateAndActivateDeposit(const uint160 &validator_address, CAmount deposit_size) {
   BOOST_REQUIRE_EQUAL(GetCurrentEpoch(), 0);
 

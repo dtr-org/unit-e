@@ -152,16 +152,7 @@ class VoteTest(UnitETestFramework):
         generate_block(node0, count=4)
         prev_tx = finalizer1.decoderawtransaction(prev_tx)['txid']
 
-        # test that node recognizes old and invalid votes.
-        # tx = make_vote_tx(finalizer1, address1, node0.getblockhash(30), 1, 2, prev_tx)
-        # assert_raises_rpc_error(-26, 'bad-vote-invalid', node0.sendrawtransaction, tx)
-        # tx = make_vote_tx(finalizer1, address1, node0.getblockhash(30), 2, 3, prev_tx)
-        # assert_raises_rpc_error(-26, 'bad-vote-invalid', node0.sendrawtransaction, tx)
-        # tx = make_vote_tx(finalizer1, address1, node0.getblockhash(30), 7, 6, prev_tx)
-        # assert_raises_rpc_error(-26, 'bad-vote-invalid', node0.sendrawtransaction, tx)
-        self.log.info('Tested outdated and invalid vote votes')
-
-        # check that make_vote_tx works as expected (we really rely on this guy on tests above)
+        # check that make_vote_tx works as expected
         tx = make_vote_tx(finalizer1, address1, node0.getblockhash(30), 5, 6, prev_tx)
         node0.sendrawtransaction(tx)
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=node0)
@@ -174,6 +165,17 @@ class VoteTest(UnitETestFramework):
                                          'lastFinalizedEpoch': 6,
                                          'validators': 3})
         self.log.info('make_vote_tx works together with real finalizers')
+
+        # test that node recognizes old and invalid votes.
+        tx = make_vote_tx(finalizer1, address1, node0.getblockhash(30), 1, 2, prev_tx)
+        assert_raises_rpc_error(-26, 'bad-vote-invalid', node0.sendrawtransaction, tx)
+        tx = make_vote_tx(finalizer1, address1, node0.getblockhash(30), 2, 3, prev_tx)
+        assert_raises_rpc_error(-26, 'bad-vote-invalid', node0.sendrawtransaction, tx)
+        tx = make_vote_tx(finalizer1, address1, node0.getblockhash(30), 7, 9, prev_tx)
+        assert_raises_rpc_error(-26, 'bad-vote-invalid', node0.sendrawtransaction, tx)
+        tx = make_vote_tx(finalizer1, address1, node0.getblockhash(30), 7, 6, prev_tx)
+        assert_raises_rpc_error(-26, 'bad-vote-invalid', node0.sendrawtransaction, tx)
+        self.log.info('Tested outdated and invalid vote votes')
 
         # UNIT-E TODO: there is a know issue https://github.com/dtr-org/unit-e/issues/643
         # that finalizer doesn't vote after processing the checkpoint.
