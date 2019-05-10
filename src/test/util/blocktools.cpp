@@ -17,33 +17,27 @@ CBlockIndex *BlockIndexFake::MakeBlockIndex(const uint256 &hash, CBlockIndex *co
   return index;
 }
 
-CBlockIndex *BlockIndexFake::Generate(const std::size_t count, const CBlockIndex *starting_point) {
+CBlockIndex *BlockIndexFake::Lookup(const uint256 &hash) {
+  auto it = block_indexes.find(hash);
+  BOOST_REQUIRE_MESSAGE(
+      it != block_indexes.end(),
+      "no block index known by this hash in this instance of BlockIndexFake.");
+  return &it->second;
+}
 
-  std::size_t height = 0;
-  CBlockIndex *const starting_index = [&]() {
-    if (starting_point == nullptr) {
-      ++height;
-      const uint256 hash = GetRandHash();
-      return MakeBlockIndex(hash, nullptr);
-    }
-    auto it = block_indexes.find(starting_point->GetBlockHash());
-    BOOST_REQUIRE_MESSAGE(
-        it != block_indexes.end(),
-        "starting_point not known by this instance of BlockIndexFake.");
-    return &it->second;
-  }();
+CBlockIndex *BlockIndexFake::Generate(const std::size_t count, const CBlockIndex *starting_point) {
+  CBlockIndex *const starting_index = starting_point ? Lookup(starting_point->GetBlockHash())
+                                                     : MakeBlockIndex(GetRandHash(), nullptr);
   BOOST_REQUIRE(starting_index);
   BOOST_REQUIRE(starting_index->phashBlock);
-
   CBlockIndex *current_index = starting_index;
-  for (; height < count; ++height) {
+  for (std::size_t i = starting_point ? 0 : 1; i < count; ++i) {
     const uint256 hash = GetRandHash();
     current_index = MakeBlockIndex(hash, current_index);
     BOOST_REQUIRE(current_index);
     BOOST_REQUIRE(current_index->phashBlock);
     BOOST_REQUIRE(current_index->pprev);
   }
-
   return current_index;
 }
 

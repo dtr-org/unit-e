@@ -39,10 +39,14 @@ struct BlockIndexFake {
   //! \param starting_point optional, the starting point to fork from.
   //!
   //! \return A pointer to the tip of the newly created chain.
-  CBlockIndex *Generate(std::size_t count, const CBlockIndex* starting_point = nullptr);
+  CBlockIndex *Generate(std::size_t count, const CBlockIndex *starting_point = nullptr);
 
   //! Retrieves a chain that ends in the specified tip.
-  std::vector<CBlockIndex *> GetChain(const CBlockIndex* tip);
+  std::vector<CBlockIndex *> GetChain(const CBlockIndex *tip);
+
+  //! Looks up a node by id which is known to exist in this block index.
+  //! Fails with BOOST_REQUIRE_MESSAGE if it does not exist.
+  CBlockIndex *Lookup(const uint256 &hash);
 
   //! Stubs an active chain mock with stubs that use the block index from this
   //! instance and activates the chain which has the given tip.
