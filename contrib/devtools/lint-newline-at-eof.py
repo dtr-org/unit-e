@@ -15,7 +15,7 @@ def checkfile(filename):
       lastcharacter = file.read(1)
       if lastcharacter == b'\n':
         return True
-    except OSError as err:
+    except OSError:
       return True
   print(filename, "does not end in a newline")
   return False

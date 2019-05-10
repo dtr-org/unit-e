@@ -330,7 +330,7 @@ def verify(args):
             ('win-unsigned', 'win', 'Windows'),
             ('osx-unsigned', 'osx', 'MacOS'),
             ('win-signed', 'win-signer', 'Signed Windows'),
-        ]:
+    ]:
         build_sig_dir = args.version + '-' + sig_path_suffix
         if Path(sigs_path, build_sig_dir).is_dir():
             print('\nVerifying v{} {}\n'.format(args.version, build_name))

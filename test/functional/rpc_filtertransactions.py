@@ -3,11 +3,19 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+from decimal import Decimal
+
 from test_framework.test_framework import (
     UnitETestFramework,
     PROPOSER_REWARD,
 )
-from test_framework.util import *
+from test_framework.util import (
+    assert_array_result,
+    assert_equal,
+    assert_raises_rpc_error,
+    sync_blocks,
+    sync_mempools,
+)
 
 class FilterTransactionsTest(UnitETestFramework):
     def set_test_params(self):

@@ -207,6 +207,7 @@ class CommitsTest(UnitETestFramework):
             node.p2p.send_message(make_commits_msg(blocks))
 
         chain = []
+
         def generate(n):
             tip = chain[-1] if len(chain) > 0 else None
             for i in range(0, n):

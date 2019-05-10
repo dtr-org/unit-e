@@ -73,7 +73,6 @@ class TxnMallTest(UnitETestFramework):
         # Coins are sent to node1_address
         node1_address = self.nodes[1].getnewaddress()
 
-        node0_utxos = self.nodes[0].listunspent(0)
         fund_foo_vout = find_vout(self.nodes[0], node0_txid1, 1219)
         fund_bar_vout = find_vout(self.nodes[0], node0_txid2, 29)
 

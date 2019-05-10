@@ -26,7 +26,14 @@ from test_framework.blocktools import (
 from test_framework.messages import BIP125_SEQUENCE_NUMBER, CTransaction, msg_block
 from test_framework.mininode import P2PInterface
 from test_framework.test_framework import UnitETestFramework
-from test_framework.util import assert_equal, assert_greater_than, assert_raises_rpc_error, bytes_to_hex_str, connect_nodes_bi, hex_str_to_bytes, sync_mempools
+from test_framework.util import (
+    assert_equal,
+    assert_greater_than,
+    assert_raises_rpc_error,
+    connect_nodes_bi,
+    hex_str_to_bytes,
+    sync_mempools,
+)
 
 import io
 

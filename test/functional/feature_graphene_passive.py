@@ -18,8 +18,8 @@ Tests that receiver node looks not only on transactions in their mempool,
 but also in the orphan pool
 """
 
+from test_framework.messages import GrapheneTx
 from test_framework.mininode import (
-    GrapheneTx,
     P2PInterface,
     mininode_lock,
     msg_block,
@@ -32,7 +32,6 @@ from test_framework.mininode import (
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     sync_blocks,
-    sync_mempools,
     wait_until,
     assert_equal
 )

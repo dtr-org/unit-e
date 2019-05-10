@@ -13,11 +13,9 @@ from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_equal,
     assert_finalizationstate,
-    connect_nodes_bi,
     disconnect_nodes,
     generate_block,
     json,
-    sync_blocks,
     wait_until,
 )
 
@@ -33,13 +31,11 @@ class FeatureReindexCommits(UnitETestFramework):
         })
 
         proposer_args = [
-            '-esperanzaconfig=' +
-            finalization_params]
+            '-esperanzaconfig=' + finalization_params]
 
         validator_args = [
             '-validating=1',
-            '-esperanzaconfig=' +
-            finalization_params]
+            '-esperanzaconfig=' + finalization_params]
 
         if reindex:
             proposer_args.append('-reindex')

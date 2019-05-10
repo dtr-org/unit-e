@@ -16,7 +16,6 @@ from test_framework.util import (
     assert_equal,
     assert_finalizationstate,
     generate_block,
-    sync_blocks,
     wait_until,
 )
 

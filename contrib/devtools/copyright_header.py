@@ -42,8 +42,7 @@ def applies_to_file(filename):
     for excluded_dir in EXCLUDE_DIRS:
         if filename.startswith(excluded_dir):
             return False
-    return ((EXCLUDE_COMPILED.match(filename) is None) and
-            (INCLUDE_COMPILED.match(filename) is not None))
+    return (EXCLUDE_COMPILED.match(filename) is None) and (INCLUDE_COMPILED.match(filename) is not None)
 
 ################################################################################
 # obtain list of files in repo according to INCLUDE and EXCLUDE
@@ -88,20 +87,20 @@ EXPECTED_HOLDER_NAMES = [
     "Bitcoin Core Developers\n",
     "the Bitcoin Core developers\n",
     "The Bitcoin developers\n",
-    "The LevelDB Authors\. All rights reserved\.\n",
-    "BitPay Inc\.\n",
-    "BitPay, Inc\.\n",
-    "University of Illinois at Urbana-Champaign\.\n",
+    r"The LevelDB Authors\. All rights reserved\.\n",
+    r"BitPay Inc\.\n",
+    r"BitPay, Inc\.\n",
+    r"University of Illinois at Urbana-Champaign\.\n",
     "MarcoFalke\n",
     "Pieter Wuille\n",
-    "Pieter Wuille +\*\n",
-    "Pieter Wuille, Gregory Maxwell +\*\n",
-    "Pieter Wuille, Andrew Poelstra +\*\n",
-    "Andrew Poelstra +\*\n",
+    r"Pieter Wuille +\*\n",
+    r"Pieter Wuille, Gregory Maxwell +\*\n",
+    r"Pieter Wuille, Andrew Poelstra +\*\n",
+    r"Andrew Poelstra +\*\n",
     "Wladimir J. van der Laan\n",
     "Jeff Garzik\n",
-    "Diederik Huys, Pieter Wuille +\*\n",
-    "Thomas Daede, Cory Fields +\*\n",
+    r"Diederik Huys, Pieter Wuille +\*\n",
+    r"Thomas Daede, Cory Fields +\*\n",
     "Jan-Klaas Kollhof\n",
     "Sam Rushing\n",
     "ArtForz -- public domain half-a-node\n",
@@ -351,7 +350,7 @@ def write_file_lines(filename, file_lines):
 # update header years execution
 ################################################################################
 
-COPYRIGHT = 'Copyright \([cC]\)'
+COPYRIGHT = r'Copyright \([cC]\)'
 YEAR = "20[0-9][0-9]"
 YEAR_RANGE = '(%s)(-%s)?' % (YEAR, YEAR)
 HOLDER = 'The Unit-e developers'
@@ -390,9 +389,9 @@ def create_updated_copyright_line(line, last_git_change_year):
     start_year, end_year = parse_year_range(year_range)
     if end_year == last_git_change_year:
         return line
-    return (before_copyright + copyright_splitter +
-            year_range_to_str(start_year, last_git_change_year) + ' ' +
-            ' '.join(space_split[1:]))
+    year_range_str = year_range_to_str(start_year, last_git_change_year)
+    return F"{before_copyright}{copyright_splitter}{year_range_str}  {' '.join(space_split[1:])}"
+
 
 def update_updatable_copyright(filename):
     file_lines = read_file_lines(filename)

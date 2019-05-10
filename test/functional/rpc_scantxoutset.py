@@ -5,7 +5,6 @@
 """Test the scantxoutset rpc call."""
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import assert_equal
-from test_framework.regtest_mnemonics import regtest_mnemonics
 
 from decimal import Decimal
 import shutil

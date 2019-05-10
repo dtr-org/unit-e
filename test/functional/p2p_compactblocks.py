@@ -25,7 +25,6 @@ from test_framework.messages import (
     COutPoint,
     CTransaction,
     CTxIn,
-    CTxInWitness,
     CTxOut,
     FromHex,
     HeaderAndShortIDs,
@@ -45,8 +44,6 @@ from test_framework.messages import (
     NODE_WITNESS,
     P2PHeaderAndShortIDs,
     PrefilledTransaction,
-    ser_uint256,
-    ToHex
 )
 from test_framework.mininode import mininode_lock, P2PInterface
 from test_framework.script import CScript, OP_TRUE, OP_DROP
@@ -409,8 +406,7 @@ class CompactBlocksTest(UnitETestFramework):
 
         index = 0
         while index < len(block.vtx):
-            if (len(header_and_shortids.prefilled_txn) > 0 and
-                    header_and_shortids.prefilled_txn[0].index == index):
+            if (len(header_and_shortids.prefilled_txn) > 0 and header_and_shortids.prefilled_txn[0].index == index):
                 # Already checked prefilled transactions above
                 header_and_shortids.prefilled_txn.pop(0)
             else:

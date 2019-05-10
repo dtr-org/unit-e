@@ -7,7 +7,6 @@ from decimal import (
     Decimal
 )
 from test_framework.util import (
-    Matcher,
     assert_equal,
     assert_matches,
 )
@@ -93,6 +92,7 @@ class FeatureStakingTest(UnitETestFramework):
 
         self.log.info("Check that chaindata is maintained across restarts")
         chain_height = node.getblockcount()
+
         def get_chaindata(height):
             size = height + 1
             return (node.tracechain(start=height, length=size),

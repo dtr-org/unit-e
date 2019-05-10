@@ -70,7 +70,7 @@ def process_commands(fname):
             if alternative_style:
                 continue
             if not in_rpcs:
-                if re.match("static const CRPCCommand .*\[\] =", line):
+                if re.match(r"static const CRPCCommand .*\[\] =", line):
                     in_rpcs = True
             else:
                 if line.startswith('};'):
