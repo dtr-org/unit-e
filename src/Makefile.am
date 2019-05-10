@@ -98,7 +98,7 @@ endif
 endif
 
 .PHONY: FORCE check-symbols check-security
-# bitcoin core #
+# unit-e #
 BITCOIN_CORE_H = \
   addrdb.h \
   addrman.h \

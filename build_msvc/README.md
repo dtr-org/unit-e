@@ -1,9 +1,9 @@
-Building Bitcoin Core with Visual Studio
+Building unit-e with Visual Studio
 ========================================
 
 Introduction
 ---------------------
-Solution and project files to build the Bitcoin Core applications (except Qt dependent ones) with Visual Studio 2017 can be found in the build_msvc directory.
+Solution and project files to build the unit-e applications (except Qt dependent ones) with Visual Studio 2017 can be found in the build_msvc directory.
 
 Building with Visual Studio is an alternative to the Linux based [cross-compiler build](https://github.com/bitcoin/bitcoin/blob/master/doc/build-windows.md).
 

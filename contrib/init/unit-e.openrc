@@ -18,7 +18,7 @@ UNIT_E_BIN=${UNIT_E_BIN:-/usr/bin/unit-e}
 UNIT_E_NICE=${UNIT_E_NICE:-${NICELEVEL:-0}}
 UNIT_E_OPTS="${UNIT_E_OPTS:-${BITCOIN_OPTS}}"
 
-name="Bitcoin Core Daemon"
+name="unit-e Daemon"
 description="Bitcoin cryptocurrency P2P network daemon"
 
 command="/usr/bin/unit-e"
