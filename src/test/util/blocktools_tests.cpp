@@ -10,9 +10,11 @@
 #include <test/test_unite.h>
 #include <boost/test/unit_test.hpp>
 
+#include <limits>
+
 BOOST_AUTO_TEST_SUITE(blocktools_tests)
 
-BOOST_AUTO_TEST_CASE(BLockIndexFake_MakeBlockIndex) {
+BOOST_AUTO_TEST_CASE(BlockIndexFake_MakeBlockIndex) {
 
   blocktools::BlockIndexFake fake;
 
@@ -88,6 +90,33 @@ BOOST_AUTO_TEST_CASE(BlockIndexFake_GetChain) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(BlockIndexFake_GenerateHash) {
+
+  blocktools::BlockIndexFake fake;
+
+  auto check = [&](const std::uint64_t height, const std::uint64_t fork_number) {
+    const uint256 hash = fake.GenerateHash(height, fork_number);
+    // nota bene: GetUint64 takes the index of a byte
+    BOOST_CHECK_EQUAL(hash.GetUint64(0), height);
+    BOOST_CHECK_EQUAL(hash.GetUint64(1), fork_number);
+  };
+
+  // some interesting numbers: minimum, one, an arbitrary number, and maximum
+  const std::vector<std::uint64_t> interesting_numbers = {
+      0,
+      1,
+      2,
+      9283745,
+      std::numeric_limits<std::uint64_t>::max()
+  };
+  // check all combinations of numbers
+  for (auto i : interesting_numbers) {
+    for (auto j : interesting_numbers) {
+      check(i, j);
+    }
+  }
+}
+
 BOOST_AUTO_TEST_CASE(BlockIndexFake_Feature_Forks) {
 
   blocktools::BlockIndexFake fake;
@@ -137,6 +166,34 @@ BOOST_AUTO_TEST_CASE(BlockIndexFake_Feature_Forks) {
     }
     BOOST_CHECK_EQUAL(previous, tip2);
   }
+}
+
+BOOST_AUTO_TEST_CASE(BlockIndexFake_Feature_DebuggableBlockHashes) {
+
+  blocktools::BlockIndexFake fake;
+
+  auto check = [](const std::vector<CBlockIndex *> &chain, const std::size_t fork_point, const std::size_t fork_number) {
+    for (auto ix : chain) {
+      BOOST_CHECK_EQUAL(ix->GetBlockHash().GetUint64(0), ix->nHeight);
+      BOOST_CHECK_EQUAL(ix->GetBlockHash().GetUint64(1), ix->nHeight > fork_point ? fork_number : 0);
+    }
+  };
+
+  const CBlockIndex *tip = fake.Generate(100);
+  const std::vector<CBlockIndex *> active_chain = fake.GetChain(tip);
+  check(active_chain, 0, 0);
+
+  const CBlockIndex *fork1_tip = fake.Generate(40, active_chain.at(20));
+  const std::vector<CBlockIndex *> fork1 = fake.GetChain(fork1_tip);
+  check(fork1, 20, 1);
+
+  const CBlockIndex *fork2_tip = fake.Generate(40, active_chain.at(60));
+  const std::vector<CBlockIndex *> fork2 = fake.GetChain(fork2_tip);
+  check(fork2, 60, 2);
+
+  const CBlockIndex *fork3_tip = fake.Generate(40, active_chain.at(80));
+  const std::vector<CBlockIndex *> fork3 = fake.GetChain(fork3_tip);
+  check(fork3, 80, 3);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

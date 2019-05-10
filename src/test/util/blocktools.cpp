@@ -4,6 +4,9 @@
 
 #include <test/util/blocktools.h>
 
+#include <arith_uint256.h>
+#include <random.h>
+
 #include <boost/test/unit_test.hpp>
 
 namespace blocktools {
@@ -25,14 +28,24 @@ CBlockIndex *BlockIndexFake::Lookup(const uint256 &hash) {
   return &it->second;
 }
 
+uint256 BlockIndexFake::GenerateHash(const std::uint64_t height, const std::uint64_t fork_number) const {
+  arith_uint256 hash = UintToArith256(GetRandHash());
+  hash <<= 64;
+  hash += fork_number;
+  hash <<= 64;
+  hash += height;
+  return ArithToUint256(hash);
+}
+
 CBlockIndex *BlockIndexFake::Generate(const std::size_t count, const CBlockIndex *starting_point) {
   CBlockIndex *const starting_index = starting_point ? Lookup(starting_point->GetBlockHash())
-                                                     : MakeBlockIndex(GetRandHash(), nullptr);
+                                                     : MakeBlockIndex(GenerateHash(0, 0), nullptr);
   BOOST_REQUIRE(starting_index);
   BOOST_REQUIRE(starting_index->phashBlock);
+  const std::size_t fork_number = starting_point ? ++number_of_forks : 0;
   CBlockIndex *current_index = starting_index;
   for (std::size_t i = starting_point ? 0 : 1; i < count; ++i) {
-    const uint256 hash = GetRandHash();
+    const uint256 hash = GenerateHash(current_index->nHeight + 1, fork_number);
     current_index = MakeBlockIndex(hash, current_index);
     BOOST_REQUIRE(current_index);
     BOOST_REQUIRE(current_index->phashBlock);

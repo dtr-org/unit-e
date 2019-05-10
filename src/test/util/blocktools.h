@@ -8,9 +8,9 @@
 #include <test/test_unite_mocks.h>
 
 #include <chain.h>
-#include <random.h>
 #include <uint256.h>
 
+#include <cstdint>
 #include <map>
 
 namespace blocktools {
@@ -41,6 +41,17 @@ struct BlockIndexFake {
   //! \return A pointer to the tip of the newly created chain.
   CBlockIndex *Generate(std::size_t count, const CBlockIndex *starting_point = nullptr);
 
+  //! Generates a random hash and encodes height and fork_number in it.
+  //!
+  //! Example hashes:
+  //! - 2046b80afe8458145d02244c8958b5e000000000000000000000000000000000
+  //!                                   ^ fork=0        ^ height=0
+  //! - 37cde99f37f4ee323ab10afc8c6e5fa300000000000000020000000000000007
+  //!                                   ^ fork=2        ^ height=7
+  //! - ef101be55d91aa5adfe8df797432fbb5ffffffffffffffff00000000008da8a1
+  //!                                   fork=uint64_max ^ height=9283745
+  uint256 GenerateHash(std::uint64_t height, std::uint64_t fork_number) const;
+
   //! Retrieves a chain that ends in the specified tip.
   std::vector<CBlockIndex *> GetChain(const CBlockIndex *tip);
 
@@ -52,6 +63,9 @@ struct BlockIndexFake {
   //! instance and activates the chain which has the given tip.
   void SetupActiveChain(const CBlockIndex *tip,
                         mocks::ActiveChainMock &active_chain_mock);
+
+ private:
+  std::size_t number_of_forks = 0;
 };
 
 }  // namespace blocktools
