@@ -259,33 +259,9 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
     }
 
     const CAmount value_out = tx.GetValueOut();
-    if (tx.IsCoinBase()) {
-        // The coinbase transaction should spend exactly its inputs and the reward.
-        // The reward output is by definition in the zeroth output. The reward
-        // consists of newly minted money (the block reward) and the fees accumulated
-        // from the transactions.
-        if (tx.vout.empty()) {
-          return state.DoS(100, false, REJECT_INVALID, "bad-cb-no-reward", false,
-                           strprintf("coinbase without a reward txout"));
-        }
-        const CTxOut &reward_out = tx.vout[0];
-        const CAmount reward = reward_out.nValue;
-        if (nValueIn + reward < value_out) {
-            return state.DoS(100, false, REJECT_INVALID, "bad-cb-spends-too-much", false,
-                             strprintf("value in (%s) + reward(%s) != value out (%s) in coinbase",
-                                       FormatMoney(nValueIn),
-                                       FormatMoney(reward),
-                                       FormatMoney(value_out)));
-        }
-        if (nValueIn + reward > value_out) {
-            return state.DoS(100, false, REJECT_INVALID, "bad-cb-spends-too-little", false,
-                             strprintf("value in (%s) + reward(%s) != value out (%s) in coinbase",
-                                       FormatMoney(nValueIn),
-                                       FormatMoney(reward),
-                                       FormatMoney(value_out)));
-        }
-    } else if (!tx.IsCoinBase()) {
-        // All other transactions have to spend no more then their inputs. If they spend
+    // Coinbase outputs are validated in BlockRewardValidator::CheckBlockRewards
+    if (!tx.IsCoinBase()) {
+        // All non-coinbase transactions have to spend no more than their inputs. If they spend
         // less, the change is counted towards the fees which are included in the reward
         // of the coinbase transaction.
         if (nValueIn < value_out) {
