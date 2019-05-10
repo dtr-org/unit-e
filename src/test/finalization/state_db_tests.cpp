@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
   // Generate an active chain with 100 blocks
   {
     const CBlockIndex *tip99 = block_index_fake.Generate(100);
-    const std::vector<CBlockIndex *> chain = block_index_fake.GetChain(tip99->GetBlockHash());
+    const std::vector<CBlockIndex *> chain = block_index_fake.GetChain(tip99);
     for (CBlockIndex *block_index : chain) {
       FinalizationStateSpy state(finalization_params);
       state.shuffle();
@@ -111,8 +111,8 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
   // Generate fork 1 branching off at height=50
   {
     const CBlockIndex *tip50 = active_chain.AtHeight(50);
-    const CBlockIndex *tip_fork1 = block_index_fake.Generate(100, tip50->GetBlockHash());
-    const std::vector<CBlockIndex *> chain = block_index_fake.GetChain(tip_fork1->GetBlockHash());
+    const CBlockIndex *tip_fork1 = block_index_fake.Generate(100, tip50);
+    const std::vector<CBlockIndex *> chain = block_index_fake.GetChain(tip_fork1);
     for (CBlockIndex *block_index : chain) {
       FinalizationStateSpy state(finalization_params);
       state.shuffle();
@@ -125,8 +125,8 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
   // Generate fork 2 branching off at height=80
   {
     const CBlockIndex *tip80 = active_chain.AtHeight(80);
-    const CBlockIndex *tip_fork2 = block_index_fake.Generate(100, tip80->GetBlockHash());
-    const std::vector<CBlockIndex *> chain = block_index_fake.GetChain(tip_fork2->GetBlockHash());
+    const CBlockIndex *tip_fork2 = block_index_fake.Generate(100, tip80);
+    const std::vector<CBlockIndex *> chain = block_index_fake.GetChain(tip_fork2);
     for (CBlockIndex *block_index : chain) {
       FinalizationStateSpy state(finalization_params);
       state.shuffle();
@@ -152,7 +152,7 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
   // Simulate that node cannot load state for tip, then it must load most recent state
   // accoring to the main chain. Simply move active chain forward but keep db as is.
   {
-    const CBlockIndex *tip104 = block_index_fake.Generate(5, active_chain.GetTip()->GetBlockHash());
+    const CBlockIndex *tip104 = block_index_fake.Generate(5, active_chain.GetTip());
     block_index_fake.SetupActiveChain(tip104, active_chain);
     BOOST_REQUIRE(active_chain.GetTip()->nHeight == 104);
   }

@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(BlockIndexFake_GetChain) {
 
   const CBlockIndex *tip = fake.Generate(10);
   BOOST_REQUIRE(tip);
-  const std::vector<CBlockIndex *> chain = fake.GetChain(tip->GetBlockHash());
+  const std::vector<CBlockIndex *> chain = fake.GetChain(tip);
 
   BOOST_REQUIRE_EQUAL(chain.size(), 10);
 
@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(BlockIndexFake_Feature_Forks) {
   const CBlockIndex *tip1 = fake.Generate(10);
   BOOST_CHECK_EQUAL(fake.block_indexes.size(), 10);
 
-  std::vector<CBlockIndex *> chain1 = fake.GetChain(tip1->GetBlockHash());
+  std::vector<CBlockIndex *> chain1 = fake.GetChain(tip1);
   BOOST_CHECK_EQUAL(chain1.size(), 10);
 
   {
@@ -115,11 +115,11 @@ BOOST_AUTO_TEST_CASE(BlockIndexFake_Feature_Forks) {
     BOOST_CHECK_EQUAL(previous, tip1);
   }
 
-  const CBlockIndex *tip2 = fake.Generate(3, chain1.at(5)->GetBlockHash());
+  const CBlockIndex *tip2 = fake.Generate(3, chain1.at(5));
   // 10 blocks previously, plus an additional 3
   BOOST_CHECK_EQUAL(fake.block_indexes.size(), 13);
 
-  std::vector<CBlockIndex *> chain2 = fake.GetChain(tip2->GetBlockHash());
+  std::vector<CBlockIndex *> chain2 = fake.GetChain(tip2);
   // at height=5 there is the 6th block, plus 3 on top
   BOOST_CHECK_EQUAL(chain2.size(), 9);
 
