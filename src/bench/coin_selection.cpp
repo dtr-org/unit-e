@@ -35,9 +35,9 @@ static void CoinSelection(benchmark::State& state)
 
     // Add coins.
     for (int i = 0; i < 1000; ++i) {
-        addCoin(1000 * COIN, wallet, wtxs);
+        addCoin(1000 * UNIT, wallet, wtxs);
     }
-    addCoin(3 * COIN, wallet, wtxs);
+    addCoin(3 * UNIT, wallet, wtxs);
 
     // Create groups
     std::vector<OutputGroup> groups;
@@ -52,9 +52,9 @@ static void CoinSelection(benchmark::State& state)
         std::set<CInputCoin> setCoinsRet;
         CAmount nValueRet;
         bool bnb_used;
-        bool success = wallet.SelectCoinsMinConf(1003 * COIN, filter_standard, groups, setCoinsRet, nValueRet, coin_selection_params, bnb_used);
+        bool success = wallet.SelectCoinsMinConf(1003 * UNIT, filter_standard, groups, setCoinsRet, nValueRet, coin_selection_params, bnb_used);
         assert(success);
-        assert(nValueRet == 1003 * COIN);
+        assert(nValueRet == 1003 * UNIT);
         assert(setCoinsRet.size() == 2);
     }
 }
