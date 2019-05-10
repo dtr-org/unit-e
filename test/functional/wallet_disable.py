@@ -21,10 +21,10 @@ class DisableWalletTest (UnitETestFramework):
         # Make sure wallet is really disabled
         assert_raises_rpc_error(-32601, 'Method not found', self.nodes[0].getwalletinfo)
 
-        # In Unit-e we cannot call generate or generatetoaddress without wallet enabled
+        # In Unit-e we cannot call generate or proposetoaddress without wallet enabled
         assert_raises_rpc_error(-32601, 'Method not found', self.nodes[0].generate, 1)
-        assert_raises_rpc_error(-32601, 'Method not found', self.nodes[0].generatetoaddress, 1)
-        assert_raises_rpc_error(-32601, 'Method not found', self.nodes[0].generatetoaddress, 1, 'mneYUmWYsuk7kySiURxCi3AGxrAqZxLgPZ')
+        assert_raises_rpc_error(-32601, 'Method not found', self.nodes[0].proposetoaddress, 1)
+        assert_raises_rpc_error(-32601, 'Method not found', self.nodes[0].proposetoaddress, 1, 'mneYUmWYsuk7kySiURxCi3AGxrAqZxLgPZ')
 
         x = self.nodes[0].validateaddress('3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy')
         assert x['isvalid'] == False
