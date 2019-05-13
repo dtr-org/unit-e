@@ -152,7 +152,7 @@ BOOST_AUTO_TEST_CASE(trimming) {
   BOOST_CHECK(fixture.GetState(10) != nullptr);
 
   // Generate next epoch.
-  // Now epoch 2 must be finalized and repository trimmed until the last justification height
+  // Now epoch 2 must be finalized and repository trimmed until the last finalized height
   fixture.AddBlocks(5);
   BOOST_CHECK(fixture.GetState(5) == nullptr);
   BOOST_CHECK(fixture.GetState(6) == nullptr);

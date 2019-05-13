@@ -4,7 +4,7 @@
 
 #include <test/esperanza/finalizationstate_utils.h>
 
-BOOST_FIXTURE_TEST_SUITE(finalizationstate_calculate_withdraw_amount_tests, TestingSetup)
+BOOST_FIXTURE_TEST_SUITE(finalizationstate_calculate_withdraw_amount_tests, ReducedTestingSetup)
 
 void CreateAndProcessVote(FinalizationStateSpy &state, uint160 finalizer_address, uint256 target_hash) {
   Vote vote{finalizer_address, target_hash, state.GetExpectedSourceEpoch(), state.GetRecommendedTargetEpoch()};
