@@ -1977,7 +1977,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     // is enforced in ContextualCheckBlockHeader(); we wouldn't want to
     // re-enforce that rule here (at least until we make it impossible for
     // GetAdjustedTime() to go backward).
-    if (!GetComponent<staking::LegacyValidationInterface>()->CheckBlock(block, state, chainparams.GetConsensus(), !fJustCheck, !fJustCheck)) {
+    if (!GetComponent<staking::LegacyValidationInterface>()->CheckBlock(block, state, chainparams.GetConsensus(), !fJustCheck)) {
         if (state.CorruptionPossible()) {
             // We don't write down blocks to disk if they may have been
             // corrupted, so this should be impossible unless we're having hardware
@@ -3548,7 +3548,7 @@ bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams,
     // NOTE: CheckBlockHeader is called by CheckBlock
     if (!validation->ContextualCheckBlockHeader(block, state, chainparams, pindexPrev, GetAdjustedTime()))
         return error("%s: Consensus::ContextualCheckBlockHeader: %s", __func__, FormatStateMessage(state));
-    if (!validation->CheckBlock(block, state, chainparams.GetConsensus(), false, !skip_merkle_tree_check))
+    if (!validation->CheckBlock(block, state, chainparams.GetConsensus(), !skip_merkle_tree_check))
         return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
     if (!validation->ContextualCheckBlock(block, state, chainparams.GetConsensus(), pindexPrev))
         return error("%s: Consensus::ContextualCheckBlock: %s", __func__, FormatStateMessage(state));
