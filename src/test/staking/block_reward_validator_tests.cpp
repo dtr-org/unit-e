@@ -103,6 +103,22 @@ BOOST_AUTO_TEST_CASE(total_output_is_too_large) {
   test_invalid_outputs({f.immediate_reward + fees, input_amount + 1});
 }
 
+BOOST_AUTO_TEST_CASE(no_outputs) {
+  Fixture f;
+  const auto validator = f.GetBlockRewardValidator();
+
+  const CAmount input_amount = 11 * UNIT;
+  const CAmount fees = UNIT / 2;
+  CTransaction tx = f.MakeCoinbaseTx({});
+  CValidationState validation_state;
+
+  const bool result = validator->CheckBlockRewards(tx, validation_state, f.block, input_amount, fees);
+  BOOST_CHECK(!result);
+  BOOST_CHECK(!validation_state.IsValid());
+  BOOST_CHECK_EQUAL(validation_state.GetRejectCode(), REJECT_INVALID);
+  BOOST_CHECK_EQUAL(validation_state.GetRejectReason(), "bad-cb-too-few-outputs");
+}
+
 BOOST_AUTO_TEST_CASE(total_output_is_too_small) {
   Fixture f;
   const auto validator = f.GetBlockRewardValidator();
