@@ -18,7 +18,6 @@ from test_framework.util import (
     disconnect_nodes,
     generate_block,
     sync_blocks,
-    sync_mempools,
     wait_until,
 )
 
