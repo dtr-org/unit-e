@@ -4335,6 +4335,7 @@ bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskB
     // Map of disk positions for blocks with unknown parent (only used for reindex)
     static std::multimap<uint256, CDiskBlockPos> mapBlocksUnknownParent;
     int64_t nStart = GetTimeMillis();
+    const uint32_t cleanup_period = 5 * GetComponent<finalization::Params>()->epoch_length;
 
     int nLoaded = 0;
     try {
@@ -4442,6 +4443,14 @@ bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskB
                 }
             } catch (const std::exception& e) {
                 LogPrintf("%s: Deserialize or I/O error - %s\n", __func__, e.what());
+            }
+
+            // Trim the states for the finalized blocks
+            if (nLoaded % cleanup_period == 0) {
+                CValidationState state;
+                if (!ActivateBestChain(state, chainparams)) {
+                    break;
+                }
             }
         }
     } catch (const std::runtime_error& e) {
