@@ -289,7 +289,9 @@ BOOST_FIXTURE_TEST_CASE(get_stakeable_coins, TestChain100Setup) {
 
   // Make the first coinbase mature
   CScript coinbase_script = GetScriptForDestination(coinbaseKey.GetPubKey().GetID());
-  CreateAndProcessBlock({}, coinbase_script);
+  bool processed;
+  CreateAndProcessBlock({}, coinbase_script, &processed);
+  BOOST_CHECK(processed);
 
   CTransaction &stakeable = m_coinbase_txns.front();
 

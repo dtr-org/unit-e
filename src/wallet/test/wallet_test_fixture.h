@@ -53,6 +53,7 @@ struct TestChain100Setup : public WalletTestingSetup {
   CKey coinbaseKey; // private/public key needed to spend coinbase transactions
   std::shared_ptr<proposer::BlockBuilder> m_block_builder;
   std::shared_ptr<staking::ActiveChain> m_active_chain;
+  std::shared_ptr<blockchain::Behavior> m_behavior;
 };
 
 #endif // UNITE_WALLET_TEST_WALLET_TEST_FIXTURE_H

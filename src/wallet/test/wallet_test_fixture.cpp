@@ -50,6 +50,7 @@ TestChain100Setup::TestChain100Setup(UnitEInjectorConfiguration config)
 {
   m_block_builder = proposer::BlockBuilder::New(&settings);
   m_active_chain = staking::ActiveChain::New();
+  m_behavior = blockchain::Behavior::NewForNetwork(blockchain::Network::regtest);
 
   coinbaseKey = DecodeSecret("cQTjnbHifWGuMhm9cRgQ23ip5KntTMfj3zwo6iQyxMVxSfJyptqL");
   assert(coinbaseKey.IsValid());
@@ -92,10 +93,7 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
      coins = wallet_ext.GetStakeableCoins();
   }
 
-//  for (const auto &tx : txns) {
-//    tx.
-//  }
-//  const CAmount fees = std::accumulate(txns, txns.fees.end(), CAmount(0));
+  const CAmount fees = 0;
   uint256 snapshot_hash;
   {
     LOCK(m_active_chain->GetLock());
@@ -107,21 +105,25 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
     tx_refs.push_back(MakeTransactionRef(tx));
   }
 
+  const CBlockIndex *tip = m_active_chain->GetTip();
+  blockchain::Height tip_height = tip->nHeight;
+
   proposer::EligibleCoin coin = {
       *coins.begin(),
       uint256(),
-      CAmount(),
-      static_cast<blockchain::Height>(m_active_chain->GetTip()->nHeight+1),
-      0,
-      0
+      m_behavior->CalculateBlockReward(tip_height),
+      static_cast<blockchain::Height>(tip_height+1),
+      static_cast<blockchain::Time>(std::max(tip->GetMedianTimePast()+1, GetTime())),
+      tip->nBits
   };
+
   std::shared_ptr<const CBlock> block = m_block_builder->BuildBlock(
       *m_active_chain->GetTip(),
       snapshot_hash,
       coin,
       {},
       tx_refs,
-      0,
+      fees,
       coinbase_script,
       wallet_ext);
 
