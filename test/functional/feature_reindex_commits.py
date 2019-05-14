@@ -62,13 +62,13 @@ class FeatureReindexCommits(UnitETestFramework):
 
         disconnect_nodes(self.proposer, self.finalizer.index)
 
-        self.log.info("Generate 2 epochs")
-        assert_equal(self.proposer.getblockcount(), 25)
+        self.log.info("Generate 4 epochs")
+        assert_equal(self.proposer.getblockcount(), 15)
         votes = self.generate_epoch(
             proposer=self.proposer,
             finalizer=self.finalizer,
-            count=2)
-        assert_equal(len(votes), 2)
+            count=4)
+        assert_equal(len(votes), 4)
         assert_equal(self.proposer.getblockcount(), 35)
         assert_finalizationstate(self.proposer,
                                  {'currentEpoch': 7,
@@ -116,8 +116,8 @@ class FeatureReindexCommits(UnitETestFramework):
                 "", "legacy"), MIN_DEPOSIT)
         self.wait_for_transaction(deposit_tx)
 
-        generate_block(self.proposer, count=24)
-        assert_equal(self.proposer.getblockcount(), 25)
+        generate_block(self.proposer, count=14)
+        assert_equal(self.proposer.getblockcount(), 15)
 
     def assert_finalizer_status(self, status):
         fn = self.finalizer.getvalidatorinfo
