@@ -77,7 +77,8 @@ GrapheneBlockReconstructor::GrapheneBlockReconstructor(const GrapheneBlock &grap
                                                        const TxPool &tx_pool)
     : m_header(graphene_block.header),
       m_prefilled_txs(graphene_block.prefilled_transactions),
-      m_hasher(graphene_block.header, graphene_block.nonce) {
+      m_hasher(graphene_block.header, graphene_block.nonce),
+      signature(graphene_block.signature) {
 
   FUNCTION_STOPWATCH();
 
@@ -154,8 +155,8 @@ GrapheneBlockReconstructor::GrapheneBlockReconstructor(const GrapheneBlock &grap
 CBlock GrapheneBlockReconstructor::ReconstructLTOR() const {
   assert(m_state == +GrapheneDecodeState::HAS_ALL_TXS);
 
-  CBlock block;
-  block = m_header;
+  CBlock block = m_header;
+  block.signature = signature;
   std::vector<CTransactionRef> &vtx = block.vtx;
 
   vtx.insert(vtx.end(), m_prefilled_txs.begin(), m_prefilled_txs.end());

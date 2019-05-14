@@ -677,10 +677,12 @@ class CBlock(CBlockHeader):
     def __init__(self, header=None):
         super(CBlock, self).__init__(header)
         self.vtx = []
+        self.signature = bytes()
 
     def deserialize(self, f):
         super(CBlock, self).deserialize(f)
         self.vtx = deser_vector(f, CTransaction)
+        self.signature = deser_string(f)
 
     # Regular serialization is with witness -- must explicitly
     # call serialize_without_witness to exclude witness data.
@@ -688,18 +690,14 @@ class CBlock(CBlockHeader):
         r = b""
         r += super(CBlock, self).serialize()
         r += ser_vector(self.vtx, "serialize_with_witness")
-        # UNIT-E: serialize an empty block signature on top of the block
-        # this is just an interim solution
-        r += ser_vector([])
+        r += ser_string(self.signature)
         return r
 
     def serialize_without_witness(self):
         r = b""
         r += super(CBlock, self).serialize()
         r += ser_vector(self.vtx, "serialize_without_witness")
-        # UNIT-E: serialize an empty block signature on top of the block
-        # this is just an interim solution
-        r += ser_vector([])
+        r += ser_string(self.signature)
         return r
 
     # Calculate the merkle root given a vector of transaction hashes
@@ -818,6 +816,7 @@ class P2PHeaderAndShortIDs():
         self.shortids = []
         self.prefilled_txn_length = 0
         self.prefilled_txn = []
+        self.signature = bytes()
 
     def deserialize(self, f):
         self.header.deserialize(f)
@@ -829,6 +828,7 @@ class P2PHeaderAndShortIDs():
             self.shortids.append(struct.unpack("<Q", f.read(6) + b'\x00\x00')[0])
         self.prefilled_txn = deser_vector(f, PrefilledTransaction)
         self.prefilled_txn_length = len(self.prefilled_txn)
+        self.signature = deser_string(f)
 
     # When using version 2 compact blocks, we must serialize with_witness.
     def serialize(self, with_witness=False):
@@ -843,10 +843,11 @@ class P2PHeaderAndShortIDs():
             r += ser_vector(self.prefilled_txn, "serialize_with_witness")
         else:
             r += ser_vector(self.prefilled_txn, "serialize_without_witness")
+        r += ser_string(self.signature)
         return r
 
     def __repr__(self):
-        return "P2PHeaderAndShortIDs(header=%s, nonce=%d, shortids_length=%d, shortids=%s, prefilled_txn_length=%d, prefilledtxn=%s" % (repr(self.header), self.nonce, self.shortids_length, repr(self.shortids), self.prefilled_txn_length, repr(self.prefilled_txn))
+        return "P2PHeaderAndShortIDs(header=%s, nonce=%d, shortids_length=%d, shortids=%s, prefilled_txn_length=%d, prefilledtxn=%s, signature=%s" % (repr(self.header), self.nonce, self.shortids_length, repr(self.shortids), self.prefilled_txn_length, repr(self.prefilled_txn), repr(self.signature))
 
 # P2P version of the above that will use witness serialization (for compact
 # block version 2)
@@ -869,6 +870,7 @@ class HeaderAndShortIDs():
         self.shortids = []
         self.prefilled_txn = []
         self.use_witness = False
+        self.signature = bytes()
 
         if p2pheaders_and_shortids != None:
             self.header = p2pheaders_and_shortids.header
@@ -894,6 +896,7 @@ class HeaderAndShortIDs():
         for x in self.prefilled_txn:
             ret.prefilled_txn.append(PrefilledTransaction(x.index - last_index - 1, x.tx))
             last_index = x.index
+        ret.signature = self.signature
         return ret
 
     def get_siphash_keys(self):
@@ -925,8 +928,10 @@ class HeaderAndShortIDs():
                     tx_hash = tx.calc_sha256(with_witness=True)
                 self.shortids.append(calculate_shortid(k0, k1, tx_hash))
 
+        self.signature = block.signature
+
     def __repr__(self):
-        return "HeaderAndShortIDs(header=%s, nonce=%d, shortids=%s, prefilledtxn=%s" % (repr(self.header), self.nonce, repr(self.shortids), repr(self.prefilled_txn))
+        return "HeaderAndShortIDs(header=%s, nonce=%d, shortids=%s, prefilledtxn=%s, signature=%s" % (repr(self.header), self.nonce, repr(self.shortids), repr(self.prefilled_txn), repr(self.signature))
 
 
 class BlockTransactionsRequest():
@@ -1873,6 +1878,7 @@ class GrapheneBlock:
         self.bloom_filter = CBloomFilterDummy()
         self.iblt = GrapheneIbltDummy()
         self.prefilled_transactions = []
+        self.signature = bytes()
 
     def deserialize(self, f):
         self.header.deserialize(f)
@@ -1880,6 +1886,7 @@ class GrapheneBlock:
         self.bloom_filter.deserialize(f)
         self.iblt.deserialize(f)
         self.prefilled_transactions = deser_vector(f, CTransaction)
+        self.signature = deser_string(f)
 
     def serialize(self):
         r = b""
@@ -1888,12 +1895,13 @@ class GrapheneBlock:
         r += self.bloom_filter.serialize()
         r += self.iblt.serialize()
         r += ser_vector(self.prefilled_transactions)
+        r += ser_string(self.signature)
 
         return r
 
     def __repr__(self):
-        return "GrapheneBlock(header=%s, nonce=%s, bloom_filter=%s, iblt=%s, prefilled_transactions=%s)" % \
-               (repr(self.header), repr(self.nonce), repr(self.bloom_filter), repr(self.iblt), repr(self.prefilled_transactions))
+        return "GrapheneBlock(header=%s, nonce=%s, bloom_filter=%s, iblt=%s, prefilled_transactions=%s, signature=%s)" % \
+               (repr(self.header), repr(self.nonce), repr(self.bloom_filter), repr(self.iblt), repr(self.prefilled_transactions), repr(self.signature))
 
 
 class msg_graphenblock:

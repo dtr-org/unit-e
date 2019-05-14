@@ -41,16 +41,20 @@ struct GrapheneBlock {
   CBloomFilter bloom_filter;
   GrapheneIblt iblt;
   std::vector<CTransactionRef> prefilled_transactions;
-  GrapheneBlock(const CBlockHeader &header,
+  //! signature of the block for Proof-of-Stake
+  std::vector<uint8_t> signature;
+
+  GrapheneBlock(const CBlock &block,
                 const uint64_t nonce,
                 CBloomFilter bloom_filter,
                 GrapheneIblt iblt,
                 std::vector<CTransactionRef> prefilled_transactions)
-      : header(header),
+      : header(block.GetBlockHeader()),
         nonce(nonce),
         bloom_filter(std::move(bloom_filter)),
         iblt(std::move(iblt)),
-        prefilled_transactions(std::move(prefilled_transactions)) {}
+        prefilled_transactions(std::move(prefilled_transactions)),
+        signature(block.signature) {}
 
   GrapheneBlock() = default;
 
@@ -63,6 +67,7 @@ struct GrapheneBlock {
     READWRITE(bloom_filter);
     READWRITE(iblt);
     READWRITE(prefilled_transactions);
+    READWRITE(signature);
   }
 };
 

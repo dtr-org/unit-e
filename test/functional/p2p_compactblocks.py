@@ -292,6 +292,7 @@ class CompactBlocksTest(UnitETestFramework):
 
         cmpct_block = P2PHeaderAndShortIDs()
         cmpct_block.header = CBlockHeader(block)
+        cmpct_block.signature = block.signature
         cmpct_block.prefilled_txn_length = 1
         # This index will be too high
         prefilled_txn = PrefilledTransaction(1, block.vtx[0])
@@ -441,6 +442,7 @@ class CompactBlocksTest(UnitETestFramework):
             # Send back a compactblock message that omits the coinbase
             comp_block = HeaderAndShortIDs()
             comp_block.header = CBlockHeader(block)
+            comp_block.signature = block.signature
             comp_block.nonce = 0
             [k0, k1] = comp_block.get_siphash_keys()
             coinbase_hash = block.vtx[0].sha256
@@ -473,6 +475,7 @@ class CompactBlocksTest(UnitETestFramework):
                 self.unspent_tx = block.vtx[-1]
                 self.first_tx = block.vtx[1]
                 self.middle_txs = block.vtx[2:-1]
+                self.signature = block.signature
 
         block = self.build_block_on_tip(node)
 

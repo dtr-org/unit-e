@@ -141,6 +141,8 @@ private:
 protected:
     std::vector<uint64_t> shorttxids;
     std::vector<PrefilledTransaction> prefilledtxn;
+    //! signature of the block for Proof-of-Stake
+    std::vector<uint8_t> signature;
 
 public:
     CBlockHeader header;
@@ -191,6 +193,8 @@ public:
 
         if (ser_action.ForRead())
             FillShortTxIDSelector();
+
+        READWRITE(signature);
     }
 };
 
@@ -199,6 +203,8 @@ protected:
     std::vector<CTransactionRef> txn_available;
     size_t prefilled_count = 0, mempool_count = 0, extra_count = 0;
     CTxMemPool* pool;
+    //! signature of the block for Proof-of-Stake
+    std::vector<uint8_t> signature;
 public:
     CBlockHeader header;
     explicit PartiallyDownloadedBlock(CTxMemPool* poolIn) : pool(poolIn) {}

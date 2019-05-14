@@ -54,6 +54,8 @@ class GrapheneBlockReconstructor {
   std::vector<CTransactionRef> m_prefilled_txs;
   GrapheneDecodeState m_state = GrapheneDecodeState::CANT_DECODE_IBLT;
   GrapheneHasher m_hasher;
+  //! signature of the block for Proof-of-Stake
+  std::vector<uint8_t> signature;
 };
 
 struct GrapheneBlockParams {

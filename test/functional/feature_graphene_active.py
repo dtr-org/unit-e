@@ -84,6 +84,7 @@ class GrapheneActive(UnitETestFramework):
         iblt_entry = GrapheneIbltEntryDummy()
         iblt_entry.count = 20000  # This ensures iblt can not be decoded
         graphene.iblt.hash_table = [iblt_entry]
+        graphene.signature = block.signature
 
         p2p.send_message(msg_graphenblock(graphene))
 

@@ -121,6 +121,7 @@ public:
     uint64_t nonce;
     std::vector<uint64_t> shorttxids;
     std::vector<PrefilledTransaction> prefilledtxn;
+    std::vector<uint8_t> signature;
 
     explicit TestHeaderAndShortIDs(const CBlockHeaderAndShortTxIDs& orig) {
         CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
@@ -155,6 +156,7 @@ public:
             shorttxids[i] = (uint64_t(msb) << 32) | uint64_t(lsb);
         }
         READWRITE(prefilledtxn);
+        READWRITE(signature);
     }
 };
 
