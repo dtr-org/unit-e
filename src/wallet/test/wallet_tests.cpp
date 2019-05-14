@@ -292,8 +292,8 @@ BOOST_FIXTURE_TEST_CASE(get_available_watch_only_credit, TestChain100Setup)
   {
     LOCK(cs_main);
     const CWalletTx *wallet_tx = m_wallet->GetWalletTx(watch_only_coinbase->GetHash());
-    // The stake is watch-only
-    BOOST_CHECK_EQUAL(wallet_tx->GetAvailableCredit(false, ISMINE_WATCH_ONLY), 10000 * UNIT);
+    // The stake is not watch-only
+    BOOST_CHECK_EQUAL(wallet_tx->GetAvailableCredit(false, ISMINE_WATCH_ONLY), 0 * UNIT);
   }
 
   // Make the coinbase watch-only mature mining using the rewards just made mature
@@ -302,10 +302,9 @@ BOOST_FIXTURE_TEST_CASE(get_available_watch_only_credit, TestChain100Setup)
   }
 
   {
-    // The initial stake of 10000 * UNIT also beacame watch-only cause we proposed with a watch-only script
     LOCK(cs_main);
     const CWalletTx *wallet_tx = m_wallet->GetWalletTx(watch_only_coinbase->GetHash());
-    BOOST_CHECK_EQUAL(wallet_tx->GetAvailableCredit(false, ISMINE_WATCH_ONLY), watch_only_coinbase->GetValueOut());
+    BOOST_CHECK_EQUAL(wallet_tx->GetAvailableCredit(false, ISMINE_WATCH_ONLY), watch_only_coinbase->vout[0].nValue);
   }
 }
 
@@ -576,11 +575,11 @@ BOOST_FIXTURE_TEST_CASE(GetAddressBalances_coinbase_maturity, TestChain100Setup)
   CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
 
   {
-    const CTxDestination coinbase_destination = GetDestinationForKey(coinbaseKey.GetPubKey(), OutputType::LEGACY);
+    const CTxDestination coinbase_destination = GetDestinationForKey(coinbaseKey.GetPubKey(), OutputType::BECH32);
     LOCK2(cs_main, m_wallet->cs_wallet);
     const std::map<CTxDestination, CAmount> balances = m_wallet->GetAddressBalances();
-    BOOST_CHECK_EQUAL(balances.size(), 2);
-    BOOST_CHECK_EQUAL(balances.at(coinbase_destination), 10000 * UNIT);
+    BOOST_CHECK_EQUAL(balances.size(), 1); // the stake and the reward with the same destination
+    BOOST_CHECK_EQUAL(balances.at(coinbase_destination), m_coinbase_txns.front().GetValueOut());
   }
 }
 
@@ -611,7 +610,7 @@ BOOST_FIXTURE_TEST_CASE(GetLegacyBalance_coinbase_maturity, TestChain100Setup) {
     BOOST_CHECK_EQUAL(watchonly_balance, 0);
   }
 
-  // Now add a new watch-only key, craete a new coinbase and then make it mature
+  // Now add a new watch-only key, create a new coinbase and then make it mature
   CKey watch_only_key;
   watch_only_key.MakeNewKey(true);
   const CScript watch_only_script = GetScriptForRawPubKey(watch_only_key.GetPubKey());
@@ -631,18 +630,17 @@ BOOST_FIXTURE_TEST_CASE(GetLegacyBalance_coinbase_maturity, TestChain100Setup) {
     CreateAndProcessBlock({}, GetScriptForDestination(WitnessV0KeyHash(coinbaseKey.GetPubKey().GetID())));
   }
 
-  // As per mature outputs we should have 103 blocks worth of rewards
-  // - 1 reward used to stake the watch-only + the initial stake + the
-  // watch-only stake and reward
+  // As per mature outputs we should have 103 blocks worth of rewards + the initial
+  // stake + the watch-only reward
   {
       auto coinbase_reward = m_coinbase_txns.back().vout[0].nValue;
       LOCK2(cs_main, m_wallet->cs_wallet);
       const CAmount all_balance = m_wallet->GetLegacyBalance(ISMINE_ALL, 0, nullptr);
       const CAmount spendable_balance = m_wallet->GetLegacyBalance(ISMINE_SPENDABLE, 0, nullptr);
       const CAmount watchonly_balance = m_wallet->GetLegacyBalance(ISMINE_WATCH_ONLY, 0, nullptr);
-      BOOST_CHECK_EQUAL(all_balance, (10000 * UNIT) + coinbase_reward * 102 + watch_only_coinbase->GetValueOut());
-      BOOST_CHECK_EQUAL(spendable_balance, (10000 * UNIT) + coinbase_reward * 102);
-      BOOST_CHECK_EQUAL(watchonly_balance, watch_only_coinbase->GetValueOut());
+      BOOST_CHECK_EQUAL(all_balance, (10000 * UNIT) + coinbase_reward * 103 + watch_only_coinbase->vout[0].nValue);
+      BOOST_CHECK_EQUAL(spendable_balance, (10000 * UNIT) + coinbase_reward * 103);
+      BOOST_CHECK_EQUAL(watchonly_balance, watch_only_coinbase->vout[0].nValue);
   }
 }
 
@@ -733,7 +731,7 @@ BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_maturity, TestChain100Setup) {
   // last output for creating the watch-only block
   CreateAndProcessBlock({}, GetScriptForDestination(WitnessV0KeyHash(coinbaseKey.GetPubKey().GetID())));
 
-  CTransactionRef watch_only_coinbase = CreateAndProcessBlock({}, GetScriptForRawPubKey(watch_only_key.GetPubKey())).vtx[0];
+  CTransactionRef watch_only_coinbase = CreateAndProcessBlock({}, watch_only_script).vtx[0];
 
   for (int i = 0; i < COINBASE_MATURITY; ++i) {
     CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
@@ -746,8 +744,8 @@ BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_maturity, TestChain100Setup) {
     const CAmount spendable_credit = watch_only->GetCredit(ISMINE_SPENDABLE);
     const CAmount watchonly_credit = watch_only->GetCredit(ISMINE_WATCH_ONLY);
     BOOST_CHECK_EQUAL(all_credit, watch_only_coinbase->GetValueOut());
-    BOOST_CHECK_EQUAL(spendable_credit, 0);
-    BOOST_CHECK_EQUAL(watchonly_credit, watch_only_coinbase->GetValueOut());
+    BOOST_CHECK_EQUAL(watchonly_credit, watch_only_coinbase->vout[0].nValue);
+    BOOST_CHECK_EQUAL(spendable_credit, watch_only_coinbase->vout[1].nValue);
   }
 }
 
@@ -837,12 +835,12 @@ BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_cache, TestChain100Setup) {
     const CAmount watch_only_credit = watch_only->GetCredit(ISMINE_WATCH_ONLY);
     const CAmount available_watch_only_credit = watch_only->GetAvailableCredit(true, ISMINE_WATCH_ONLY);
 
-    BOOST_CHECK_EQUAL(watch_only_credit, watch_only_coinbase->GetValueOut());
-    BOOST_CHECK_EQUAL(available_watch_only_credit, watch_only_coinbase->GetValueOut());
+    BOOST_CHECK_EQUAL(watch_only_credit, watch_only_coinbase->vout[0].nValue);
+    BOOST_CHECK_EQUAL(available_watch_only_credit, watch_only_coinbase->vout[0].nValue);
     BOOST_CHECK_EQUAL(watch_only->fWatchCreditCached, true);
-    BOOST_CHECK_EQUAL(watch_only->nWatchCreditCached, watch_only_coinbase->GetValueOut());
+    BOOST_CHECK_EQUAL(watch_only->nWatchCreditCached, watch_only_coinbase->vout[0].nValue);
     BOOST_CHECK_EQUAL(watch_only->fAvailableWatchCreditCached, true);
-    BOOST_CHECK_EQUAL(watch_only->nAvailableWatchCreditCached, watch_only_coinbase->GetValueOut());
+    BOOST_CHECK_EQUAL(watch_only->nAvailableWatchCreditCached, watch_only_coinbase->vout[0].nValue);
 
     // Calling the second time should result in the same (cached) values
     BOOST_CHECK_EQUAL(watch_only_credit, watch_only->GetCredit(ISMINE_WATCH_ONLY));
