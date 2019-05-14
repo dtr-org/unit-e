@@ -24,7 +24,7 @@ class BlockRewardValidator {
       CValidationState &state,
       const CBlockIndex &index,
       CAmount input_amount,
-      CAmount fees) = 0;
+      CAmount fees) const = 0;
 
   virtual ~BlockRewardValidator() = default;
 

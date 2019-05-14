@@ -22,7 +22,7 @@ class BlockRewardValidatorImpl : public BlockRewardValidator {
       : m_behavior(behavior) {}
 
   bool CheckBlockRewards(const CTransaction &coinbase_tx, CValidationState &state, const CBlockIndex &index,
-                         CAmount input_amount, CAmount fees) override {
+                         CAmount input_amount, CAmount fees) const override {
     assert(MoneyRange(input_amount));
     assert(MoneyRange(fees));
 

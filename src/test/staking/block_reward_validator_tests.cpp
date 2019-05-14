@@ -58,6 +58,21 @@ struct Fixture {
   }
 };
 
+void CheckTransactionIsRejected(
+    const CTransaction &tx,
+    const std::string &rejection_reason,
+    const staking::BlockRewardValidator &validator,
+    const CBlockIndex &block,
+    const CAmount input_amount,
+    const CAmount fees) {
+  CValidationState validation_state;
+  const bool result = validator.CheckBlockRewards(tx, validation_state, block, input_amount, fees);
+  BOOST_CHECK(!result);
+  BOOST_CHECK(!validation_state.IsValid());
+  BOOST_CHECK_EQUAL(validation_state.GetRejectCode(), REJECT_INVALID);
+  BOOST_CHECK_EQUAL(validation_state.GetRejectReason(), rejection_reason);
+}
+
 }  // namespace
 
 BOOST_AUTO_TEST_SUITE(block_reward_validator_tests)
@@ -89,18 +104,13 @@ BOOST_AUTO_TEST_CASE(total_output_is_too_large) {
 
   const CAmount input_amount = 11 * UNIT;
   const CAmount fees = UNIT / 2;
-  auto test_invalid_outputs = [&](const std::vector<CAmount> outputs) {
-    CTransaction tx = f.MakeCoinbaseTx(outputs);
-    CValidationState validation_state;
 
-    const bool result = validator->CheckBlockRewards(tx, validation_state, f.block, input_amount, fees);
-    BOOST_CHECK(!result);
-    BOOST_CHECK(!validation_state.IsValid());
-    BOOST_CHECK_EQUAL(validation_state.GetRejectCode(), REJECT_INVALID);
-    BOOST_CHECK_EQUAL(validation_state.GetRejectReason(), "bad-cb-amount");
-  };
-  test_invalid_outputs({f.immediate_reward + fees + 1, input_amount});
-  test_invalid_outputs({f.immediate_reward + fees, input_amount + 1});
+  CheckTransactionIsRejected(
+      f.MakeCoinbaseTx({f.immediate_reward + fees + 1, input_amount}),
+      "bad-cb-amount", *validator, f.block, input_amount, fees);
+  CheckTransactionIsRejected(
+      f.MakeCoinbaseTx({f.immediate_reward + fees, input_amount + 1}),
+      "bad-cb-amount", *validator, f.block, input_amount, fees);
 }
 
 BOOST_AUTO_TEST_CASE(no_outputs) {
@@ -109,14 +119,9 @@ BOOST_AUTO_TEST_CASE(no_outputs) {
 
   const CAmount input_amount = 11 * UNIT;
   const CAmount fees = UNIT / 2;
-  CTransaction tx = f.MakeCoinbaseTx({});
-  CValidationState validation_state;
 
-  const bool result = validator->CheckBlockRewards(tx, validation_state, f.block, input_amount, fees);
-  BOOST_CHECK(!result);
-  BOOST_CHECK(!validation_state.IsValid());
-  BOOST_CHECK_EQUAL(validation_state.GetRejectCode(), REJECT_INVALID);
-  BOOST_CHECK_EQUAL(validation_state.GetRejectReason(), "bad-cb-too-few-outputs");
+  CTransaction tx = f.MakeCoinbaseTx({});
+  CheckTransactionIsRejected(tx, "bad-cb-too-few-outputs", *validator, f.block, input_amount, fees);
 }
 
 BOOST_AUTO_TEST_CASE(total_output_is_too_small) {
@@ -125,14 +130,9 @@ BOOST_AUTO_TEST_CASE(total_output_is_too_small) {
 
   const CAmount input_amount = 11 * UNIT;
   const CAmount fees = UNIT / 2;
-  CTransaction tx = f.MakeCoinbaseTx({0, input_amount});
-  CValidationState validation_state;
 
-  const bool result = validator->CheckBlockRewards(tx, validation_state, f.block, input_amount, fees);
-  BOOST_CHECK(!result);
-  BOOST_CHECK(!validation_state.IsValid());
-  BOOST_CHECK_EQUAL(validation_state.GetRejectCode(), REJECT_INVALID);
-  BOOST_CHECK_EQUAL(validation_state.GetRejectReason(), "bad-cb-spends-too-little");
+  CTransaction tx = f.MakeCoinbaseTx({0, input_amount});
+  CheckTransactionIsRejected(tx, "bad-cb-spends-too-little", *validator, f.block, input_amount, fees);
 }
 
 BOOST_AUTO_TEST_CASE(non_reward_output_is_too_large) {
@@ -141,14 +141,9 @@ BOOST_AUTO_TEST_CASE(non_reward_output_is_too_large) {
 
   const CAmount input_amount = 15 * UNIT;
   const CAmount fees = UNIT / 2;
-  CTransaction tx = f.MakeCoinbaseTx({f.immediate_reward, input_amount + fees});
-  CValidationState validation_state;
 
-  const bool result = validator->CheckBlockRewards(tx, validation_state, f.block, input_amount, fees);
-  BOOST_CHECK(!result);
-  BOOST_CHECK(!validation_state.IsValid());
-  BOOST_CHECK_EQUAL(validation_state.GetRejectCode(), REJECT_INVALID);
-  BOOST_CHECK_EQUAL(validation_state.GetRejectReason(), "bad-cb-spends-too-much");
+  CTransaction tx = f.MakeCoinbaseTx({f.immediate_reward, input_amount + fees});
+  CheckTransactionIsRejected(tx, "bad-cb-spends-too-much", *validator, f.block, input_amount, fees);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
