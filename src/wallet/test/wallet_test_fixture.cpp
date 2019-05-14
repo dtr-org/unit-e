@@ -13,7 +13,6 @@
 #include <wallet/rpcwalletext.h>
 #include <consensus/merkle.h>
 #include <test/test_unite_mocks.h>
-#include <numeric>
 
 WalletTestingSetup::WalletTestingSetup(const std::string& chainName, UnitEInjectorConfiguration config)
     : WalletTestingSetup([](Settings& s){}, chainName, config) {}
