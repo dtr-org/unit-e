@@ -30,11 +30,12 @@ def setup_deposit(self, proposer, validators):
         deptx = n.deposit(n.new_address, 1500)
         self.wait_for_transaction(deptx)
 
-    generate_block(proposer, count=24)
-    assert_equal(proposer.getblockcount(), 25)
+    generate_block(proposer, count=14)
+    assert_equal(proposer.getblockcount(), 15)
     sync_blocks(validators + [proposer])
     for v in validators:
         disconnect_nodes(proposer, v.index)
+
 
 class FinalizatoinStateRestoration(UnitETestFramework):
     def set_test_params(self):
@@ -64,7 +65,7 @@ class FinalizatoinStateRestoration(UnitETestFramework):
         setup_deposit(self, p, [v])
 
         self.log.info("Generate few epochs")
-        self.generate_epoch(p, v, count=2)
+        self.generate_epoch(p, v, count=4)
         assert_equal(p.getblockcount(), 35)
 
         assert_finalizationstate(p, {'currentEpoch': 7,
@@ -142,6 +143,7 @@ class FinalizatoinStateRestoration(UnitETestFramework):
                                      'lastJustifiedEpoch': 12,
                                      'lastFinalizedEpoch': 12,
                                      'validators': 1})
+
 
 if __name__ == '__main__':
     FinalizatoinStateRestoration().main()
