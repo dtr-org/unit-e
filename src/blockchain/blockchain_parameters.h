@@ -183,6 +183,13 @@ struct Parameters {
   ufp64::ufp64_t immediate_reward_fraction;
 
   //! \brief The fraction of the reward given to the proposers after finalization.
+  //!
+  //! Proposers receive their reward in two parts. The first part is paid
+  //! immediately in the coinbase transaction of the proposed block. The second
+  //! part is paid in the first block of the following epoch. The amount of the
+  //! latter part depends on the number of votes included in the previous epoch
+  //! and equals finalization_reward_fraction * total_reward when 100% of votes
+  //! were included. See proposer::FinalizationRewardLogic for more details.
   ufp64::ufp64_t finalization_reward_fraction;
 
   //! \brief The function calculating the reward for a newly proposed block.
