@@ -6,24 +6,28 @@
 
 namespace staking {
 
-void BlockValidationResult::AddAll(const BlockValidationResult &other) {
-  errors += other.errors;
-}
-
-void BlockValidationResult::AddError(const BlockValidationError error) {
-  errors += error;
-}
-
-void BlockValidationResult::RemoveError(const BlockValidationError error) {
-  errors -= error;
-}
+BlockValidationResult BlockValidationResult::success = BlockValidationResult();
 
 BlockValidationResult::operator bool() const {
-  return errors.IsEmpty();
+  return !m_error;
 }
 
 std::string BlockValidationResult::GetRejectionMessage() const {
-  return errors.ToStringUsing(GetRejectionMessageFor);
+  if (!m_error) {
+    return "";
+  }
+  return GetRejectionMessageFor(*m_error);
+}
+
+bool BlockValidationResult::Is(const BlockValidationError error) const {
+  if (!m_error) {
+    return false;
+  }
+  return *m_error == +error;
+}
+
+BlockValidationError BlockValidationResult::operator*() const {
+  return *m_error;
 }
 
 }  // namespace staking

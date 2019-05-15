@@ -15,7 +15,7 @@
 
 namespace {
 
-using Func = std::function<void(staking::BlockValidationResult &)>;
+using Func = std::function<staking::BlockValidationError()>;
 
 class SomeBlockValidator : public staking::AbstractBlockValidator {
 
@@ -30,49 +30,49 @@ class SomeBlockValidator : public staking::AbstractBlockValidator {
   std::unique_ptr<Func> func_CheckBlockInternal = nullptr;
   std::unique_ptr<Func> func_ContextualCheckBlockInternal = nullptr;
 
-  void CheckBlockHeaderInternal(
-      const CBlockHeader &block_header,
-      staking::BlockValidationResult &result) const override {
+  staking::BlockValidationResult CheckBlockHeaderInternal(
+      const CBlockHeader &block_header) const override {
     ++count_CheckBlockHeaderInternal;
     if (func_CheckBlockHeaderInternal) {
-      (*func_CheckBlockHeaderInternal)(result);
+      return staking::BlockValidationResult((*func_CheckBlockHeaderInternal)());
     }
+    return staking::BlockValidationResult::success;
   }
 
-  void ContextualCheckBlockHeaderInternal(
+  staking::BlockValidationResult ContextualCheckBlockHeaderInternal(
       const CBlockHeader &block_header,
       blockchain::Time adjusted_time,
-      const CBlockIndex &previous_block,
-      staking::BlockValidationResult &result) const override {
+      const CBlockIndex &previous_block) const override {
     ++count_ContextualCheckBlockHeaderInternal;
     if (func_ContextualCheckBlockHeaderInternal) {
-      (*func_ContextualCheckBlockHeaderInternal)(result);
+      return staking::BlockValidationResult((*func_ContextualCheckBlockHeaderInternal)());
     }
+    return staking::BlockValidationResult::success;
   }
 
-  void CheckBlockInternal(
+  staking::BlockValidationResult CheckBlockInternal(
       const CBlock &block,
       blockchain::Height *height_out,
-      uint256 *snapshot_hash_out,
-      staking::BlockValidationResult &result) const override {
+      uint256 *snapshot_hash_out) const override {
     ++count_CheckBlockInternal;
     if (func_CheckBlockInternal) {
-      (*func_CheckBlockInternal)(result);
+      return staking::BlockValidationResult((*func_CheckBlockInternal)());
     }
+    return staking::BlockValidationResult::success;
   }
 
-  void ContextualCheckBlockInternal(
+  staking::BlockValidationResult ContextualCheckBlockInternal(
       const CBlock &block,
       const CBlockIndex &prev_block,
-      const staking::BlockValidationInfo &validation_info,
-      staking::BlockValidationResult &result) const override {
+      const staking::BlockValidationInfo &validation_info) const override {
     ++count_ContextualCheckBlockInternal;
     if (func_ContextualCheckBlockInternal) {
-      (*func_ContextualCheckBlockInternal)(result);
+      return staking::BlockValidationResult((*func_ContextualCheckBlockInternal)());
     }
+    return staking::BlockValidationResult::success;
   }
 
-  staking::BlockValidationResult CheckCoinbaseTransaction(const CTransaction &coinbase_tx) const override {
+  staking::BlockValidationResult CheckCoinbaseTransaction(const CBlock &block, const CTransaction &coinbase_tx) const override {
     return staking::BlockValidationResult();
   }
 };
@@ -97,8 +97,8 @@ BOOST_AUTO_TEST_CASE(check_block_header_test) {
 
   {
     SomeBlockValidator v;
-    v.func_CheckBlockHeaderInternal = MakeUnique<Func>([](staking::BlockValidationResult &r) {
-      r.AddError(staking::BlockValidationError::INVALID_BLOCK_TIME);
+    v.func_CheckBlockHeaderInternal = MakeUnique<Func>([]() {
+      return Error::INVALID_BLOCK_TIME;
     });
     bool result = static_cast<bool>(v.CheckBlockHeader(block, nullptr));
     BOOST_CHECK_EQUAL(v.count_CheckBlockHeaderInternal, 1);
@@ -119,8 +119,8 @@ BOOST_AUTO_TEST_CASE(check_block_header_test) {
     SomeBlockValidator v;
     staking::BlockValidationInfo i;
     BOOST_CHECK(i.GetCheckBlockHeaderStatus().IsUnknown());
-    v.func_CheckBlockHeaderInternal = MakeUnique<Func>([](staking::BlockValidationResult &r) {
-      r.AddError(staking::BlockValidationError::INVALID_BLOCK_TIME);
+    v.func_CheckBlockHeaderInternal = MakeUnique<Func>([]() {
+      return Error::INVALID_BLOCK_TIME;
     });
     bool result = static_cast<bool>(v.CheckBlockHeader(block, &i));
     BOOST_CHECK_EQUAL(v.count_CheckBlockHeaderInternal, 1);
@@ -146,8 +146,8 @@ BOOST_AUTO_TEST_CASE(contextual_check_block_header_test) {
 
   {
     SomeBlockValidator v;
-    v.func_CheckBlockHeaderInternal = MakeUnique<Func>([](staking::BlockValidationResult &r) {
-      r.AddError(staking::BlockValidationError::INVALID_BLOCK_TIME);
+    v.func_CheckBlockHeaderInternal = MakeUnique<Func>([]() {
+      return Error::INVALID_BLOCK_TIME;
     });
     bool result = static_cast<bool>(v.ContextualCheckBlockHeader(block, prev_block, 0, nullptr));
     BOOST_CHECK_EQUAL(v.count_CheckBlockHeaderInternal, 1);
@@ -157,8 +157,8 @@ BOOST_AUTO_TEST_CASE(contextual_check_block_header_test) {
 
   {
     SomeBlockValidator v;
-    v.func_ContextualCheckBlockHeaderInternal = MakeUnique<Func>([](staking::BlockValidationResult &r) {
-      r.AddError(staking::BlockValidationError::INVALID_BLOCK_TIME);
+    v.func_ContextualCheckBlockHeaderInternal = MakeUnique<Func>([]() {
+      return Error::INVALID_BLOCK_TIME;
     });
     bool result = static_cast<bool>(v.ContextualCheckBlockHeader(block, prev_block, 0, nullptr));
     BOOST_CHECK_EQUAL(v.count_CheckBlockHeaderInternal, 1);
@@ -184,8 +184,8 @@ BOOST_AUTO_TEST_CASE(contextual_check_block_header_test) {
     staking::BlockValidationInfo i;
     BOOST_CHECK(i.GetCheckBlockHeaderStatus().IsUnknown());
     BOOST_CHECK(i.GetContextualCheckBlockHeaderStatus().IsUnknown());
-    v.func_ContextualCheckBlockHeaderInternal = MakeUnique<Func>([](staking::BlockValidationResult &r) {
-      r.AddError(staking::BlockValidationError::INVALID_BLOCK_TIME);
+    v.func_ContextualCheckBlockHeaderInternal = MakeUnique<Func>([]() {
+      return Error::INVALID_BLOCK_TIME;
     });
     bool result = static_cast<bool>(v.ContextualCheckBlockHeader(block, prev_block, block.nTime, &i));
     BOOST_CHECK_EQUAL(v.count_CheckBlockHeaderInternal, 1);
@@ -214,8 +214,8 @@ BOOST_AUTO_TEST_CASE(contextual_check_block_header_test) {
     staking::BlockValidationInfo i;
     BOOST_CHECK(i.GetCheckBlockHeaderStatus().IsUnknown());
     BOOST_CHECK(i.GetContextualCheckBlockHeaderStatus().IsUnknown());
-    v.func_ContextualCheckBlockHeaderInternal = MakeUnique<Func>([](staking::BlockValidationResult &r) {
-      r.AddError(staking::BlockValidationError::INVALID_BLOCK_TIME);
+    v.func_ContextualCheckBlockHeaderInternal = MakeUnique<Func>([]() {
+      return Error::INVALID_BLOCK_TIME;
     });
     bool result = static_cast<bool>(v.ContextualCheckBlockHeader(block, prev_block, block.nTime, &i));
     BOOST_CHECK_EQUAL(v.count_CheckBlockHeaderInternal, 1);
@@ -240,8 +240,8 @@ BOOST_AUTO_TEST_CASE(check_block_test) {
 
   {
     SomeBlockValidator v;
-    v.func_CheckBlockInternal = MakeUnique<Func>([](staking::BlockValidationResult &r) {
-      r.AddError(staking::BlockValidationError::INVALID_BLOCK_TIME);
+    v.func_CheckBlockInternal = MakeUnique<Func>([]() {
+      return Error::INVALID_BLOCK_TIME;
     });
     bool result = static_cast<bool>(v.CheckBlock(block, nullptr));
     BOOST_CHECK_EQUAL(v.count_CheckBlockInternal, 1);
@@ -262,8 +262,8 @@ BOOST_AUTO_TEST_CASE(check_block_test) {
     SomeBlockValidator v;
     staking::BlockValidationInfo i;
     BOOST_CHECK(i.GetCheckBlockStatus().IsUnknown());
-    v.func_CheckBlockInternal = MakeUnique<Func>([](staking::BlockValidationResult &r) {
-      r.AddError(staking::BlockValidationError::INVALID_BLOCK_TIME);
+    v.func_CheckBlockInternal = MakeUnique<Func>([]() {
+      return Error::INVALID_BLOCK_TIME;
     });
     bool result = static_cast<bool>(v.CheckBlock(block, &i));
     BOOST_CHECK_EQUAL(v.count_CheckBlockInternal, 1);
@@ -289,8 +289,8 @@ BOOST_AUTO_TEST_CASE(contextual_check_block_test) {
 
   {
     SomeBlockValidator v;
-    v.func_CheckBlockInternal = MakeUnique<Func>([](staking::BlockValidationResult &r) {
-      r.AddError(staking::BlockValidationError::INVALID_BLOCK_TIME);
+    v.func_CheckBlockInternal = MakeUnique<Func>([]() {
+      return Error::INVALID_BLOCK_TIME;
     });
     bool result = static_cast<bool>(v.ContextualCheckBlock(block, prev_block, 0, nullptr));
     BOOST_CHECK_EQUAL(v.count_CheckBlockInternal, 1);
@@ -300,8 +300,8 @@ BOOST_AUTO_TEST_CASE(contextual_check_block_test) {
 
   {
     SomeBlockValidator v;
-    v.func_ContextualCheckBlockInternal = MakeUnique<Func>([](staking::BlockValidationResult &r) {
-      r.AddError(staking::BlockValidationError::INVALID_BLOCK_TIME);
+    v.func_ContextualCheckBlockInternal = MakeUnique<Func>([]() {
+      return Error::INVALID_BLOCK_TIME;
     });
     bool result = static_cast<bool>(v.ContextualCheckBlock(block, prev_block, 0, nullptr));
     BOOST_CHECK_EQUAL(v.count_CheckBlockInternal, 1);
@@ -327,8 +327,8 @@ BOOST_AUTO_TEST_CASE(contextual_check_block_test) {
     staking::BlockValidationInfo i;
     BOOST_CHECK(i.GetCheckBlockStatus().IsUnknown());
     BOOST_CHECK(i.GetContextualCheckBlockStatus().IsUnknown());
-    v.func_ContextualCheckBlockInternal = MakeUnique<Func>([](staking::BlockValidationResult &r) {
-      r.AddError(staking::BlockValidationError::INVALID_BLOCK_TIME);
+    v.func_ContextualCheckBlockInternal = MakeUnique<Func>([]() {
+      return Error::INVALID_BLOCK_TIME;
     });
     bool result = static_cast<bool>(v.ContextualCheckBlock(block, prev_block, block.nTime, &i));
     BOOST_CHECK_EQUAL(v.count_CheckBlockInternal, 1);
@@ -357,8 +357,8 @@ BOOST_AUTO_TEST_CASE(contextual_check_block_test) {
     staking::BlockValidationInfo i;
     BOOST_CHECK(i.GetCheckBlockStatus().IsUnknown());
     BOOST_CHECK(i.GetContextualCheckBlockStatus().IsUnknown());
-    v.func_ContextualCheckBlockInternal = MakeUnique<Func>([](staking::BlockValidationResult &r) {
-      r.AddError(staking::BlockValidationError::INVALID_BLOCK_TIME);
+    v.func_ContextualCheckBlockInternal = MakeUnique<Func>([]() {
+      return Error::INVALID_BLOCK_TIME;
     });
     bool result = static_cast<bool>(v.ContextualCheckBlock(block, prev_block, block.nTime, &i));
     BOOST_CHECK_EQUAL(v.count_CheckBlockInternal, 1);

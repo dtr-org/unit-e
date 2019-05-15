@@ -161,10 +161,10 @@ const std::string &GetRejectionMessageFor(const BlockValidationError error) {
 
 bool CheckResult(const BlockValidationResult &result, CValidationState &state) {
   if (!result) {
-    const ValidationError &validation_error = GetValidationErrorFor(*result.errors.begin());
+    const ValidationError &validation_error = GetValidationErrorFor(*result);
     state.DoS(
         validation_error.level, false, validation_error.reject_code, validation_error.reject_reason,
-        validation_error.corruption, result.errors.ToString());
+        validation_error.corruption, (*result)._to_string());
     return false;
   }
   return true;

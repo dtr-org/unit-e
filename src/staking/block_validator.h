@@ -111,6 +111,7 @@ class BlockValidator {
   //! - the meta input carrying height and snapshot hash at vin[0]
   //! - the staking input at vin[1]
   virtual BlockValidationResult CheckCoinbaseTransaction(
+      const CBlock &block,             //!< [in] The block that contains this coinbase transaction
       const CTransaction &coinbase_tx  //!< [in] The coinbase transaction to check
       ) const = 0;
 
@@ -126,27 +127,23 @@ class BlockValidator {
 class AbstractBlockValidator : public BlockValidator {
 
  protected:
-  virtual void CheckBlockHeaderInternal(
-      const CBlockHeader &block_header,
-      BlockValidationResult &result) const = 0;
+  virtual BlockValidationResult CheckBlockHeaderInternal(
+      const CBlockHeader &block_header) const = 0;
 
-  virtual void ContextualCheckBlockHeaderInternal(
+  virtual BlockValidationResult ContextualCheckBlockHeaderInternal(
       const CBlockHeader &block_header,
       blockchain::Time adjusted_time,
-      const CBlockIndex &previous_block,
-      BlockValidationResult &result) const = 0;
+      const CBlockIndex &previous_block) const = 0;
 
-  virtual void CheckBlockInternal(
+  virtual BlockValidationResult CheckBlockInternal(
       const CBlock &block,
       blockchain::Height *height_out,
-      uint256 *snapshot_hash_out,
-      BlockValidationResult &result) const = 0;
+      uint256 *snapshot_hash_out) const = 0;
 
-  virtual void ContextualCheckBlockInternal(
+  virtual BlockValidationResult ContextualCheckBlockInternal(
       const CBlock &block,
       const CBlockIndex &prev_block,
-      const BlockValidationInfo &validation_info,
-      BlockValidationResult &result) const = 0;
+      const BlockValidationInfo &validation_info) const = 0;
 
  public:
   BlockValidationResult CheckBlock(

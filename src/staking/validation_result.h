@@ -16,22 +16,26 @@ namespace staking {
 
 class BlockValidationResult {
  public:
-  EnumSet<BlockValidationError> errors;
+  static BlockValidationResult success;
 
-  //! \brief Add all errors from the given validation result to this one.
-  void AddAll(const BlockValidationResult &other);
+  //! \brief Construct a positive BlockValidationResult.
+  BlockValidationResult() noexcept : m_error(boost::none) {}
 
-  //! \brief Add another error to this validation result.
-  void AddError(BlockValidationError);
-
-  //! \brief Remove an error from this validation result.
-  void RemoveError(BlockValidationError);
+  //! \brief Constructs a failed BlockValidationResult with an accompanying error code.
+  explicit BlockValidationResult(const BlockValidationError error) : m_error(error) {}
 
   //! \brief Validation succeeded if there are no validation errors
   explicit operator bool() const;
 
   //! \brief Create a message suitable for usage in a REJECT p2p message.
   std::string GetRejectionMessage() const;
+
+  bool Is(BlockValidationError error) const;
+
+  BlockValidationError operator*() const;
+
+ private:
+  boost::optional<BlockValidationError> m_error;
 };
 
 }  // namespace staking

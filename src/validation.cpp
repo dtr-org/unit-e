@@ -1992,7 +1992,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         UTXOViewAdapter utxo_view(GetComponent<staking::ActiveChain>(), view);
         auto validator = GetComponent<staking::StakeValidator>();
         const staking::BlockValidationResult coinbase_validation_result =
-            GetComponent<staking::BlockValidator>()->CheckCoinbaseTransaction(*block.vtx[0]);
+            GetComponent<staking::BlockValidator>()->CheckCoinbaseTransaction(block, *block.vtx[0]);
         if (!staking::CheckResult(coinbase_validation_result, state)) {
             return false;
         }
@@ -2009,7 +2009,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
             validator->CheckStake(block, &state.block_validation_info, check_stake_flags, &utxo_view);
         if (!staking::CheckResult(stake_validation_result, state)) {
             LogPrint(BCLog::VALIDATION, "%s: Invalid stake found for block=%s failure=%s\n",
-                     __func__, block.GetHash().ToString(), stake_validation_result.errors.ToString());
+                     __func__, block.GetHash().ToString(), stake_validation_result.GetRejectionMessage());
             return false;
         }
     }

@@ -355,8 +355,8 @@ class BlockValidatorMock : public staking::BlockValidator, public Mock {
   BlockValidationResult ContextualCheckBlockHeader(const CBlockHeader &block_header, const CBlockIndex &block_index, blockchain::Time time, BlockValidationInfo *info) const override {
     return mock_ContextualCheckBlockHeader(block_header, block_index, time, info);
   }
-  BlockValidationResult CheckCoinbaseTransaction(const CTransaction &coinbase_tx) const override {
-    return mock_CheckCoinbaseTransaction(coinbase_tx);
+  BlockValidationResult CheckCoinbaseTransaction(const CBlock &block, const CTransaction &coinbase_tx) const override {
+    return mock_CheckCoinbaseTransaction(block, coinbase_tx);
   }
 };
 

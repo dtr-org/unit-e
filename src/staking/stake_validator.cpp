@@ -20,6 +20,8 @@ namespace staking {
 
 class StakeValidatorImpl : public StakeValidator {
 
+  using Error = BlockValidationError;
+
  private:
   const Dependency<blockchain::Behavior> m_blockchain_behavior;
   const Dependency<ActiveChain> m_active_chain;
@@ -39,15 +41,12 @@ class StakeValidatorImpl : public StakeValidator {
                                            const blockchain::UTXOView &utxo_view,
                                            const CheckStakeFlags::Type flags) const {
     AssertLockHeld(m_active_chain->GetLock());
-    BlockValidationResult result;
     if (block.vtx.empty()) {
-      result.errors += BlockValidationError::NO_COINBASE_TRANSACTION;
-      return result;
+      return BlockValidationResult(Error::NO_COINBASE_TRANSACTION);
     }
     const CTransactionRef coinbase_tx = block.vtx[0];
     if (coinbase_tx->GetType() != +TxType::COINBASE) {
-      result.errors += BlockValidationError::FIRST_TRANSACTION_NOT_A_COINBASE_TRANSACTION;
-      return result;
+      return BlockValidationResult(Error::FIRST_TRANSACTION_NOT_A_COINBASE_TRANSACTION);
     }
     // a valid coinbase transaction has a "meta" input at vin[0] and a staking
     // input at vin[1]. It may have more inputs which are combined in the coinbase
@@ -55,22 +54,19 @@ class StakeValidatorImpl : public StakeValidator {
     // is necessary as a combination of coins would depend on the selection of these
     // coins and the system could be gamed by degrading it into a Proof-of-Work setting.
     if (coinbase_tx->vin.size() < 2) {
-      result.errors += BlockValidationError::NO_STAKING_INPUT;
-      return result;
+      return BlockValidationResult(Error::NO_STAKING_INPUT);
     }
     const CTxIn &staking_input = coinbase_tx->vin[1];
     const COutPoint staking_out_point = staking_input.prevout;
     const boost::optional<staking::Coin> stake = utxo_view.GetUTXO(staking_out_point);
     if (!stake) {
       LogPrint(BCLog::VALIDATION, "%s: Could not find coin for outpoint=%s\n", __func__, util::to_string(staking_out_point));
-      result.errors += BlockValidationError::STAKE_NOT_FOUND;
-      return result;
+      return BlockValidationResult(Error::STAKE_NOT_FOUND);
     }
     const blockchain::Height height = stake->GetHeight();
     if (!IsStakeMature(height)) {
       LogPrint(BCLog::VALIDATION, "Immature stake found coin=%s height=%d\n", util::to_string(*stake), height);
-      result.errors += BlockValidationError::STAKE_IMMATURE;
-      return result;
+      return BlockValidationResult(Error::STAKE_IMMATURE);
     }
     if (!Flags::IsSet(flags, CheckStakeFlags::SKIP_ELIGIBILITY_CHECK)) {
       const uint256 kernel_hash = ComputeKernelHash(&previous_block, *stake, block.nTime);
@@ -85,13 +81,10 @@ class StakeValidatorImpl : public StakeValidator {
         if (m_blockchain_behavior->GetParameters().mine_blocks_on_demand) {
           LogPrint(BCLog::VALIDATION, "Letting artificial block generation succeed nevertheless (mine_blocks_on_demand=true)\n");
         } else {
-          result.errors += BlockValidationError::STAKE_NOT_ELIGIBLE;
-          return result;
+          return BlockValidationResult(Error::STAKE_NOT_ELIGIBLE);
         }
       }
     }
-    // Adding an error should immediately have returned so we assert to have validated the stake.
-    assert(result);
     return CheckRemoteStakingOutputs(block.vtx[0], *stake, utxo_view);
   }
 
@@ -104,7 +97,6 @@ class StakeValidatorImpl : public StakeValidator {
       const CTransactionRef &coinbase_tx,
       const staking::Coin &stake,
       const blockchain::UTXOView &utxo_view) const {
-    BlockValidationResult result;
     std::map<CScript, CAmount> remote_staking_amounts;
     // check staking input
     WitnessProgram wp;
@@ -116,8 +108,7 @@ class StakeValidatorImpl : public StakeValidator {
       const COutPoint out = coinbase_tx->vin[i].prevout;
       const boost::optional<staking::Coin> utxo = utxo_view.GetUTXO(out);
       if (!utxo) {
-        result.errors += BlockValidationError::TRANSACTION_INPUT_NOT_FOUND;
-        return result;
+        return BlockValidationResult(Error::TRANSACTION_INPUT_NOT_FOUND);
       }
       if (utxo->GetScriptPubKey().ExtractWitnessProgram(wp) && wp.IsRemoteStaking()) {
         remote_staking_amounts[utxo->GetScriptPubKey()] += utxo->GetAmount();
@@ -131,11 +122,10 @@ class StakeValidatorImpl : public StakeValidator {
     }
     for (const auto &p : remote_staking_amounts) {
       if (p.second > 0) {
-        result.errors += BlockValidationError::REMOTE_STAKING_INPUT_BIGGER_THAN_OUTPUT;
-        return result;
+        return BlockValidationResult(Error::REMOTE_STAKING_INPUT_BIGGER_THAN_OUTPUT);
       }
     }
-    return result;
+    return BlockValidationResult::success;
   }
 
  public:
@@ -221,8 +211,7 @@ class StakeValidatorImpl : public StakeValidator {
     }
     const CBlockIndex *const tip = m_active_chain->GetBlockIndex(block.hashPrevBlock);
     if (!tip) {
-      result.errors += BlockValidationError::PREVIOUS_BLOCK_NOT_PART_OF_ACTIVE_CHAIN;
-      return result;
+      return BlockValidationResult(Error::PREVIOUS_BLOCK_NOT_PART_OF_ACTIVE_CHAIN);
     }
     return CheckStakeInternal(*tip, block, utxo_view, flags);
   }
