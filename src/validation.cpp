@@ -2195,12 +2195,10 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n", (unsigned)block.vtx.size(), MILLI * (nTime3 - nTime2), MILLI * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * MICRO, nTimeConnect * MILLI / nBlocksTotal);
 
     if (!isGenesisBlock) {
-        CAmount blockReward = nFees + GetComponent<blockchain::Behavior>()->CalculateBlockReward(pindex->nHeight);
-        if (block.vtx[0]->GetValueOut() - coinbase_in > blockReward)
-          return state.DoS(100,
-                         error("ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)",
-                               block.vtx[0]->GetValueOut(), blockReward),
-                         REJECT_INVALID, "bad-cb-amount");
+        if (!GetComponent<staking::BlockRewardValidator>()->CheckBlockRewards(*block.vtx[0], state, *pindex,
+                                                                              coinbase_in, nFees)) {
+            return false;
+        }
     }
 
     if (!control.Wait())
