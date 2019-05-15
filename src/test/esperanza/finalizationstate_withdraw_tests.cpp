@@ -48,20 +48,19 @@ BOOST_AUTO_TEST_CASE(process_withdraw_too_early) {
   // logout
   BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress), +Result::SUCCESS);
   spy.ProcessLogout(validatorAddress);
-  BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 6);
+  BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 4);
 
   Validator *validator = &(*spy.pValidators())[validatorAddress];
 
   // Logout delay is set in dynasties but since we have finalization
   // every epoch, it's equal to number of epochs.
-  // epoch=706 is the last epoch the finalizer can vote
   uint32_t end_logout = spy.GetCurrentEpoch() + static_cast<uint32_t>(spy.DynastyLogoutDelay());
-  BOOST_CHECK_EQUAL(end_logout, 11);
+  BOOST_CHECK_EQUAL(end_logout, 9);
 
   // From epoch end_logout+1 until end_withdraw-1 finalizer can't withdraw.
   // At end_withdraw or later finalizer can withdraw its deposit.
   uint32_t end_withdraw = end_logout + static_cast<uint32_t>(spy.WithdrawalEpochDelay()) + 1;
-  BOOST_CHECK_EQUAL(end_withdraw, 22);
+  BOOST_CHECK_EQUAL(end_withdraw, 20);
 
   for (uint32_t i = spy.GetCurrentEpoch(); i < end_withdraw; ++i) {
     if (spy.GetCurrentDynasty() <= validator->m_end_dynasty) {
@@ -75,7 +74,11 @@ BOOST_AUTO_TEST_CASE(process_withdraw_too_early) {
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + i * spy.EpochLength()), +Result::SUCCESS);
   }
 
-  BOOST_CHECK_EQUAL(spy.ValidateWithdraw(validatorAddress, depositSize), +Result::SUCCESS);
+  // test that deposit can be withdrawn in any upcoming epoch
+  for (uint32_t i = end_withdraw; i < end_withdraw + 3; ++i) {
+    BOOST_CHECK_EQUAL(spy.ValidateWithdraw(validatorAddress, depositSize), +Result::SUCCESS);
+    BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + i * spy.EpochLength()), +Result::SUCCESS);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(process_withdraw_completely_slashed) {
@@ -107,8 +110,8 @@ BOOST_AUTO_TEST_CASE(process_withdraw_completely_slashed) {
   // Just to be sure we are after the lock period
   uint32_t endEpoch = spy.DynastyLogoutDelay() + spy.WithdrawalEpochDelay() + 10;
 
-  for (uint32_t i = 6; i < endEpoch; ++i) {
-    if (spy.GetCurrentDynasty() < validator->m_end_dynasty) {
+  for (uint32_t i = 4; i < endEpoch; ++i) {
+    if (spy.GetCurrentDynasty() <= validator->m_end_dynasty) {
       Vote vote{validatorAddress, targetHash, i - 2, i - 1};
 
       BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);

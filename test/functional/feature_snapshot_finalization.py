@@ -74,7 +74,7 @@ class SnapshotFinalization(UnitETestFramework):
         assert_equal(p.getblockcount(), 32)
         assert_finalizationstate(p, {'currentEpoch': 7,
                                      'lastJustifiedEpoch': 6,
-                                     'lastFinalizedEpoch': 5,
+                                     'lastFinalizedEpoch': 6,
                                      'validators': 1})
 
         self.log.info("Connect fast-sync node")
@@ -83,7 +83,7 @@ class SnapshotFinalization(UnitETestFramework):
 
         assert_finalizationstate(s, {'currentEpoch': 7,
                                      'lastJustifiedEpoch': 6,
-                                     'lastFinalizedEpoch': 5,
+                                     'lastFinalizedEpoch': 6,
                                      'validators': 1})
 
         self.log.info("Generate next epoch")
@@ -92,13 +92,13 @@ class SnapshotFinalization(UnitETestFramework):
         assert_equal(p.getblockcount(), 37)
         assert_finalizationstate(p, {'currentEpoch': 8,
                                      'lastJustifiedEpoch': 7,
-                                     'lastFinalizedEpoch': 6,
+                                     'lastFinalizedEpoch': 7,
                                      'validators': 1})
 
         sync_blocks([p, s])
         assert_finalizationstate(s, {'currentEpoch': 8,
                                      'lastJustifiedEpoch': 7,
-                                     'lastFinalizedEpoch': 6,
+                                     'lastFinalizedEpoch': 7,
                                      'validators': 1})
 
         self.log.info("Check slashing condition")

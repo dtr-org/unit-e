@@ -131,9 +131,6 @@ class FinalizationState : public FinalizationStateData {
   uint32_t GetCurrentEpoch() const;
   uint32_t GetCurrentDynasty() const;
 
-  //! \brief Returns the height of checkpoint next to last finalized checkpoint. It must be justified.
-  uint32_t GetCheckpointHeightAfterFinalizedEpoch() const;
-
   uint64_t GetDepositSize(const uint160 &validatorAddress) const;
 
   uint32_t GetRecommendedTargetEpoch() const;

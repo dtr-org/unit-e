@@ -62,8 +62,8 @@ class SlashRestart(UnitETestFramework):
             deptx = f.deposit(f.new_address, 1500)
             self.wait_for_transaction(deptx, nodes=[proposer])
 
-        generate_block(proposer, count=21)
-        assert_equal(proposer.getblockcount(), 22)
+        generate_block(proposer, count=14)
+        assert_equal(proposer.getblockcount(), 15)
 
     def make_double_vote_tx(self, vote_tx, input_tx, proposer, finalizer):
         # To detect double vote, it's enough having two votes which are:
@@ -97,7 +97,7 @@ class SlashRestart(UnitETestFramework):
         votes = self.generate_epoch(proposer=p, finalizer=f1, count=2)
         assert len(votes) != 0
 
-        self.log.info("Check slashig condition after node restart")
+        self.log.info("Check slashing condition after node restart")
         self.restart_node(p)
         vtx = self.make_double_vote_tx(votes[0], votes[-1], p, f1)
         assert_raises_rpc_error(-26, 'bad-vote-invalid', p.sendrawtransaction, ToHex(vtx))
@@ -110,7 +110,7 @@ class SlashRestart(UnitETestFramework):
         votes = self.generate_epoch(proposer=p, finalizer=f2, count=2)
         assert len(votes) != 0
 
-        self.log.info("Check slashig condition after node restart with reindex")
+        self.log.info("Check slashing condition after node restart with reindex")
         self.restart_node(p, reindex=True)
         vtx = self.make_double_vote_tx(votes[0], votes[-1], p, f2)
         assert_raises_rpc_error(-26, 'bad-vote-invalid', p.sendrawtransaction, ToHex(vtx))

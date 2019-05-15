@@ -76,10 +76,7 @@ Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
   assert(m_settings.IsEpochStart(blockHeight) &&
          "provided blockHeight is not the first block of a new epoch");
 
-  IncrementDynasty();
-
   const uint32_t new_epoch = GetEpoch(blockHeight);
-
   if (new_epoch != m_current_epoch + 1) {
     return fail(Result::INIT_WRONG_EPOCH,
                 /*log_errors=*/true,
@@ -119,9 +116,21 @@ Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
     }
 
   } else {
-    InstaJustify();
     m_reward_factor = 0;
   }
+
+  IncrementDynasty();
+
+  if (GetActiveFinalizers().empty()) {
+    InstaJustify();
+  }
+
+  // new source is already known when the checkpoint is processed but we didn't
+  // update it as the previous one is used inside of this function. To not keep
+  // current and previous expected source in the FinalizationState, we update
+  // it here and the limitation of it is that we can't create vote inside the
+  // first block of new epoch as new source is not known yet for finalizers.
+  m_expected_source_epoch = m_last_justified_epoch;
 
   std::string log_msg;
   if (m_current_epoch >= 2 && m_last_justified_epoch != m_current_epoch - 2) {
@@ -146,10 +155,10 @@ void FinalizationState::InstaJustify() {
   m_last_justified_epoch = m_current_epoch - 1;
 
   if (m_current_epoch > 1) {
-    uint32_t expected_finalized = m_current_epoch - 2;
-    if (GetCheckpoint(expected_finalized).m_is_justified) {
-      GetCheckpoint(expected_finalized).m_is_finalized = true;
-      m_last_finalized_epoch = expected_finalized;
+    uint32_t to_be_finalized = m_current_epoch - 2;
+    if (GetCheckpoint(to_be_finalized).m_is_justified) {
+      cp.m_is_finalized = true;
+      m_last_finalized_epoch = m_last_justified_epoch;
     }
   }
 
@@ -159,7 +168,7 @@ void FinalizationState::InstaJustify() {
 
 void FinalizationState::IncrementDynasty() {
   // finalized epoch is m_current_epoch - 2 because:
-  // finalized (0) - justified (1) - votes to justify (2)
+  // finalized(0) - votes to justify(1) - m_current_epoch(2)
 
   // skip dynasty increment for the hardcoded finalized epoch=0
   // as it's already "considered" incremented from -1 to 0.
@@ -172,7 +181,7 @@ void FinalizationState::IncrementDynasty() {
   m_current_dynasty += 1;
   m_prev_dyn_deposits = m_cur_dyn_deposits;
   m_cur_dyn_deposits += GetDynastyDelta(m_current_dynasty);
-  m_dynasty_start_epoch[m_current_dynasty] = m_current_epoch + 1;
+  m_dynasty_start_epoch[m_current_dynasty] = m_current_epoch;
 
   for (auto it = m_checkpoints.begin(); it != m_checkpoints.end();) {
     if (it->first < m_last_finalized_epoch) {
@@ -187,19 +196,20 @@ void FinalizationState::IncrementDynasty() {
 }
 
 ufp64::ufp64_t FinalizationState::GetCollectiveRewardFactor() {
-  uint32_t epoch = m_current_epoch;
   bool isLive = GetEpochsSinceFinalization() <= 2;
 
   if (!DepositExists() || !isLive) {
     return 0;
   }
 
+  assert(m_last_finalized_epoch == m_current_epoch - 2);
+
   ufp64::ufp64_t curVoteFraction = ufp64::div_2uint(
-      GetCheckpoint(epoch - 1).GetCurDynastyVotes(m_expected_source_epoch),
+      GetCheckpoint(m_last_finalized_epoch).GetCurDynastyVotes(m_expected_source_epoch),
       m_cur_dyn_deposits);
 
   ufp64::ufp64_t prevVoteFraction = ufp64::div_2uint(
-      GetCheckpoint(epoch - 1).GetPrevDynastyVotes(m_expected_source_epoch),
+      GetCheckpoint(m_last_finalized_epoch).GetPrevDynastyVotes(m_expected_source_epoch),
       m_prev_dyn_deposits);
 
   ufp64::ufp64_t voteFraction = ufp64::min(curVoteFraction, prevVoteFraction);
@@ -208,7 +218,7 @@ ufp64::ufp64_t FinalizationState::GetCollectiveRewardFactor() {
 }
 
 bool FinalizationState::DepositExists() const {
-  return m_cur_dyn_deposits > 0;
+  return m_cur_dyn_deposits > 0 && m_prev_dyn_deposits > 0;
 }
 
 ufp64::ufp64_t FinalizationState::GetSqrtOfTotalDeposits() const {
@@ -418,7 +428,7 @@ void FinalizationState::ProcessDeposit(const uint160 &validatorAddress,
                                        CAmount depositValue) {
   LOCK(cs_esperanza);
 
-  uint32_t startDynasty = m_current_dynasty + 3;
+  uint32_t startDynasty = m_current_dynasty + 2;
   uint64_t scaledDeposit = ufp64::div_to_uint(static_cast<uint64_t>(depositValue),
                                               GetDepositScaleFactor(m_current_epoch));
 
@@ -538,8 +548,8 @@ void FinalizationState::ProcessVote(const Vote &vote) {
              targetEpoch);
 
     if (targetEpoch == sourceEpoch + 1) {
-      GetCheckpoint(sourceEpoch).m_is_finalized = true;
-      m_last_finalized_epoch = sourceEpoch;
+      GetCheckpoint(targetEpoch).m_is_finalized = true;
+      m_last_finalized_epoch = targetEpoch;
       LogPrint(BCLog::FINALIZATION, "%s: epoch=%d finalized.\n", __func__,
                sourceEpoch);
     }
@@ -862,17 +872,6 @@ uint32_t FinalizationState::GetCurrentDynasty() const {
   return m_current_dynasty;
 }
 
-uint32_t FinalizationState::GetCheckpointHeightAfterFinalizedEpoch() const {
-  const uint32_t epoch = m_last_finalized_epoch + 1;
-  if (m_last_finalized_epoch != 0) {
-    // epoch=0 is self-finalized and doesn't require
-    // parent epoch to justify it but for other epochs
-    // this rule must hold
-    assert(GetCheckpoint(epoch).m_is_justified);
-  }
-  return GetEpochCheckpointHeight(epoch);
-}
-
 uint32_t FinalizationState::GetEpochLength() const {
   return m_settings.epoch_length;
 }
@@ -1026,7 +1025,6 @@ void FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
 
     m_recommended_target_hash = block_index.GetBlockHash();
     m_recommended_target_epoch = GetEpoch(block_index);
-    m_expected_source_epoch = m_last_justified_epoch;
   }
   m_status = FROM_COMMITS;
 }

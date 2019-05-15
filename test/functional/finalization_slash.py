@@ -92,13 +92,13 @@ class SlashTest(UnitETestFramework):
         disconnect_nodes(fork1, finalizer2.index)
 
         # pass instant finalization
-        # F    F    F    F    J
-        # e0 - e1 - e2 - e3 - e4 - e5 - e[26] fork1, fork2
-        generate_block(fork1, count=3 + 5 + 5 + 5 + 5 + 1)
-        assert_equal(fork1.getblockcount(), 26)
-        assert_finalizationstate(fork1, {'currentEpoch': 6,
-                                         'lastJustifiedEpoch': 4,
-                                         'lastFinalizedEpoch': 3,
+        # F    F    F
+        # e0 - e1 - e2 - e3 - e4[16] fork1, fork2
+        generate_block(fork1, count=3 + 5 + 5 + 1)
+        assert_equal(fork1.getblockcount(), 16)
+        assert_finalizationstate(fork1, {'currentEpoch': 4,
+                                         'lastJustifiedEpoch': 2,
+                                         'lastFinalizedEpoch': 2,
                                          'validators': 1})
 
         # change topology where forks are not connected
@@ -110,19 +110,19 @@ class SlashTest(UnitETestFramework):
 
         # test that same vote included on different forks
         # doesn't create a slash transaction
-        #                                        v1
-        #                                    - e6[27, 28, 29, 30] fork1
-        # F    F    F    F    F    J        /
-        # e0 - e1 - e2 - e3 - e4 - e5 - e6[26]
-        #                                   \     v1
-        #                                    - e6[27, 28, 29, 30] fork2
+        #                                       v1
+        #                          - e4[17, 18, 19, 20] fork1
+        # F    F    F    F        /
+        # e0 - e1 - e2 - e3 - e4[16]
+        #                         \     v1
+        #                          - e4[17, 18, 19, 20] fork2
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=fork1)
         v1 = fork1.getrawtransaction(fork1.getrawmempool()[0])
         generate_block(fork1, count=4)
-        assert_equal(fork1.getblockcount(), 30)
-        assert_finalizationstate(fork1, {'currentEpoch': 6,
-                                         'lastJustifiedEpoch': 5,
-                                         'lastFinalizedEpoch': 4,
+        assert_equal(fork1.getblockcount(), 20)
+        assert_finalizationstate(fork1, {'currentEpoch': 4,
+                                         'lastJustifiedEpoch': 3,
+                                         'lastFinalizedEpoch': 3,
                                          'validators': 1})
 
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork2)
@@ -130,35 +130,35 @@ class SlashTest(UnitETestFramework):
         assert_raises_rpc_error(-27, 'transaction already in block chain', fork2.sendrawtransaction, v1)
         assert_equal(len(fork2.getrawmempool()), 0)
         generate_block(fork2, count=3)
-        assert_equal(fork2.getblockcount(), 30)
-        assert_finalizationstate(fork1, {'currentEpoch': 6,
-                                         'lastJustifiedEpoch': 5,
-                                         'lastFinalizedEpoch': 4,
+        assert_equal(fork2.getblockcount(), 20)
+        assert_finalizationstate(fork1, {'currentEpoch': 4,
+                                         'lastJustifiedEpoch': 3,
+                                         'lastFinalizedEpoch': 3,
                                          'validators': 1})
         self.log.info('same vote on two forks was accepted')
 
         # test that double-vote with invalid vote signature is ignored
         # and doesn't cause slashing
-        #                                      v1          v2a
-        #                                    - e6 - e7[31, 32] fork1
-        # F    F    F    F    F    F    J   /
-        # e0 - e1 - e2 - e3 - e4 - e5 - e6[26]
-        #                                   \  v1          v2a
-        #                                    - e6 - e7[31, 32] fork2
+        #                            v1          v2a
+        #                          - e4 - e5[21, 22] fork1
+        # F    F    F    F     F  /
+        # e0 - e1 - e2 - e3 - e4[16]
+        #                         \  v1          v2a
+        #                          - e4 - e5[21, 22] fork2
         generate_block(fork1)
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=fork1)
         v2a = fork1.getrawtransaction(fork1.getrawmempool()[0])
         generate_block(fork1)
-        assert_equal(fork1.getblockcount(), 32)
-        assert_finalizationstate(fork1, {'currentEpoch': 7,
-                                         'lastJustifiedEpoch': 6,
-                                         'lastFinalizedEpoch': 5,
+        assert_equal(fork1.getblockcount(), 22)
+        assert_finalizationstate(fork1, {'currentEpoch': 5,
+                                         'lastJustifiedEpoch': 4,
+                                         'lastFinalizedEpoch': 4,
                                          'validators': 1})
 
         generate_block(fork2)
         tx_v2a = FromHex(CTransaction(), v2a)
 
-        # corrupt the 1st byte of the validators pubkey in the commit script
+        # corrupt the 1st byte of the validator's pubkey in the commit script
         # see schema in CScript::CommitScript
         tx_v2a.vout[0].scriptPubKey = corrupt_script(script=tx_v2a.vout[0].scriptPubKey, n_byte=2)
 
@@ -173,21 +173,21 @@ class SlashTest(UnitETestFramework):
 
         generate_block(fork2)
         assert_equal(len(fork2.getrawmempool()), 0)
-        assert_equal(fork2.getblockcount(), 32)
-        assert_finalizationstate(fork1, {'currentEpoch': 7,
-                                         'lastJustifiedEpoch': 6,
-                                         'lastFinalizedEpoch': 5,
+        assert_equal(fork2.getblockcount(), 22)
+        assert_finalizationstate(fork1, {'currentEpoch': 5,
+                                         'lastJustifiedEpoch': 4,
+                                         'lastFinalizedEpoch': 4,
                                          'validators': 1})
         self.log.info('double-vote with invalid signature is ignored')
 
         # test that valid double-vote but corrupt withdraw address
         # creates slash tx it is included in the next block
-        #                                      v1          v2a
-        #                                    - e6 - e7[31, 32] fork1
-        # F    F    F    F    F    F    J   /
-        # e0 - e1 - e2 - e3 - e4 - e5 - e6[26]
-        #                                   \  v1          v2a s1
-        #                                    - e6 - e7[31, 32, 33] fork2
+        #                            v1          v2a
+        #                          - e4 - e5[21, 22] fork1
+        # F    F    F    F     F  /
+        # e0 - e1 - e2 - e3 - e4[16]
+        #                         \  v1          v2a s1
+        #                          - e4 - e5[21, 22, 23] fork2
         # corrupt the 1st byte of the address in the scriptpubkey
         # but keep the correct vote signature see schema in CScript::CommitScript
         tx_v2a = FromHex(CTransaction(), v2a)
@@ -202,8 +202,8 @@ class SlashTest(UnitETestFramework):
         s1 = FromHex(CTransaction(), fork2.getrawtransaction(s1_hash))
         assert_equal(s1.get_type(), TxType.SLASH)
 
-        b33 = generate_block(fork2)[0]
-        block = FromHex(CBlock(), fork2.getblock(b33, 0))
+        b23 = generate_block(fork2)[0]
+        block = FromHex(CBlock(), fork2.getblock(b23, 0))
         assert_equal(len(block.vtx), 2)
         block.vtx[1].rehash()
         assert_equal(block.vtx[1].hash, s1_hash)

@@ -194,7 +194,7 @@ class DepositReorgTest(UnitETestFramework):
 
         # finalize deposit and re-org to that fork
         #            t1 t2 d1
-        # e0 - e1[1, 2, 3, 4, ...           ] - ... - e5[51] node0, finalizer
+        # e0 - e1[1, 2, 3, 4, ...           ] - ... - e4[31] node0, finalizer
         #         |     |
         #         |     -- 4, 5] node2
         #         |                 t1 t2 d1
@@ -202,17 +202,17 @@ class DepositReorgTest(UnitETestFramework):
         generate_block(node0, count=6)
         assert_equal(node0.getblockcount(), 10)
         assert_equal(node0.getfinalizationstate()['currentDynasty'], 0)
-        for _ in range(4):
+        for _ in range(2):
             generate_block(node0, count=10)
-        assert_equal(node0.getblockcount(), 50)
-        assert_equal(node0.getfinalizationstate()['currentDynasty'], 2)
+        assert_equal(node0.getblockcount(), 30)
+        assert_equal(node0.getfinalizationstate()['currentDynasty'], 1)
 
         connect_nodes(node0, finalizer.index)
         sync_blocks([node0, finalizer], timeout=60)
         assert_equal(finalizer.getvalidatorinfo()['validator_status'], 'WAITING_DEPOSIT_FINALIZATION')
 
         generate_block(node0)
-        assert_equal(node0.getfinalizationstate()['currentDynasty'], 3)
+        assert_equal(node0.getfinalizationstate()['currentDynasty'], 2)
         sync_blocks([node0, finalizer], timeout=10)
         assert_equal(finalizer.getvalidatorinfo()['validator_status'], 'IS_VALIDATING')
         self.log.info('validator_status is correct after re-organizing to the fork of finalized deposit')

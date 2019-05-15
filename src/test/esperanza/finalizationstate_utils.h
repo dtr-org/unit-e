@@ -32,6 +32,9 @@ class FinalizationStateSpy : public FinalizationState {
   void SetExpectedSourceEpoch(uint32_t epoch) {
     m_expected_source_epoch = epoch;
   }
+  void SetRecommendedTargetEpoch(uint32_t epoch) {
+    m_recommended_target_epoch = epoch;
+  }
   void SetLastFinalizedEpoch(uint32_t epoch) {
     m_checkpoints[epoch].m_is_finalized = true;
     m_last_finalized_epoch = epoch;
@@ -47,7 +50,9 @@ class FinalizationStateSpy : public FinalizationState {
     return m_settings.bounty_fraction_denominator;
   }
 
+  uint32_t GetExpectedSourceEpoch() const;
   void CreateAndActivateDeposit(const uint160 &validator_address, CAmount deposit_size);
+  void CreateDeposit(const uint160 &finalizer_address, CAmount deposit_size);
 
   void shuffle();
 

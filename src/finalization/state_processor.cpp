@@ -124,15 +124,10 @@ bool ProcessorImpl::ProcessNewTip(const CBlockIndex &block_index, const CBlock &
     assert(state);
 
     // We cannot make forks before this point as they can revert finalization.
-    const uint32_t trim_until = state->GetCheckpointHeightAfterFinalizedEpoch();
+    const uint32_t checkpoint_height = state->GetEpochCheckpointHeight(state->GetLastFinalizedEpoch());
+    m_repo->TrimUntilHeight(checkpoint_height);
 
-    // for 0 epoch it will be in the future
-    if (static_cast<uint32_t>(block_index.nHeight) > trim_until) {
-      m_repo->TrimUntilHeight(trim_until);
-    }
-
-    const uint32_t checkpoint = state->GetEpochCheckpointHeight(state->GetLastFinalizedEpoch());
-    snapshot::Creator::FinalizeSnapshots(m_active_chain->AtHeight(checkpoint));
+    snapshot::Creator::FinalizeSnapshots(m_active_chain->AtHeight(checkpoint_height));
   }
   return true;
 }

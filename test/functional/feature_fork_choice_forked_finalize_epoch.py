@@ -8,21 +8,21 @@ is not possible even if the forked epoch is considered finalized
 on another fork
 
 Scenario 1: fork after finalized checkpoint
-Node shouldn't switch to the fork, even if it has longer justified channel
-because epoch=5 is not finalized for that fork
-  F        J
-[ e5 ] - [ e6 ] - [ e7 ] node
+Node shouldn't switch to the fork, even if it has longer justified chain
+because epoch=3 is not finalized for that fork
+  F        F
+[ e3 ] - [ e4 ] - [ e5 ] node
    |
    |                J
-   ..] - [ e6 ] - [ e7 ] - [ e8 ] fork
+   ..] - [ e4 ] - [ e5 ] - [ e6 ] fork
 
 Scenario 2: fork after justified checkpoint
-Node shouldn't switch to the fork because its epoch=5 is not finalized
-      F        F        J
-... [ e4 ] - [ e5 ] - [ e6 ] - [ e7 ] node
+Node shouldn't switch to the fork because its epoch=4 is not finalized
+      F        F        F
+... [ e2 ] - [ e3 ] - [ e4 ] - [ e5 ] node
                          |
                          |                J
-                        .. ] - [ e7 ] - [ e8 ] - [ e9 ] fork
+                        .. ] - [ e5 ] - [ e6 ] - [ e6 ] fork
 
 """
 from test_framework.test_framework import UnitETestFramework
@@ -83,83 +83,83 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         disconnect_nodes(node, finalizer.index)
 
         # leave instant justification
-        generate_block(node, count=3 + 5 + 5 + 5 + 5)
+        generate_block(node, count=3 + 5 + 5)
         sync_blocks([node, fork], timeout=10)
-        assert_equal(node.getblockcount(), 25)
-        assert_finalizationstate(node, {'currentDynasty': 2,
-                                        'currentEpoch': 5,
-                                        'lastJustifiedEpoch': 4,
-                                        'lastFinalizedEpoch': 3,
+        assert_equal(node.getblockcount(), 15)
+        assert_finalizationstate(node, {'currentDynasty': 1,
+                                        'currentEpoch': 3,
+                                        'lastJustifiedEpoch': 2,
+                                        'lastFinalizedEpoch': 2,
                                         'validators': 0})
 
         # create longer justified fork
-        # [ e5 ] node
+        # [ e3 ] node
         #    |
         #    |                J
-        #    ..] - [ e6 ] - [ e7 ] - [ e8 ] fork
+        #    ..] - [ e4 ] - [ e5 ] - [ e6 ] fork
         disconnect_nodes(node, fork.index)
         generate_block(fork, count=5 + 5)
         target = fork.getbestblockhash()
         generate_block(fork)
         vtx = make_vote_tx(finalizer, finalizer_address, target,
-                           source_epoch=4, target_epoch=7, input_tx_id=deposit_tx_id)
+                           source_epoch=2, target_epoch=5, input_tx_id=deposit_tx_id)
         fork.sendrawtransaction(vtx)
         generate_block(fork)
-        assert_equal(fork.getblockcount(), 37)
-        assert_finalizationstate(fork, {'currentDynasty': 3,
-                                        'currentEpoch': 8,
-                                        'lastJustifiedEpoch': 7,
-                                        'lastFinalizedEpoch': 3})
-
-        # create finalization
-        #   J
-        # [ e5 ] - [ e6 ] node
-        #    |
-        #    |                J
-        #    ..] - [ e6 ] - [ e7 ] - [ e8 ] fork
-        generate_block(node)
-        self.wait_for_vote_and_disconnect(finalizer=finalizer, node=node)
-        generate_block(node, count=4)
-        assert_equal(node.getblockcount(), 30)
-        assert_finalizationstate(node, {'currentDynasty': 3,
+        assert_equal(fork.getblockcount(), 27)
+        assert_finalizationstate(fork, {'currentDynasty': 2,
                                         'currentEpoch': 6,
                                         'lastJustifiedEpoch': 5,
-                                        'lastFinalizedEpoch': 4})
+                                        'lastFinalizedEpoch': 2})
 
-        #   F        J
-        # [ e5 ] - [ e6 ] - [ e7 ] node
+        # create finalization
+        #   F
+        # [ e3 ] - [ e4 ] node
         #    |
         #    |                J
-        #    ..] - [ e6 ] - [ e7 ] - [ e8 ] fork
+        #    ..] - [ e4 ] - [ e5 ] - [ e6 ] fork
         generate_block(node)
         self.wait_for_vote_and_disconnect(finalizer=finalizer, node=node)
         generate_block(node, count=4)
-        assert_equal(node.getblockcount(), 35)
-        assert_finalizationstate(node, {'currentDynasty': 4,
-                                        'currentEpoch': 7,
-                                        'lastJustifiedEpoch': 6,
-                                        'lastFinalizedEpoch': 5})
+        assert_equal(node.getblockcount(), 20)
+        assert_finalizationstate(node, {'currentDynasty': 2,
+                                        'currentEpoch': 4,
+                                        'lastJustifiedEpoch': 3,
+                                        'lastFinalizedEpoch': 3})
+
+        #   F        F
+        # [ e3 ] - [ e4 ] - [ e5 ] node
+        #    |
+        #    |                J
+        #    ..] - [ e4 ] - [ e5 ] - [ e6 ] fork
+        generate_block(node)
+        self.wait_for_vote_and_disconnect(finalizer=finalizer, node=node)
+        generate_block(node, count=4)
+        assert_equal(node.getblockcount(), 25)
+        assert_finalizationstate(node, {'currentDynasty': 3,
+                                        'currentEpoch': 5,
+                                        'lastJustifiedEpoch': 4,
+                                        'lastFinalizedEpoch': 4})
 
         # test that longer justification doesn't trigger re-org before finalization
         connect_nodes(node, fork.index)
         time.sleep(5)  # give enough time to decide
 
-        assert_equal(node.getblockcount(), 35)
-        assert_finalizationstate(node, {'currentDynasty': 4,
-                                        'currentEpoch': 7,
-                                        'lastJustifiedEpoch': 6,
-                                        'lastFinalizedEpoch': 5})
+        assert_equal(node.getblockcount(), 25)
+        assert_finalizationstate(node, {'currentDynasty': 3,
+                                        'currentEpoch': 5,
+                                        'lastJustifiedEpoch': 4,
+                                        'lastFinalizedEpoch': 4})
 
         # TODO: UNIT-E: check that slash transaction was created
         # related issue: #680 #652 #686
 
         # test that node has valid state after restart
         self.restart_node(node.index)
-        assert_equal(node.getblockcount(), 35)
-        assert_finalizationstate(node, {'currentDynasty': 4,
-                                        'currentEpoch': 7,
-                                        'lastJustifiedEpoch': 6,
-                                        'lastFinalizedEpoch': 5})
+        assert_equal(node.getblockcount(), 25)
+        assert_finalizationstate(node, {'currentDynasty': 3,
+                                        'currentEpoch': 5,
+                                        'lastJustifiedEpoch': 4,
+                                        'lastFinalizedEpoch': 4})
 
         # cleanup
         self.stop_node(node.index)
@@ -191,97 +191,97 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         disconnect_nodes(node, finalizer.index)
 
         # leave instant justification
-        #   F        F        F        F        J
-        # [ e0 ] - [ e1 ] - [ e2 ] - [ e3 ] - [ e4 ] - [ e5 ]
-        generate_block(node, count=3 + 5 + 5 + 5 + 5)
+        #   F        F
+        # [ e0 ] - [ e1 ] - [ e2 ] - [ e3 ]
+        generate_block(node, count=3 + 5 + 5)
         sync_blocks([node, fork])
-        assert_equal(node.getblockcount(), 25)
-        assert_finalizationstate(node, {'currentDynasty': 2,
-                                        'currentEpoch': 5,
-                                        'lastJustifiedEpoch': 4,
-                                        'lastFinalizedEpoch': 3,
+        assert_equal(node.getblockcount(), 15)
+        assert_finalizationstate(node, {'currentDynasty': 1,
+                                        'currentEpoch': 3,
+                                        'lastJustifiedEpoch': 2,
+                                        'lastFinalizedEpoch': 2,
                                         'validators': 0})
 
         # justify epoch that will be finalized
-        #       F        J
-        # ... [ e4 ] - [ e5 ] - [ e6 ] node, fork
+        #       F        F
+        # ... [ e2 ] - [ e3 ] - [ e4 ] node, fork
         generate_block(node)
         vote = self.wait_for_vote_and_disconnect(finalizer=finalizer, node=node)
         vote_tx_id = node.decoderawtransaction(vote)['txid']
         generate_block(node, count=4)
         sync_blocks([node, fork], timeout=10)
-        assert_equal(node.getblockcount(), 30)
-        assert_finalizationstate(node, {'currentDynasty': 3,
-                                        'currentEpoch': 6,
-                                        'lastJustifiedEpoch': 5,
-                                        'lastFinalizedEpoch': 4})
+        assert_equal(node.getblockcount(), 20)
+        assert_finalizationstate(node, {'currentDynasty': 2,
+                                        'currentEpoch': 4,
+                                        'lastJustifiedEpoch': 3,
+                                        'lastFinalizedEpoch': 3})
 
         # create fork that will be longer justified
-        #       F        J
-        # ... [ e4 ] - [ e5 ] - [ e6 ] node
+        #       F        F
+        # ... [ e2 ] - [ e3 ] - [ e4 ] node
         #                          |
         #                          |
-        #                         .. ] - [ e7 ] - [ e8 ] fork
+        #                         .. ] - [ e5 ] - [ e6 ] fork
         disconnect_nodes(node, fork.index)
         generate_block(fork, count=5 + 5)
-        assert_equal(fork.getblockcount(), 40)
-        assert_finalizationstate(fork, {'currentDynasty': 4,
-                                        'currentEpoch': 8,
-                                        'lastJustifiedEpoch': 5,
-                                        'lastFinalizedEpoch': 4})
+        assert_equal(fork.getblockcount(), 30)
+        assert_finalizationstate(fork, {'currentDynasty': 3,
+                                        'currentEpoch': 6,
+                                        'lastJustifiedEpoch': 3,
+                                        'lastFinalizedEpoch': 3})
 
         # create longer justification
-        #       F        J
-        # ... [ e4 ] - [ e5 ] - [ e6 ] node
+        #       F        F
+        # ... [ e2 ] - [ e3 ] - [ e4 ] node
         #                          |
         #                          |                J
-        #                         .. ] - [ e7 ] - [ e8 ] - [ e9 ] fork
+        #                         .. ] - [ e5 ] - [ e6 ] - [ e7 ] fork
         target = fork.getbestblockhash()
         generate_block(fork)
         vtx = make_vote_tx(finalizer, finalizer_address, target,
-                           source_epoch=5, target_epoch=8, input_tx_id=vote_tx_id)
+                           source_epoch=3, target_epoch=6, input_tx_id=vote_tx_id)
         fork.sendrawtransaction(vtx)
         generate_block(fork, count=4)
-        assert_equal(fork.getblockcount(), 45)
-        assert_finalizationstate(fork, {'currentDynasty': 4,
-                                        'currentEpoch': 9,
-                                        'lastJustifiedEpoch': 8,
-                                        'lastFinalizedEpoch': 4})
+        assert_equal(fork.getblockcount(), 35)
+        assert_finalizationstate(fork, {'currentDynasty': 3,
+                                        'currentEpoch': 7,
+                                        'lastJustifiedEpoch': 6,
+                                        'lastFinalizedEpoch': 3})
 
         # finalize epoch=5 on node
-        #       F        F        J
-        # ... [ e4 ] - [ e5 ] - [ e6 ] - [ e7 ] node
+        #       F        F        F
+        # ... [ e2 ] - [ e3 ] - [ e4 ] - [ e5 ] node
         #                          |
         #                          |                J
-        #                         .. ] - [ e7 ] - [ e8 ] - [ e9 ] fork
+        #                         .. ] - [ e5 ] - [ e6 ] - [ e7 ] fork
         generate_block(node)
         self.wait_for_vote_and_disconnect(finalizer=finalizer, node=node)
         generate_block(node)
-        assert_equal(node.getblockcount(), 32)
-        assert_finalizationstate(node, {'currentDynasty': 4,
-                                        'currentEpoch': 7,
-                                        'lastJustifiedEpoch': 6,
-                                        'lastFinalizedEpoch': 5})
+        assert_equal(node.getblockcount(), 22)
+        assert_finalizationstate(node, {'currentDynasty': 3,
+                                        'currentEpoch': 5,
+                                        'lastJustifiedEpoch': 4,
+                                        'lastFinalizedEpoch': 4})
 
         # node shouldn't switch to fork as it's finalization is behind
         connect_nodes(node, fork.index)
         time.sleep(5)
-        assert_equal(node.getblockcount(), 32)
-        assert_finalizationstate(node, {'currentDynasty': 4,
-                                        'currentEpoch': 7,
-                                        'lastJustifiedEpoch': 6,
-                                        'lastFinalizedEpoch': 5})
+        assert_equal(node.getblockcount(), 22)
+        assert_finalizationstate(node, {'currentDynasty': 3,
+                                        'currentEpoch': 5,
+                                        'lastJustifiedEpoch': 4,
+                                        'lastFinalizedEpoch': 4})
 
         # TODO: UNIT-E: check that slash transaction was created
         # related issue: #680 #652 #686
 
         # test that node has valid state after restart
         self.restart_node(node.index)
-        assert_equal(node.getblockcount(), 32)
-        assert_finalizationstate(node, {'currentDynasty': 4,
-                                        'currentEpoch': 7,
-                                        'lastJustifiedEpoch': 6,
-                                        'lastFinalizedEpoch': 5})
+        assert_equal(node.getblockcount(), 22)
+        assert_finalizationstate(node, {'currentDynasty': 3,
+                                        'currentEpoch': 5,
+                                        'lastJustifiedEpoch': 4,
+                                        'lastFinalizedEpoch': 4})
 
         # cleanup
         self.stop_node(node.index)

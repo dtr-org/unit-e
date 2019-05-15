@@ -185,7 +185,7 @@ bool RepositoryImpl::LoadStatesFromDB() {
       LogPrint(BCLog::FINALIZATION, "Restoring state repository from disk, last_finalized_epoch=%d\n",
                *last_finalized_epoch);
       const blockchain::Height height =
-          m_finalization_params->GetEpochCheckpointHeight(*last_finalized_epoch + 1);
+          m_finalization_params->GetEpochCheckpointHeight(*last_finalized_epoch);
       m_state_db->LoadStatesHigherThan(height, &m_states);
       if (!m_states.empty()) {
         return true;
@@ -212,7 +212,7 @@ void RepositoryImpl::CheckAndRecover(Dependency<finalization::StateProcessor> pr
 
   const uint32_t last_finalized_epoch = state->GetLastFinalizedEpoch();
 
-  const blockchain::Height height = last_finalized_epoch == 0 ? 0 : m_finalization_params->GetEpochCheckpointHeight(last_finalized_epoch + 1);
+  const blockchain::Height height = m_finalization_params->GetEpochCheckpointHeight(last_finalized_epoch);
 
   std::set<const CBlockIndex *> unrecoverable;
 

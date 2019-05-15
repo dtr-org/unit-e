@@ -109,18 +109,18 @@ class DepositTest(UnitETestFramework):
                                             'lastFinalizedEpoch': 0,
                                             'validators': 0})
 
-        # the finalizer will be ready to operate at currentDynasty=3
-        for _ in range(4):
+        # the finalizer will be ready to operate at currentDynasty=2
+        for _ in range(2):
             proposer.generate(10)
             assert_finalizationstate(proposer, {'validators': 0})
 
         # start new dynasty
         proposer.generate(1)
-        assert_equal(proposer.getblockcount(), 51)
-        assert_finalizationstate(proposer, {'currentEpoch': 6,
-                                            'currentDynasty': 3,
-                                            'lastJustifiedEpoch': 4,
-                                            'lastFinalizedEpoch': 3,
+        assert_equal(proposer.getblockcount(), 31)
+        assert_finalizationstate(proposer, {'currentEpoch': 4,
+                                            'currentDynasty': 2,
+                                            'lastJustifiedEpoch': 2,
+                                            'lastFinalizedEpoch': 2,
                                             'validators': 1})
 
         connect_nodes(finalizer, proposer.index)

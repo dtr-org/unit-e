@@ -47,8 +47,8 @@ BOOST_AUTO_TEST_CASE(validate_logout_already_logged_out) {
   BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress), +Result::SUCCESS);
   spy.ProcessLogout(validatorAddress);
 
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 6 * spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 7 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 4 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 5 * spy.EpochLength()), +Result::SUCCESS);
 
   BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress), +Result::LOGOUT_ALREADY_DONE);
 }
@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(process_logout_end_dynasty) {
 
   std::map<uint160, Validator> validators = spy.Validators();
   Validator validator = validators.find(validatorAddress)->second;
-  BOOST_CHECK_EQUAL(8, validator.m_end_dynasty);
+  BOOST_CHECK_EQUAL(7, validator.m_end_dynasty);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

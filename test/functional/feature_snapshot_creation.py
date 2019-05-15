@@ -80,7 +80,7 @@ class SnapshotCreationTest(UnitETestFramework):
         assert_equal(node.getblockcount(), 41)
         assert_finalizationstate(node, {'currentDynasty': 6,
                                         'currentEpoch': 9,
-                                        'lastJustifiedEpoch': 7,
+                                        'lastJustifiedEpoch': 6,
                                         'lastFinalizedEpoch': 6,
                                         'validators': 1})
 

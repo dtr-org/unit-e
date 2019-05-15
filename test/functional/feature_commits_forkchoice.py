@@ -83,7 +83,7 @@ class FinalizationForkChoice(UnitETestFramework):
 
         assert_finalizationstate(p0, {'currentEpoch': 5,
                                       'lastJustifiedEpoch': 4,
-                                      'lastFinalizedEpoch': 3})
+                                      'lastFinalizedEpoch': 4})
 
         # disconnect p0
         # v0: p1, p2
@@ -108,28 +108,27 @@ class FinalizationForkChoice(UnitETestFramework):
         disconnect_nodes(p1, v0.index)
 
         # generate long chain in p0 but don't justify it
-        #  F     J
+        #  F     F
         # 30 .. 40 .. 89    -- p0
         generate_block(p0, count=40)
 
         assert_equal(p0.getblockcount(), 89)
         assert_finalizationstate(p0, {'currentEpoch': 9,
                                       'lastJustifiedEpoch': 4,
-                                      'lastFinalizedEpoch': 3})
+                                      'lastFinalizedEpoch': 4})
 
         # generate short chain in p1 and justify it
         # on the 6th and 7th epochs sync with validator
-        #  F     J
+        #  F     F
         # 30 .. 40 .. 49 .. .. .. .. .. .. 89    -- p0
         #               \
         #                50 .. 60 .. 69          -- p1
-        #                 F     J
+        #                 F
         # get to the 6th epoch
         generate_block(p1, count=2)
         self.wait_for_vote_and_disconnect(finalizer=v0, node=p1)
         # get to the 7th epoch
         generate_block(p1, count=10)
-        self.wait_for_vote_and_disconnect(finalizer=v0, node=p1)
         # generate the rest of the blocks
         generate_block(p1, count=8)
         connect_nodes(p1, v0.index)
@@ -137,7 +136,7 @@ class FinalizationForkChoice(UnitETestFramework):
 
         assert_equal(p1.getblockcount(), 69)
         assert_finalizationstate(p1, {'currentEpoch': 7,
-                                      'lastJustifiedEpoch': 6,
+                                      'lastJustifiedEpoch': 5,
                                       'lastFinalizedEpoch': 5})
 
         # connect p2 with p0 and p1; p2 must switch to the longest justified p1
@@ -154,10 +153,10 @@ class FinalizationForkChoice(UnitETestFramework):
         assert_equal(p2.getblockcount(), 69)
 
         assert_finalizationstate(p1, {'currentEpoch': 7,
-                                      'lastJustifiedEpoch': 6,
+                                      'lastJustifiedEpoch': 5,
                                       'lastFinalizedEpoch': 5})
         assert_finalizationstate(p2, {'currentEpoch': 7,
-                                      'lastJustifiedEpoch': 6,
+                                      'lastJustifiedEpoch': 5,
                                       'lastFinalizedEpoch': 5})
 
         # connect p0 with p1, p0 must disconnect its longest but not justified fork and choose p1
