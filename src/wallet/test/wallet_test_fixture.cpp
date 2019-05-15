@@ -45,11 +45,11 @@ WalletTestingSetup::~WalletTestingSetup()
 }
 
 TestChain100Setup::TestChain100Setup(UnitEInjectorConfiguration config)
-    : WalletTestingSetup(CBaseChainParams::REGTEST, config)
+    : WalletTestingSetup(CBaseChainParams::REGTEST, config),
+      m_block_builder(proposer::BlockBuilder::New(&settings)),
+      m_active_chain(staking::ActiveChain::New()),
+      m_behavior(blockchain::Behavior::NewForNetwork(blockchain::Network::regtest))
 {
-  m_block_builder = proposer::BlockBuilder::New(&settings);
-  m_active_chain = staking::ActiveChain::New();
-  m_behavior = blockchain::Behavior::NewForNetwork(blockchain::Network::regtest);
 
   coinbaseKey = DecodeSecret("cQTjnbHifWGuMhm9cRgQ23ip5KntTMfj3zwo6iQyxMVxSfJyptqL");
   assert(coinbaseKey.IsValid());
