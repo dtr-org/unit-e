@@ -89,7 +89,7 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
   staking::CoinSet coins;
   {
     LOCK2(m_active_chain->GetLock(), wallet_ext.GetLock());
-     coins = wallet_ext.GetStakeableCoins();
+    coins = wallet_ext.GetStakeableCoins();
   }
 
   const CAmount fees = 0;
