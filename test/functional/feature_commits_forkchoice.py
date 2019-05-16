@@ -138,7 +138,7 @@ class FinalizationForkChoice(UnitETestFramework):
         # get to the 5th epoch
         generate_block(p1, count=3)
         self.wait_for_vote_and_disconnect(finalizer=v0, node=p1)
-        # get to the 5th epoch
+        # get to the 6th epoch
         generate_block(p1, count=9)
         # generate the rest of the blocks
         generate_block(p1, count=8)
