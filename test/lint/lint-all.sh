@@ -18,21 +18,27 @@ LINTALL=$(basename "${BASH_SOURCE[0]}")
 
 SHELL_SCRIPTS=(
   lint-circular-dependencies.sh
+  lint-clang-format.py
   lint-filenames.sh
   lint-format-strings.sh
   lint-includes.sh
   lint-locale-dependence.sh
   lint-logs.sh
+  lint-newline-at-eof.py
   lint-python.sh
   lint-python-shebang.sh
   lint-python-utf8-encoding.sh
+  lint-shebang.sh
   lint-shell-locale.sh
   lint-whitespace.sh
 )
 
+EXIT_CODE=0
 for f in ${SHELL_SCRIPTS[@]}; do
   if ! "${SCRIPTDIR}/$f"; then
     echo "^---- failure generated from $f"
-    exit 1
+    EXIT_CODE=1
   fi
 done
+
+exit ${EXIT_CODE}
