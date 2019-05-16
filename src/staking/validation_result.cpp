@@ -6,7 +6,7 @@
 
 namespace staking {
 
-BlockValidationResult BlockValidationResult::success = BlockValidationResult();
+const BlockValidationResult BlockValidationResult::success = BlockValidationResult();
 
 BlockValidationResult::operator bool() const {
   return !m_error;

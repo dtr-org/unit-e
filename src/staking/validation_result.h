@@ -16,7 +16,7 @@ namespace staking {
 
 class BlockValidationResult {
  public:
-  static BlockValidationResult success;
+  static const BlockValidationResult success;
 
   //! \brief Construct a positive BlockValidationResult.
   BlockValidationResult() noexcept : m_error(boost::none) {}

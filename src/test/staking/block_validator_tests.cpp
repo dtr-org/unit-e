@@ -6,10 +6,10 @@
 
 #include <blockchain/blockchain_genesis.h>
 #include <blockchain/blockchain_parameters.h>
-#include <test/util/blocktools.h>
 #include <consensus/merkle.h>
 #include <key/mnemonic/mnemonic.h>
 #include <test/test_unite.h>
+#include <test/util/blocktools.h>
 #include <timedata.h>
 
 #include <boost/test/unit_test.hpp>
@@ -25,7 +25,7 @@ struct KeyFixture {
   std::vector<unsigned char> pub_key_data;
 };
 
-KeyFixture MakeKeyFixture(const std::string& seed_words = "cook note face vicious suggest company unit smart lobster tongue dune diamond faculty solid thought") {
+KeyFixture MakeKeyFixture(const std::string &seed_words = "cook note face vicious suggest company unit smart lobster tongue dune diamond faculty solid thought") {
   // a block is signed by the proposer, thus we need some key setup here
   const key::mnemonic::Seed seed(seed_words);
   const CExtKey &ext_key = seed.GetExtKey();
@@ -34,11 +34,10 @@ KeyFixture MakeKeyFixture(const std::string& seed_words = "cook note face viciou
   return {
       ext_key,
       pub_key,
-      std::vector<unsigned char>(pub_key.begin(), pub_key.end())
-  };
+      std::vector<unsigned char>(pub_key.begin(), pub_key.end())};
 }
 
-CTransactionRef MakeCoinbaseTransaction(const KeyFixture& key_fixture = MakeKeyFixture(), const blockchain::Height height = 0) {
+CTransactionRef MakeCoinbaseTransaction(const KeyFixture &key_fixture = MakeKeyFixture(), const blockchain::Height height = 0) {
 
   CMutableTransaction tx;
   tx.SetType(TxType::COINBASE);
@@ -58,7 +57,7 @@ CTransactionRef MakeCoinbaseTransaction(const KeyFixture& key_fixture = MakeKeyF
 }
 
 //! \brief creates a minimal block that passes validation without looking at the chain
-CBlock MinimalBlock(const KeyFixture& key_fixture = MakeKeyFixture()) {
+CBlock MinimalBlock(const KeyFixture &key_fixture = MakeKeyFixture()) {
   // a block is signed by the proposer, thus we need some key setup here
   const key::mnemonic::Seed seed("cook note face vicious suggest company unit smart lobster tongue dune diamond faculty solid thought");
   const CExtKey &ext_key = seed.GetExtKey();
@@ -213,7 +212,6 @@ BOOST_AUTO_TEST_CASE(check_NO_snapshot_hash) {
 
   BOOST_CHECK(!validation_result);
   BOOST_CHECK_MESSAGE(validation_result.Is(Error::NO_SNAPSHOT_HASH), validation_result.GetRejectionMessage());
-
 }
 
 BOOST_AUTO_TEST_CASE(check_empty_coinbase_transaction) {
