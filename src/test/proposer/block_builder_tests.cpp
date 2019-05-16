@@ -143,7 +143,7 @@ BOOST_AUTO_TEST_CASE(build_block_and_validate) {
       current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, boost::none, f.wallet);
   BOOST_REQUIRE(static_cast<bool>(block));
   auto is_valid = validator->CheckBlock(*block, nullptr);
-  BOOST_CHECK(is_valid);
+  BOOST_CHECK_MESSAGE(is_valid, is_valid.GetRejectionMessage());
 
   auto &stake_in = block->vtx[0]->vin[1];
   BOOST_CHECK(stake_in.scriptWitness.stack[1] == f.pubkeydata);
@@ -190,7 +190,7 @@ BOOST_AUTO_TEST_CASE(split_amount) {
     });
     // check that outputs differ no more than one in size (this avoids dust)
     BOOST_CHECK(abs(minmax.first->nValue - minmax.second->nValue) <= 1);
-    BOOST_CHECK(static_cast<bool>(is_valid));
+    BOOST_CHECK_MESSAGE(is_valid, is_valid.GetRejectionMessage());
   };
 
   // eligible_coin.amount=100, threshold=10, reward=50 -> 10x10 (reward is separate)
@@ -230,7 +230,7 @@ BOOST_AUTO_TEST_CASE(check_reward_destination) {
       current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, boost::none, f.wallet);
   BOOST_REQUIRE(static_cast<bool>(block));
   const staking::BlockValidationResult is_valid = validator->CheckBlock(*block, nullptr);
-  BOOST_CHECK(static_cast<bool>(is_valid));
+  BOOST_CHECK_MESSAGE(is_valid, is_valid.GetRejectionMessage());
 
   const CTxOut stake_out = block->vtx[0]->vout[1];
   BOOST_CHECK_EQUAL(f.eligible_coin.utxo.GetAmount(), stake_out.nValue);
@@ -270,7 +270,7 @@ BOOST_AUTO_TEST_CASE(combine_stake) {
       current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, boost::none, f.wallet);
   BOOST_REQUIRE(static_cast<bool>(block));
   const staking::BlockValidationResult is_valid = validator->CheckBlock(*block, nullptr);
-  BOOST_CHECK(static_cast<bool>(is_valid));
+  BOOST_CHECK_MESSAGE(is_valid, is_valid.GetRejectionMessage());
   // must have a coinbase transaction
   BOOST_REQUIRE(!block->vtx.empty());
 
@@ -327,7 +327,7 @@ BOOST_AUTO_TEST_CASE(remote_staking) {
         current_tip, f.snapshot_hash, eligible_coin, coins, transactions, fees, boost::none, f.wallet);
     BOOST_REQUIRE(static_cast<bool>(block));
     const staking::BlockValidationResult is_valid = validator->CheckBlock(*block, nullptr);
-    BOOST_CHECK(static_cast<bool>(is_valid));
+    BOOST_CHECK_MESSAGE(is_valid, is_valid.GetRejectionMessage());
     // must have a coinbase transaction
     BOOST_REQUIRE(!block->vtx.empty());
 
@@ -351,7 +351,7 @@ BOOST_AUTO_TEST_CASE(remote_staking) {
         current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, boost::none, f.wallet);
     BOOST_REQUIRE(static_cast<bool>(block));
     const staking::BlockValidationResult is_valid = validator->CheckBlock(*block, nullptr);
-    BOOST_CHECK(static_cast<bool>(is_valid));
+    BOOST_CHECK_MESSAGE(is_valid, is_valid.GetRejectionMessage());
     // must have a coinbase transaction
     BOOST_REQUIRE(!block->vtx.empty());
 

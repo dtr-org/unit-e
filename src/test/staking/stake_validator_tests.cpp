@@ -139,7 +139,7 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
     tx.vout = {out};
     block.vtx = {MakeTransactionRef(tx)};
 
-    const auto r = stake_validator->CheckStake(block, nullptr);
+    const staking::BlockValidationResult r = stake_validator->CheckStake(block, nullptr);
     BOOST_CHECK_MESSAGE(r, r.GetRejectionMessage());
   }
 
@@ -150,9 +150,9 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
     tx.vout = {out};
     block.vtx = {MakeTransactionRef(tx)};
 
-    const auto r = stake_validator->CheckStake(block, nullptr);
+    const staking::BlockValidationResult r = stake_validator->CheckStake(block, nullptr);
     BOOST_CHECK(!r);
-    BOOST_CHECK(r.errors.Contains(staking::BlockValidationError::REMOTE_STAKING_INPUT_BIGGER_THAN_OUTPUT));
+    BOOST_CHECK(r.Is(staking::BlockValidationError::REMOTE_STAKING_INPUT_BIGGER_THAN_OUTPUT));
   }
 
   // Two remote staking outputs with total amount greater than the input amount
@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
     tx.vout = {out, out2};
     block.vtx = {MakeTransactionRef(tx)};
 
-    const auto r = stake_validator->CheckStake(block, nullptr);
+    const staking::BlockValidationResult r = stake_validator->CheckStake(block, nullptr);
     BOOST_CHECK_MESSAGE(r, r.GetRejectionMessage());
   }
 
@@ -175,9 +175,9 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
     tx.vout = {out};
     block.vtx = {MakeTransactionRef(tx)};
 
-    const auto r = stake_validator->CheckStake(block, nullptr);
+    const staking::BlockValidationResult r = stake_validator->CheckStake(block, nullptr);
     BOOST_CHECK(!r);
-    BOOST_CHECK(r.errors.Contains(staking::BlockValidationError::TRANSACTION_INPUT_NOT_FOUND));
+    BOOST_CHECK(r.Is(staking::BlockValidationError::TRANSACTION_INPUT_NOT_FOUND));
   }
 
   coins.emplace(input2_ref, staking::Coin(&block_index, input2_ref, CTxOut{2 * UNIT, script2}));
@@ -202,9 +202,9 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
     tx.vout = {out, out2};
     block.vtx = {MakeTransactionRef(tx)};
 
-    const auto r = stake_validator->CheckStake(block, nullptr);
+    const staking::BlockValidationResult r = stake_validator->CheckStake(block, nullptr);
     BOOST_CHECK(!r);
-    BOOST_CHECK(r.errors.Contains(staking::BlockValidationError::REMOTE_STAKING_INPUT_BIGGER_THAN_OUTPUT));
+    BOOST_CHECK(r.Is(staking::BlockValidationError::REMOTE_STAKING_INPUT_BIGGER_THAN_OUTPUT));
   }
 }
 
