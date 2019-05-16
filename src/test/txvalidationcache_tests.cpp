@@ -37,7 +37,7 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, TestChain100Setup)
     // validated going into the memory pool does not allow
     // double-spends in blocks to pass validation when they should not.
 
-    CScript scriptPubKey = CScript() << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
+    CScript scriptPubKey = GetScriptForDestination(WitnessV0KeyHash(coinbaseKey.GetPubKey().GetID()));
 
     // Make a coinbase mature so we have something to spend
     const CTransactionRef last_coinbase = CreateAndProcessBlock({}, scriptPubKey).vtx[0];
@@ -47,6 +47,7 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, TestChain100Setup)
     spends.resize(2);
     for (int i = 0; i < 2; i++)
     {
+        LOCK(m_wallet->cs_wallet);
         spends[i].nVersion = 1;
         spends[i].vin.resize(1);
         spends[i].vin[0].prevout.hash = last_coinbase->GetHash();
@@ -56,11 +57,7 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, TestChain100Setup)
         spends[i].vout[0].scriptPubKey = scriptPubKey;
 
         // Sign:
-        std::vector<unsigned char> vchSig;
-        uint256 hash = SignatureHash(scriptPubKey, spends[i], 0, SIGHASH_ALL, 0, SigVersion::BASE);
-        BOOST_CHECK(coinbaseKey.Sign(hash, vchSig));
-        vchSig.push_back((unsigned char)SIGHASH_ALL);
-        spends[i].vin[0].scriptSig = CScript() << vchSig;
+        m_wallet->SignTransaction(spends[i]);
     }
 
     CBlock block;
@@ -156,7 +153,14 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
     CScript p2sh_scriptPubKey = GetScriptForDestination(CScriptID(p2pkh_scriptPubKey));
     CScript p2wpkh_scriptPubKey = GetScriptForWitness(p2pkh_scriptPubKey);
 
-    const CTransactionRef p2pkh_coinbase = CreateAndProcessBlock({}, p2pkh_scriptPubKey).vtx[0];
+    bool processed;
+    const CTransactionRef p2pkh_coinbase = CreateAndProcessBlock({}, p2pkh_scriptPubKey, &processed).vtx[0];
+    BOOST_CHECK(processed);
+
+    // Make the reward with p2pkh_scriptPubKey mature
+    for (int i = 0; i < COINBASE_MATURITY + 1; ++i) {
+      CreateAndProcessBlock({}, GetScriptForDestination(WitnessV0KeyHash(coinbaseKey.GetPubKey().GetID())));
+    }
 
     m_wallet->AddCScript(p2pkh_scriptPubKey);
 
@@ -169,7 +173,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
     dersig_invalid_tx.nVersion = 1;
     dersig_invalid_tx.vin.resize(1);
     dersig_invalid_tx.vin[0].prevout.hash = p2pkh_coinbase->GetHash();
-    dersig_invalid_tx.vin[0].prevout.n = 1;
+    dersig_invalid_tx.vin[0].prevout.n = 0;
     dersig_invalid_tx.vout.resize(4);
     dersig_invalid_tx.vout[0].nValue = 11*EEES;
     dersig_invalid_tx.vout[0].scriptPubKey = p2sh_scriptPubKey;
@@ -216,7 +220,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
     spend_tx.nVersion = 1;
     spend_tx.vin.resize(1);
     spend_tx.vin[0].prevout.hash = p2pkh_coinbase->GetHash();
-    spend_tx.vin[0].prevout.n = 1;
+    spend_tx.vin[0].prevout.n = 0;
     spend_tx.vout.resize(4);
     spend_tx.vout[0].nValue = 11*EEES;
     spend_tx.vout[0].scriptPubKey = p2sh_scriptPubKey;

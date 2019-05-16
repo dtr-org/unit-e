@@ -47,8 +47,12 @@ WalletTestingSetup::~WalletTestingSetup()
 }
 
 TestChain100Setup::TestChain100Setup(UnitEInjectorConfiguration config)
-    : WalletTestingSetup(CBaseChainParams::REGTEST, config)
+    : WalletTestingSetup(CBaseChainParams::REGTEST, config),
+      m_block_builder(proposer::BlockBuilder::New(&settings)),
+      m_active_chain(staking::ActiveChain::New()),
+      m_behavior(blockchain::Behavior::NewForNetwork(blockchain::Network::regtest))
 {
+
   coinbaseKey = DecodeSecret("cQTjnbHifWGuMhm9cRgQ23ip5KntTMfj3zwo6iQyxMVxSfJyptqL");
   assert(coinbaseKey.IsValid());
   {
@@ -78,27 +82,53 @@ TestChain100Setup::TestChain100Setup(UnitEInjectorConfiguration config)
 // scriptPubKey, and try to add it to the current chain.
 //
 CBlock
-TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns, const CScript& scriptPubKey, bool *processed)
+TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns, const CScript& coinbase_script, bool *processed)
 {
   const CChainParams& chainparams = Params();
-  std::unique_ptr<CBlockTemplate> pblocktemplate = BlockAssembler(chainparams).CreateNewBlock(scriptPubKey);
-  CBlock& block = pblocktemplate->block;
 
-  // Replace mempool-selected txns with just coinbase plus passed-in txns:
-  block.vtx.resize(1);
-  for (const CMutableTransaction& tx : txns)
-    block.vtx.push_back(MakeTransactionRef(tx));
-  // IncrementExtraNonce creates a valid coinbase and merkleRoot
-  unsigned int extraNonce = 0;
+  esperanza::WalletExtension &wallet_ext = m_wallet->GetWalletExtension();
+
+  staking::CoinSet coins;
   {
-    LOCK(cs_main);
-    IncrementExtraNonce(&block, chainActive.Tip(), extraNonce);
+    LOCK2(m_active_chain->GetLock(), wallet_ext.GetLock());
+    coins = wallet_ext.GetStakeableCoins();
   }
-  // Regenerate the merkle roots cause we possibly changed the txs included
-  block.ComputeMerkleTrees();
 
-  std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(block);
-  const bool was_processed = ProcessNewBlock(chainparams, shared_pblock, true, nullptr);
+  const CAmount fees = 0;
+  uint256 snapshot_hash;
+  {
+    LOCK(m_active_chain->GetLock());
+    snapshot_hash = m_active_chain->ComputeSnapshotHash();
+  }
+
+  std::vector<CTransactionRef> tx_refs;
+  for (const CMutableTransaction& tx : txns) {
+    tx_refs.push_back(MakeTransactionRef(tx));
+  }
+
+  const CBlockIndex *tip = m_active_chain->GetTip();
+  blockchain::Height tip_height = tip->nHeight;
+
+  proposer::EligibleCoin coin = {
+      *coins.begin(),
+      uint256(),
+      m_behavior->CalculateBlockReward(tip_height),
+      static_cast<blockchain::Height>(tip_height+1),
+      static_cast<blockchain::Time>(std::max(tip->GetMedianTimePast()+1, GetTime())),
+      tip->nBits
+  };
+
+  std::shared_ptr<const CBlock> block = m_block_builder->BuildBlock(
+      *m_active_chain->GetTip(),
+      snapshot_hash,
+      coin,
+      {},
+      tx_refs,
+      fees,
+      coinbase_script,
+      wallet_ext);
+
+  const bool was_processed = ProcessNewBlock(chainparams, block, true, nullptr);
   assert(processed != nullptr || was_processed);
   if (processed != nullptr) {
     *processed = was_processed;
@@ -106,8 +136,7 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
 
   SyncWithValidationInterfaceQueue(); // To prevent Wallet::ConnectBlock from running concurrently
 
-  CBlock result = block;
-  return result;
+  return *block;
 }
 
 TestChain100Setup::~TestChain100Setup()
