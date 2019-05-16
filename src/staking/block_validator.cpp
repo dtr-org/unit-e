@@ -132,7 +132,7 @@ class BlockValidatorImpl : public AbstractBlockValidator {
     }
     for (const CPubKey &pubkey : keys) {
       if (pubkey.Verify(block_hash, block.signature)) {
-        return BlockValidationResult();
+        return BlockValidationResult::success;
       }
     }
     // if signature is verified, above loop will return from this function.
