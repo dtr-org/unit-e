@@ -95,6 +95,7 @@ class DepositTest(UnitETestFramework):
 
         # mine a block to allow the deposit to get included
         self.generate_sync(proposer, nblocks=2)
+        sync_blocks([finalizer, proposer], timeout=10)
         disconnect_nodes(finalizer, proposer.index)
 
         wait_until(lambda: finalizer.getvalidatorinfo()['validator_status'] == 'WAITING_DEPOSIT_FINALIZATION',
