@@ -49,7 +49,7 @@ WalletTestingSetup::~WalletTestingSetup()
 
 TestChain100Setup::TestChain100Setup(UnitEInjectorConfiguration config)
     : WalletTestingSetup(CBaseChainParams::REGTEST, config),
-      m_block_builder(proposer::BlockBuilder::New(&settings)),
+      m_block_builder(proposer::BlockBuilder::New(&settings, GetComponent<proposer::FinalizationRewardLogic>())),
       m_active_chain(staking::ActiveChain::New()),
       m_behavior(blockchain::Behavior::NewForNetwork(blockchain::Network::regtest))
 {
