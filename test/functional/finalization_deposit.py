@@ -6,16 +6,17 @@ import os
 import shutil
 
 from test_framework.util import (
-    json,
     assert_finalizationstate,
-    sync_blocks,
     assert_equal,
     assert_raises_rpc_error,
     assert_less_than,
-    wait_until,
     connect_nodes,
     disconnect_nodes,
-    get_datadir_path
+    generate_block,
+    get_datadir_path,
+    json,
+    sync_blocks,
+    wait_until,
 )
 from test_framework.test_framework import UnitETestFramework
 from test_framework.messages import (
@@ -63,8 +64,7 @@ class DepositTest(UnitETestFramework):
         assert_equal(finalizer.getbalance(), finalizer.initial_stake)
 
         # Leave IBD
-        proposer.generate(1)
-        sync_blocks([proposer, finalizer])
+        self.generate_sync(proposer)
 
         test_deposit_with_unknown_address(finalizer, proposer)
         test_not_enough_money_for_deposit(finalizer)
@@ -94,14 +94,14 @@ class DepositTest(UnitETestFramework):
                    timeout=5)
 
         # mine a block to allow the deposit to get included
-        self.generate_sync(proposer)
+        self.generate_sync(proposer, nblocks=2)
         disconnect_nodes(finalizer, proposer.index)
 
         wait_until(lambda: finalizer.getvalidatorinfo()['validator_status'] == 'WAITING_DEPOSIT_FINALIZATION',
                    timeout=5)
 
         # move to checkpoint
-        proposer.generate(8)
+        generate_block(proposer, count=7)
         assert_equal(proposer.getblockcount(), 10)
         assert_finalizationstate(proposer, {'currentEpoch': 1,
                                             'currentDynasty': 0,
@@ -111,11 +111,11 @@ class DepositTest(UnitETestFramework):
 
         # the finalizer will be ready to operate at currentDynasty=2
         for _ in range(2):
-            proposer.generate(10)
+            generate_block(proposer, count=10)
             assert_finalizationstate(proposer, {'validators': 0})
 
         # start new dynasty
-        proposer.generate(1)
+        generate_block(proposer)
         assert_equal(proposer.getblockcount(), 31)
         assert_finalizationstate(proposer, {'currentEpoch': 4,
                                             'currentDynasty': 2,

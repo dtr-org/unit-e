@@ -787,4 +787,4 @@ def make_vote_tx(finalizer, finalizer_address, target_hash, source_epoch, target
     return vtx['hex']
 
 def generate_block(node, count=1):
-    return node.generatetoaddress(count, node.getnewaddress('', 'bech32'))
+    return node.proposetoaddress(count, node.getnewaddress('', 'bech32'))

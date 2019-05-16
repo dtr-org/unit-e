@@ -30,6 +30,7 @@ from .util import (
     cleanup_datadir,
     connect_nodes_bi,
     disconnect_nodes,
+    generate_block,
     get_datadir_path,
     initialize_datadir,
     p2p_port,
@@ -491,8 +492,7 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
             nodes = self.nodes
         generated_blocks = []
         for _ in range(nblocks):
-            block = generator_node.generate(1)[0]
-            generated_blocks.append(block)
+            generated_blocks += generate_block(generator_node)
             sync_blocks(nodes)
 
             # VoteIfNeeded is called on a background thread.
@@ -514,13 +514,13 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
         assert epoch_length > 1
         votes=[]
         for _ in range(count):
-            proposer.generatetoaddress(epoch_length - 1, proposer.getnewaddress('', 'bech32'))
+            generate_block(proposer, count=epoch_length - 1)
             cls.wait_for_vote_and_disconnect(finalizer, proposer)
             for tx in proposer.getrawmempool():
                 tx = FromHex(CTransaction(), proposer.getrawtransaction(tx))
                 if tx.get_type() == TxType.VOTE:
                     votes.append(tx)
-            proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
+            generate_block(proposer)
         return votes
 
     def enable_mocktime(self):
@@ -624,7 +624,7 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
                 for peer in range(4):
                     for j in range(25):
                         set_node_times(self.nodes, block_time)
-                        self.nodes[peer].generatetoaddress(1, self.nodes[peer].get_deterministic_priv_key()[0])
+                        self.nodes[peer].proposetoaddress(1, self.nodes[peer].get_deterministic_priv_key()[0])
                         block_time += 10 * 60
                     # Must sync before next peer starts generating blocks
                     sync_blocks(self.nodes)

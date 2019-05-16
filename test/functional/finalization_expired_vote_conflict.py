@@ -4,7 +4,13 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 from test_framework.mininode import P2PInterface
 from test_framework.test_framework import UnitETestFramework
-from test_framework.util import json, sync_blocks, assert_equal, wait_until
+from test_framework.util import (
+    assert_equal,
+    generate_block,
+    json,
+    sync_blocks,
+    wait_until
+)
 import os.path
 import re
 
@@ -110,7 +116,7 @@ class ExpiredVoteConflict(UnitETestFramework):
 
     def generate_epochs_without_mempool_sync(self, n_epochs):
         for _ in range(EPOCH_LENGTH * n_epochs):
-            self.proposer.generate(1)
+            generate_block(self.proposer)
             sync_blocks(self.nodes)
             self.validator.syncwithvalidationinterfacequeue()
 
