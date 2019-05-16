@@ -8,10 +8,8 @@
 #include <primitives/transaction.h>
 #include <script/interpreter.h>
 #include <consensus/validation.h>
-#include <blockchain/blockchain_behavior.h>
 #include <esperanza/vote.h>
 #include <finalization/vote_recorder.h>
-#include <proposer/finalization_reward_logic.h>
 
 // TODO remove the following dependencies
 #include <chain.h>

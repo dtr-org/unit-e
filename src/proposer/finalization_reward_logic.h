@@ -54,7 +54,7 @@ class FinalizationRewardLogic {
   //! The returned value is either the epoch length if the height corresponds
   //! to the start of an epoch or zero in other cases.
   virtual std::size_t GetNumberOfRewardOutputs(
-      blockchain::Height height //!< [in] The height of the block.
+      blockchain::Height height  //!< [in] The height of the block.
       ) const = 0;
 
   virtual ~FinalizationRewardLogic() = default;
