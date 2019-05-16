@@ -18,14 +18,17 @@ LINTALL=$(basename "${BASH_SOURCE[0]}")
 
 SHELL_SCRIPTS=(
   lint-circular-dependencies.sh
+  lint-clang-format.sh
   lint-filenames.sh
   lint-format-strings.sh
   lint-includes.sh
   lint-locale-dependence.sh
   lint-logs.sh
+  lint-newline-at-eof.sh
   lint-python.sh
   lint-python-shebang.sh
   lint-python-utf8-encoding.sh
+  lint-shebang.sh
   lint-shell-locale.sh
   lint-whitespace.sh
 )
