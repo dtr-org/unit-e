@@ -801,7 +801,8 @@ public:
     mutable CCriticalSection cs_wallet;
 
     //! Access to the Proof-of-Stake Esperanza extensions to the Wallet.
-    esperanza::WalletExtension& GetWalletExtension();
+    esperanza::WalletExtension &GetWalletExtension();
+    const esperanza::WalletExtension &GetWalletExtension() const { return m_wallet_extension; };
 
     /** Get database handle used by this wallet. Ideally this function would
      * not be necessary.

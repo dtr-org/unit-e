@@ -5,6 +5,7 @@
 #include <wallet/wallet.h>
 
 #include <consensus/validation.h>
+#include <injector.h>
 #include <rpc/server.h>
 #include <test/test_unite.h>
 #include <validation.h>
@@ -34,6 +35,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
     GetBlockFileInfo(oldTip->GetBlockPos().nFile)->nSize = MAX_BLOCKFILE_SIZE;
     CTransactionRef new_coinbase = CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey())).vtx[0];
     CBlockIndex* newTip = chainActive.Tip();
+    esperanza::WalletExtensionDeps deps(GetInjector());
 
     RemoveWallet(m_wallet);
 
@@ -42,7 +44,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
     // Verify ScanForWalletTransactions picks up transactions in both the old
     // and new block files.
     {
-        CWallet wallet("dummy", WalletDatabase::CreateDummy());
+        CWallet wallet("dummy", WalletDatabase::CreateDummy(), deps);
         AddKey(wallet, coinbaseKey);
         WalletRescanReserver reserver(&wallet);
         reserver.reserve();
@@ -59,7 +61,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
     // Verify ScanForWalletTransactions only picks transactions in the new block
     // file.
     {
-        CWallet wallet("dummy", WalletDatabase::CreateDummy());
+        CWallet wallet("dummy", WalletDatabase::CreateDummy(), deps);
         AddKey(wallet, coinbaseKey);
         WalletRescanReserver reserver(&wallet);
         reserver.reserve();
@@ -71,7 +73,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
     // before the missing block, and success for a key whose creation time is
     // after.
     {
-        std::shared_ptr<CWallet> wallet = std::make_shared<CWallet>("dummy", WalletDatabase::CreateDummy());
+        std::shared_ptr<CWallet> wallet = std::make_shared<CWallet>("dummy", WalletDatabase::CreateDummy(), deps);
         AddWallet(wallet);
         UniValue keys;
         keys.setArray();
@@ -180,7 +182,8 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
 // debit functions.
 BOOST_FIXTURE_TEST_CASE(coin_mark_dirty_immature_credit, TestChain100Setup)
 {
-    CWallet wallet("dummy", WalletDatabase::CreateDummy());
+    esperanza::WalletExtensionDeps deps(GetInjector());
+    CWallet wallet("dummy", WalletDatabase::CreateDummy(), deps);
     CWalletTx wtx(&wallet, MakeTransactionRef(m_coinbase_txns.back()));
     LOCK2(cs_main, wallet.cs_wallet);
     wtx.hashBlock = chainActive.Tip()->GetBlockHash();
@@ -386,7 +389,8 @@ public:
     ListCoinsTestingSetup()
     {
         CreateAndProcessBlock({}, GetScriptForDestination(WitnessV0KeyHash(coinbaseKey.GetPubKey().GetID())));
-        wallet = MakeUnique<CWallet>("mock", WalletDatabase::CreateMock());
+        esperanza::WalletExtensionDeps deps(GetInjector());
+        wallet = MakeUnique<CWallet>("mock", WalletDatabase::CreateMock(), deps);
         bool firstRun;
         wallet->LoadWallet(firstRun);
         AddKey(*wallet, coinbaseKey);

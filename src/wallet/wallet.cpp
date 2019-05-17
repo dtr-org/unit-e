@@ -14,7 +14,6 @@
 #include <esperanza/checks.h>
 #include <extkey.h>
 #include <fs.h>
-#include <injector.h>
 #include <key.h>
 #include <key/mnemonic/mnemonic.h>
 #include <key_io.h>
@@ -1614,24 +1613,18 @@ CAmount CWallet::GetCredit(const CWalletTx& wtx, const isminefilter& filter, con
 {
     CAmount nCredit = 0;
     const CBlockIndex *block = nullptr;
-    std::size_t num_of_immature_rewards = 0;
-    if (wtx.IsCoinBase() && wtx.GetBlocksToRewardMaturity(block) > 0) {
-        num_of_immature_rewards = GetComponent<proposer::FinalizationRewardLogic>()->GetNumberOfRewardOutputs(static_cast<blockchain::Height>(block->nHeight)) + 1;
-    }
-    for (std::size_t i = 0; i < wtx.tx->vout.size(); ++i) {
-        const CTxOut& txout = wtx.tx->vout[i];
-
-        const bool is_immature = i < num_of_immature_rewards;
-        if (balance_filter == +BalanceType::MATURE && is_immature) {
-            continue;
-        } else if (balance_filter == +BalanceType::IMMATURE && !is_immature) {
-            continue;
+    const int depth = wtx.GetDepthInMainChain(block);
+    m_wallet_extension.ForEachOutputWithMaturity(*wtx.tx, block, depth, [&](const CTxOut &txout, std::size_t i, bool is_mature) {
+        if (balance_filter == +BalanceType::MATURE && !is_mature) {
+            return;
+        } else if (balance_filter == +BalanceType::IMMATURE && is_mature) {
+            return;
         }
         nCredit += GetCredit(txout, filter);
         if (!MoneyRange(nCredit)) {
             throw std::runtime_error(std::string(__func__) + ": value out of range");
         }
-    }
+    });
     return nCredit;
 }
 
@@ -2207,31 +2200,21 @@ CAmount CWalletTx::GetAvailableCredit(bool fUseCache, const isminefilter& filter
     }
 
     CAmount nCredit = 0;
-    std::size_t num_of_rewards = 0;
     const CBlockIndex *block = nullptr;
-    if (IsCoinBase() && GetBlocksToRewardMaturity(block) > 0) {
-        if (!block) {
-            // Coinbase transaction not in the main chain
-            return nCredit;
-        }
-        num_of_rewards = GetComponent<proposer::FinalizationRewardLogic>()->GetNumberOfRewardOutputs(static_cast<blockchain::Height>(block->nHeight)) + 1;
-    }
+    const int depth = GetDepthInMainChain(block);
     uint256 hashTx = GetHash();
-    for (unsigned int i = 0; i < tx->vout.size(); i++) {
+    int num_mature_outputs = 0;
+    pwallet->GetWalletExtension().ForEachMatureOutput(*tx, block, depth, [&](const CTxOut &txout, std::size_t i) {
+        ++num_mature_outputs;
         if (!pwallet->IsSpent(hashTx, i)) {
-            const CTxOut &txout = tx->vout[i];
-            if (i < num_of_rewards) {
-                continue;
-            }
-
             nCredit += pwallet->GetCredit(txout, filter);
             if (!MoneyRange(nCredit)) {
                 throw std::runtime_error(std::string(__func__) + " : value out of range");
             }
         }
-    }
+    });
 
-    if (cache && GetBlocksToRewardMaturity() == 0) {
+    if (cache && num_mature_outputs == tx->vout.size()) {
         *cache = nCredit;
         assert(cache_used);
         *cache_used = true;
@@ -2469,22 +2452,17 @@ CAmount CWallet::GetLegacyBalance(const isminefilter& filter, int minDepth, cons
         // treat change outputs specially, as part of the amount debited.
         CAmount debit = wtx.GetDebit(filter);
         const bool outgoing = debit > 0;
-        std::size_t start_index = 0;
-        if (wtx.IsCoinBase() && wtx.GetBlocksToRewardMaturity() > 0) {
-            if (!block) {
-                // Coinbase transaction is not in the main chain
-                continue;
-            }
-            start_index = GetComponent<proposer::FinalizationRewardLogic>()->GetNumberOfRewardOutputs(static_cast<blockchain::Height>(block->nHeight)) + 1;
+        if (wtx.IsCoinBase() && !block) {
+            // Coinbase transaction is not in the main chain
+            continue;
         }
-        for (std::size_t i = start_index; i < wtx.tx->vout.size(); ++i) {
-            const CTxOut& out = wtx.tx->vout[i];
+        m_wallet_extension.ForEachMatureOutput(*wtx.tx, block, depth, [&](const CTxOut &out, std::size_t i) {
             if (outgoing && IsChange(out) && !wtx.tx->IsCoinBase()) {
                 debit -= out.nValue;
             } else if (IsMine(out) & filter && depth >= minDepth && (!account || *account == GetLabelName(out.scriptPubKey))) {
                 balance += out.nValue;
             }
-        }
+        });
 
         // For outgoing txs, subtract amount debited.
         if (outgoing && (!account || *account == wtx.strFromAccount)) {
@@ -2582,55 +2560,60 @@ void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const
             continue;
         }
 
-        unsigned int reward_offset = 0;
-        if (pcoin->IsCoinBase() && pcoin->GetBlocksToRewardMaturity() > 0) {
-            reward_offset = GetComponent<proposer::FinalizationRewardLogic>()->GetNumberOfRewardOutputs(static_cast<blockchain::Height>(block->nHeight)) + 1;
-        }
-        for (unsigned int i = reward_offset; i < pcoin->tx->vout.size(); i++) {
-            if (pcoin->tx->vout[i].nValue < nMinimumAmount || pcoin->tx->vout[i].nValue > nMaximumAmount) {
-                continue;
+        bool done = false;
+        m_wallet_extension.ForEachMatureOutput(*pcoin->tx, block, nDepth, [&](const CTxOut &out, std::size_t i) {
+            if (done) {
+                return;
+            }
+
+            if (out.nValue < nMinimumAmount || out.nValue > nMaximumAmount) {
+                return;
             }
 
             if (coinControl && coinControl->HasSelected() && !coinControl->fAllowOtherInputs && !coinControl->IsSelected(COutPoint(entry.first, i))) {
-                continue;
+                return;
             }
 
             if (IsLockedCoin(entry.first, i)) {
-                continue;
+                return;
             }
 
             if (IsSpent(wtxid, i)){
-                continue;
+                return;
             }
             isminetype mine = IsMine(pcoin->tx->vout[i]);
 
             if (mine == ISMINE_NO) {
-                continue;
+                return;
             }
 
             const bool ignore_remote_staked = coinControl && coinControl->m_ignore_remote_staked;
-            if (ignore_remote_staked && ::IsStakedRemotely(*this, pcoin->tx->vout[i].scriptPubKey)) {
-                continue;
+            if (ignore_remote_staked && ::IsStakedRemotely(*this, out.scriptPubKey)) {
+                return;
             }
 
-            bool solvable = IsSolvable(*this, pcoin->tx->vout[i].scriptPubKey);
+            bool solvable = IsSolvable(*this, out.scriptPubKey);
             bool spendable = ((mine & ISMINE_SPENDABLE) != ISMINE_NO) || (((mine & ISMINE_WATCH_ONLY) != ISMINE_NO) && (coinControl && coinControl->fAllowWatchOnly && solvable));
 
             vCoins.push_back(COutput(pcoin, i, nDepth, spendable, solvable, safeTx, (coinControl && coinControl->fAllowWatchOnly)));
 
             // Checks the sum amount of all UTXO's.
             if (nMinimumSumAmount != MAX_MONEY) {
-                nTotal += pcoin->tx->vout[i].nValue;
+                nTotal += out.nValue;
 
                 if (nTotal >= nMinimumSumAmount) {
-                    return;
+                    done = true;
                 }
             }
 
             // Checks the maximum number of UTXO's.
             if (nMaximumCount > 0 && vCoins.size() >= nMaximumCount) {
-                return;
+                done = true;
             }
+        });
+
+        if (done) {
+            return;
         }
     }
 }
@@ -3885,25 +3868,21 @@ std::map<CTxDestination, CAmount> CWallet::GetAddressBalances()
                 continue;
             }
 
-            unsigned int reward_offset = 0;
-            if (pcoin->IsCoinBase() && pcoin->GetBlocksToRewardMaturity() > 0) {
-                reward_offset = GetComponent<proposer::FinalizationRewardLogic>()->GetNumberOfRewardOutputs(static_cast<blockchain::Height>(block->nHeight)) + 1;
-            }
-            for (unsigned int i = reward_offset; i < pcoin->tx->vout.size(); i++) {
+            m_wallet_extension.ForEachMatureOutput(*pcoin->tx, block, nDepth, [&](const CTxOut &out, std::size_t i) {
                 CTxDestination addr;
-                if (!IsMine(pcoin->tx->vout[i])) {
-                    continue;
+                if (!IsMine(out)) {
+                    return;
                 }
-                if (!ExtractDestination(pcoin->tx->vout[i].scriptPubKey, addr)) {
-                    continue;
+                if (!ExtractDestination(out.scriptPubKey, addr)) {
+                    return;
                 }
-                CAmount n = IsSpent(walletEntry.first, i) ? 0 : pcoin->tx->vout[i].nValue;
+                CAmount n = IsSpent(walletEntry.first, i) ? 0 : out.nValue;
 
                 if (!balances.count(addr)) {
                     balances[addr] = 0;
                 }
                 balances[addr] += n;
-            }
+            });
         }
     }
     return balances;
