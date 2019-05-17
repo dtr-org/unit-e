@@ -91,6 +91,10 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
       static ValidationError err("bad-blk-public-key");
       return err;
     }
+    case staking::BlockValidationError::INVALID_META_INPUT_PREVOUT: {
+      static ValidationError err("bad-cb-meta-input-prevout");
+      return err;
+    }
     case staking::BlockValidationError::MISMATCHING_HEIGHT: {
       static ValidationError err("bad-cb-height");
       return err;

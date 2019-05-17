@@ -81,6 +81,10 @@ class BlockValidatorImpl : public AbstractBlockValidator {
 
     const CScript &script_sig = in.scriptSig;
 
+    if (!in.prevout.IsNull()) {
+      return BlockValidationResult(Error::INVALID_META_INPUT_PREVOUT);
+    }
+
     bool check;
     opcodetype op;
     std::vector<uint8_t> buf;

@@ -45,7 +45,7 @@ CTransactionRef MakeCoinbaseTransaction(const KeyFixture &key_fixture = MakeKeyF
   // meta input: block height, snapshot hash, terminator
   CScript script_sig = CScript() << CScriptNum::serialize(4711)
                                  << ToByteVector(uint256S("689dae90b6913ff34a64750dd537177afa58b3d012803a10793d74f1ebb88da9"));
-  tx.vin.emplace_back(uint256(), 0, script_sig);
+  tx.vin.emplace_back(COutPoint(), script_sig);
   // stake
   tx.vin.emplace_back(uint256(), 1);
   tx.vin[1].scriptWitness.stack.emplace_back();  // signature, not checked
@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_CASE(check_empty_block) {
   const staking::BlockValidationResult validation_result = block_validator->CheckBlock(block, nullptr);
 
   BOOST_CHECK(!validation_result);
-  BOOST_CHECK(validation_result.Is(Error::NO_TRANSACTIONS));
+  BOOST_CHECK_MESSAGE(validation_result.Is(Error::NO_TRANSACTIONS), validation_result.GetRejectionMessage());
 }
 
 BOOST_AUTO_TEST_CASE(check_first_transaction_not_a_coinbase_transaction) {
@@ -124,7 +124,24 @@ BOOST_AUTO_TEST_CASE(check_first_transaction_not_a_coinbase_transaction) {
   const staking::BlockValidationResult validation_result = block_validator->CheckBlock(block, nullptr);
 
   BOOST_CHECK(!validation_result);
-  BOOST_CHECK(validation_result.Is(Error::FIRST_TRANSACTION_NOT_A_COINBASE_TRANSACTION));
+  BOOST_CHECK_MESSAGE(validation_result.Is(Error::FIRST_TRANSACTION_NOT_A_COINBASE_TRANSACTION), validation_result.GetRejectionMessage());
+}
+
+BOOST_AUTO_TEST_CASE(check_coinbase_meta_input_malformed) {
+  const auto block_validator = staking::BlockValidator::New(b.get());
+
+  CBlock block;
+  {
+    CMutableTransaction tx;
+    tx.SetType(TxType::COINBASE);
+    tx.vin.emplace_back(uint256::zero, 0);
+    block.vtx.push_back(MakeTransactionRef(CTransaction(tx)));
+  }
+
+  const auto validation_result = block_validator->CheckBlock(block, nullptr);
+
+  BOOST_CHECK(!validation_result);
+  BOOST_CHECK_MESSAGE(validation_result.Is(Error::INVALID_META_INPUT_PREVOUT), validation_result.GetRejectionMessage());
 }
 
 BOOST_AUTO_TEST_CASE(check_coinbase_other_than_first) {

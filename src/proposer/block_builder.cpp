@@ -114,7 +114,7 @@ class BlockBuilderImpl : public BlockBuilder {
     {
       CScript script_sig = CScript() << CScriptNum::serialize(eligible_coin.target_height)
                                      << ToByteVector(snapshot_hash);
-      tx.vin.emplace_back(uint256(), 0, script_sig);
+      tx.vin.emplace_back(COutPoint(), script_sig);
     }
 
     // add stake
