@@ -25,7 +25,7 @@ struct Fixture {
   std::unique_ptr<blockchain::Behavior> b =
       blockchain::Behavior::NewFromParameters(parameters);
 
-  CBlockIndex prev_block = [this]() {
+  CBlockIndex prev_block = []() {
     CBlockIndex b;
     b.nHeight = 100;
     return b;
