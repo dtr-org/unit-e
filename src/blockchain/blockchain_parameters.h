@@ -152,7 +152,7 @@ struct Parameters {
   //! in here. Each opcode is associated with a cost and validity is checked
   //! according to the total cost that it effects (which basically is computing
   //! power required for validation).
-  std::uint32_t maximum_block_sigops_cost;
+  std::uint32_t maximum_sigops_count;
 
   //! \brief Rewards from proposing blocks can only be spent after the maturity period.
   Height coinbase_maturity;

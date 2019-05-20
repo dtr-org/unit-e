@@ -95,6 +95,10 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
       static ValidationError err("bad-blk-length");
       return err;
     }
+    case staking::BlockValidationError::INVALID_BLOCK_SIGOPS_COUNT: {
+      static ValidationError err("bad-blk-sigops");
+      return err;
+    }
     case staking::BlockValidationError::INVALID_COINBASE_LENGTH: {
       static ValidationError err("bad-cb-length");
       return err;

@@ -30,7 +30,7 @@ Parameters Parameters::Base() noexcept {
   p.maximum_block_size = 1000000;
   p.maximum_block_weight = 4000000;
   p.maximum_block_serialized_size = 4000000;
-  p.maximum_block_sigops_cost = 80000;
+  p.maximum_sigops_count = 80000;
   p.witness_scale_factor = 4;
   p.coinbase_maturity = 100;
   p.stake_maturity = 200;

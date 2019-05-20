@@ -5,6 +5,7 @@
 #include <staking/block_validator.h>
 
 #include <consensus/merkle.h>
+#include <consensus/tx_verify.h>
 #include <primitives/transaction.h>
 #include <pubkey.h>
 #include <script/script.h>
@@ -200,6 +201,10 @@ class BlockValidatorImpl : public AbstractBlockValidator {
       }
     }
 
+    if (!CheckSigOpCount(block)) {
+      return BlockValidationResult(Error::INVALID_BLOCK_SIGOPS_COUNT);
+    }
+
     // will be set by invocation of BlockMerkleRoot()
     bool duplicate_transactions;
 
@@ -246,6 +251,16 @@ class BlockValidatorImpl : public AbstractBlockValidator {
       }
     }
     return BlockValidationResult::success;
+  }
+
+  bool CheckSigOpCount(const CBlock &block) const {
+    unsigned int nSigOps = 0;
+    for (const auto &tx : block.vtx) {
+      nSigOps += GetLegacySigOpCount(*tx);
+    }
+    const std::uint32_t maximum_sigops_count = m_blockchain_behavior->GetParameters().maximum_sigops_count;
+    const std::uint32_t witness_scale_factor = m_blockchain_behavior->GetParameters().witness_scale_factor;
+    return nSigOps * witness_scale_factor <= maximum_sigops_count;
   }
 
   bool CheckBlockWeight(const CBlock &block) const {
