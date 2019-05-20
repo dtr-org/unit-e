@@ -86,8 +86,9 @@ CMutableTransaction CreateTx(const TxType txtype = TxType::REGULAR) {
 CMutableTransaction CreateCoinbase() {
   CMutableTransaction coinbase_tx;
   coinbase_tx.SetType(TxType::COINBASE);
-  coinbase_tx.vin.resize(1);
+  coinbase_tx.vin.resize(2);
   coinbase_tx.vin[0].prevout.SetNull();
+  coinbase_tx.vin[1].prevout = {uint256::zero, 2};
   coinbase_tx.vout.resize(1);
   coinbase_tx.vout[0].scriptPubKey = CScript();
   coinbase_tx.vout[0].nValue = 0;

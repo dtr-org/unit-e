@@ -95,6 +95,14 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
       static ValidationError err("bad-blk-length");
       return err;
     }
+    case staking::BlockValidationError::INVALID_COINBASE_LENGTH: {
+      static ValidationError err("bad-cb-length");
+      return err;
+    }
+    case staking::BlockValidationError::INVALID_FINALIZER_COMMIT_BAD_SCRIPT: {
+      static ValidationError err("bad-txns-bad-finalizer-commit-script");
+      return err;
+    }
     case staking::BlockValidationError::INVALID_TRANSACTION_DUPLICATE_INPUTS: {
       static ValidationError err("bad-txns-inputs-duplicate");
       return err;
