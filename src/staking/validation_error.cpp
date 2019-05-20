@@ -56,7 +56,7 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
       return err;
     }
     case staking::BlockValidationError::MERKLE_ROOT_DUPLICATE_TRANSACTIONS: {
-      static ValidationError err("bad-txnmrklroot");
+      static ValidationError err("bad-txns-duplicate");
       return err;
     }
     case staking::BlockValidationError::MERKLE_ROOT_MISMATCH: {
