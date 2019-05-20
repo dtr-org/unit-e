@@ -195,10 +195,18 @@ class BlockValidatorImpl : public AbstractBlockValidator {
     }
 
     // check that all other transactions are no coinbase transactions
+    CTransactionRef prev_tx = *block.vtx.cbegin();
     for (auto tx = block.vtx.cbegin() + 1; tx != block.vtx.cend(); ++tx) {
       if ((*tx)->GetType() == +TxType::COINBASE) {
         return BlockValidationResult(Error::COINBASE_TRANSACTION_AT_POSITION_OTHER_THAN_FIRST);
       }
+      const int ordering = (*tx)->GetHash().CompareAsNumber(prev_tx->GetHash());
+      if (ordering < 0 && !prev_tx->IsCoinBase()) {
+        return BlockValidationResult(Error::INVALID_TRANSACTION_ORDERING);
+      } else if (ordering == 0) {
+        return BlockValidationResult(Error::DUPLICATE_TRANSACTION);
+      }
+      prev_tx = *tx;
     }
 
     if (!CheckSigOpCount(block)) {
@@ -291,6 +299,12 @@ class BlockValidatorImpl : public AbstractBlockValidator {
 
     if (validation_info.GetHeight() != static_cast<blockchain::Height>(prev_block.nHeight) + 1) {
       return BlockValidationResult(Error::MISMATCHING_HEIGHT);
+    }
+    std::int64_t lock_time_cutoff = prev_block.GetMedianTimePast();
+    for (const auto &tx : block.vtx) {
+      if (!IsFinalTx(*tx, validation_info.GetHeight(), lock_time_cutoff)) {
+        return BlockValidationResult(Error::NON_FINAL_TRANSACTION);
+      }
     }
     return BlockValidationResult::success;
   }

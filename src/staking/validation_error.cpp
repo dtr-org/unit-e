@@ -55,6 +55,10 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
       static ValidationError err("bad-stake-duplicate");
       return err;
     }
+    case staking::BlockValidationError::DUPLICATE_TRANSACTION: {
+      static ValidationError err("bad-txns-duplicate");
+      return err;
+    }
     case staking::BlockValidationError::MERKLE_ROOT_DUPLICATE_TRANSACTIONS: {
       static ValidationError err("bad-txns-duplicate");
       return err;
@@ -127,6 +131,10 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
       static ValidationError err("bad-txns-prevout-null", 10);
       return err;
     }
+    case staking::BlockValidationError::INVALID_TRANSACTION_ORDERING: {
+      static ValidationError err("bad-tx-ordering");
+      return err;
+    }
     case staking::BlockValidationError::INVALID_TRANSACTION_OUTPUT_PAYS_TOO_MUCH: {
       static ValidationError err("bad-txns-vout-toolarge");
       return err;
@@ -169,6 +177,10 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
     }
     case staking::BlockValidationError::NO_TRANSACTIONS: {
       static ValidationError err("bad-blk-length");
+      return err;
+    }
+    case staking::BlockValidationError::NON_FINAL_TRANSACTION: {
+      static ValidationError err("bad-txns-nonfinal");
       return err;
     }
     case staking::BlockValidationError::PREVIOUS_BLOCK_DOESNT_MATCH: {

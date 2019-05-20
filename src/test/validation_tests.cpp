@@ -83,7 +83,7 @@ CMutableTransaction CreateTx(const TxType txtype = TxType::REGULAR) {
   return mut_tx;
 }
 
-CMutableTransaction CreateCoinbase() {
+CMutableTransaction CreateCoinbase(blockchain::Height height = 0) {
   CMutableTransaction coinbase_tx;
   coinbase_tx.SetType(TxType::COINBASE);
   coinbase_tx.vin.resize(2);
@@ -92,7 +92,7 @@ CMutableTransaction CreateCoinbase() {
   coinbase_tx.vout.resize(1);
   coinbase_tx.vout[0].scriptPubKey = CScript();
   coinbase_tx.vout[0].nValue = 0;
-  coinbase_tx.vin[0].scriptSig = CScript() << CScriptNum::serialize(0) << ToByteVector(GetRandHash());
+  coinbase_tx.vin[0].scriptSig = CScript() << CScriptNum::serialize(height) << ToByteVector(GetRandHash());
   return coinbase_tx;
 }
 
@@ -148,6 +148,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_duplicate_coinbase, F, TestFixtures) {
   CValidationState state;
   fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false);
 
+  ltor::SortTransactions(block.vtx);
+
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-cb-multiple");
 }
 
@@ -158,13 +160,15 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_too_many_sigs, F, TestFixtures) {
   block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
 
   auto tx = CreateTx();
-  auto many_checsigs = CScript();
+  auto many_checksigs = CScript();
   for (int i = 0; i < (MAX_BLOCK_SIGOPS_COST / WITNESS_SCALE_FACTOR) + 1; ++i) {
-    many_checsigs = many_checsigs << OP_CHECKSIG;
+    many_checksigs = many_checksigs << OP_CHECKSIG;
   }
 
-  tx.vout[0].scriptPubKey = many_checsigs;
+  tx.vout[0].scriptPubKey = many_checksigs;
   block.vtx.push_back(MakeTransactionRef(CTransaction(tx)));
+
+  ltor::SortTransactions(block.vtx);
 
   CValidationState state;
   fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false);
@@ -195,6 +199,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_merkle_root_mutated, F, TestFixtures) {
   block.vtx.push_back(MakeTransactionRef(CreateTx()));
   block.vtx.push_back(MakeTransactionRef(tx));
   block.vtx.push_back(MakeTransactionRef(tx));
+
+  ltor::SortTransactions(block.vtx);
 
   bool ignored;
   block.hashMerkleRoot = BlockMerkleRoot(block, &ignored);
@@ -253,6 +259,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(contextualcheckblock_is_final_tx, F, TestFixtures)
   //test with a tx non final because of height
   {
     CBlock block;
+    block.vtx.push_back(MakeTransactionRef(CreateCoinbase(prev.nHeight + 1)));
     block.vtx.push_back(MakeTransactionRef(final_tx));
 
     auto not_final_height_tx = CreateTx();
@@ -263,6 +270,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(contextualcheckblock_is_final_tx, F, TestFixtures)
     SortTxs(block);
 
     CValidationState state;
+    state.GetBlockValidationInfo().MarkCheckBlockSuccessfull(prev.nHeight + 1, uint256::zero);
+    state.GetBlockValidationInfo().MarkContextualCheckBlockHeaderSuccessfull();
     fixture.validation->ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
 
     BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-nonfinal");
@@ -271,6 +280,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(contextualcheckblock_is_final_tx, F, TestFixtures)
   //test with a tx non final because of time
   {
     CBlock block;
+    block.vtx.push_back(MakeTransactionRef(CreateCoinbase(prev.nHeight + 1)));
     block.vtx.push_back(MakeTransactionRef(final_tx));
 
     auto not_final_time_tx = CreateTx();
@@ -281,6 +291,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(contextualcheckblock_is_final_tx, F, TestFixtures)
     SortTxs(block);
 
     CValidationState state;
+    state.GetBlockValidationInfo().MarkCheckBlockSuccessfull(prev.nHeight + 1, uint256::zero);
+    state.GetBlockValidationInfo().MarkContextualCheckBlockHeaderSuccessfull();
     fixture.validation->ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
 
     BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-nonfinal");
@@ -346,12 +358,17 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(contextualcheckblockheader_time, F, TestFixtures) 
 
     prev_2.phashBlock = &block.hashPrevBlock;
 
-    CValidationState state;
-    BOOST_CHECK(fixture.validation->ContextualCheckBlockHeader(block, state, Params(), &prev_2, adjusted_time));
+    {
+      CValidationState state;
+      BOOST_CHECK(fixture.validation->ContextualCheckBlockHeader(block, state, Params(), &prev_2, adjusted_time));
+    }
 
-    block.nTime = 1999;  // 1 unit less than the median
-    fixture.validation->ContextualCheckBlockHeader(block, state, Params(), &prev_2, adjusted_time);
-    BOOST_CHECK_EQUAL(state.GetRejectReason(), "time-too-old");
+    {
+      CValidationState state;
+      block.nTime = 1999;  // 1 unit less than the median
+      BOOST_CHECK(!fixture.validation->ContextualCheckBlockHeader(block, state, Params(), &prev_2, adjusted_time));
+      BOOST_CHECK_EQUAL(state.GetRejectReason(), "time-too-old");
+    }
   }
 
   // Block time is too far in the future
@@ -365,12 +382,17 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(contextualcheckblockheader_time, F, TestFixtures) 
 
     prev.phashBlock = &block.hashPrevBlock;
 
-    CValidationState state;
-    BOOST_CHECK(fixture.validation->ContextualCheckBlockHeader(block, state, Params(), &prev, adjusted_time));
+    {
+      CValidationState state;
+      BOOST_CHECK(fixture.validation->ContextualCheckBlockHeader(block, state, Params(), &prev, adjusted_time));
+    }
 
-    block.nTime = adjusted_time + params.max_future_block_time_seconds + 1;
-    fixture.validation->ContextualCheckBlockHeader(block, state, Params(), &prev, adjusted_time);
-    BOOST_CHECK_EQUAL(state.GetRejectReason(), "time-too-new");
+    {
+      CValidationState state;
+      block.nTime = adjusted_time + params.max_future_block_time_seconds + 1;
+      BOOST_CHECK(!fixture.validation->ContextualCheckBlockHeader(block, state, Params(), &prev, adjusted_time));
+      BOOST_CHECK_EQUAL(state.GetRejectReason(), "time-too-new");
+    }
   }
 }
 

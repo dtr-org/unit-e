@@ -262,8 +262,9 @@ class NewValidationLogic : public LegacyValidationInterface {
     // but CheckBlockHeader in unit-e checks the timestamp to match with
     // the each-16-seconds-rule. This call is bypassed by marking it successful.
     info.MarkCheckBlockHeaderSuccessfull();
-    const staking::BlockValidationResult result = m_block_validator->ContextualCheckBlockHeader(
-        block, *prev_block, static_cast<blockchain::Time>(adjusted_time), &info);
+    const staking::BlockValidationResult result =
+        m_block_validator->ContextualCheckBlockHeader(block, *prev_block,
+            static_cast<blockchain::Time>(adjusted_time), &info);
     return staking::CheckResult(result, validation_state);
   }
 };
