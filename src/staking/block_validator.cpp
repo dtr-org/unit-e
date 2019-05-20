@@ -181,7 +181,7 @@ class BlockValidatorImpl : public AbstractBlockValidator {
 
     // check block size limits
     if (!CheckBlockWeight(block)) {
-      return BlockValidationResult(Error::INVALID_BLOCK_WEIGHT);
+      return BlockValidationResult(Error::INVALID_BLOCK_LENGTH);
     }
 
     // check that coinbase transaction is first transaction
@@ -305,6 +305,9 @@ class BlockValidatorImpl : public AbstractBlockValidator {
       if (!IsFinalTx(*tx, validation_info.GetHeight(), lock_time_cutoff)) {
         return BlockValidationResult(Error::NON_FINAL_TRANSACTION);
       }
+    }
+    if (m_blockchain_behavior->GetBlockWeight(block) > m_blockchain_behavior->GetParameters().maximum_block_weight) {
+      return BlockValidationResult(Error::INVALID_BLOCK_WEIGHT);
     }
     return BlockValidationResult::success;
   }

@@ -87,6 +87,10 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
       static ValidationError err("bad-cb-height");
       return err;
     }
+    case staking::BlockValidationError::INVALID_BLOCK_LENGTH: {
+      static ValidationError err("bad-blk-length");
+      return err;
+    }
     case staking::BlockValidationError::INVALID_BLOCK_TIME: {
       static ValidationError err("bad-blk-time");
       return err;
@@ -96,7 +100,7 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
       return err;
     }
     case staking::BlockValidationError::INVALID_BLOCK_WEIGHT: {
-      static ValidationError err("bad-blk-length");
+      static ValidationError err("bad-blk-weight");
       return err;
     }
     case staking::BlockValidationError::INVALID_BLOCK_SIGOPS_COUNT: {

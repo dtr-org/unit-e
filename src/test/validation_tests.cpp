@@ -330,6 +330,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(contextualcheckblock_block_weight, F, TestFixtures
   SortTxs(block);
 
   CValidationState state;
+  state.GetBlockValidationInfo().MarkCheckBlockSuccessfull(1, uint256::zero);
+  state.GetBlockValidationInfo().MarkContextualCheckBlockHeaderSuccessfull();
   fixture.validation->ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-blk-weight");
