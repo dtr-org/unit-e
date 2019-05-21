@@ -140,13 +140,13 @@ def get_finalization_rewards(node, current_height=None):
     if current_height % epoch_length != 0 or current_height == 0:
         return []
     result = []
-    for i in range(epoch_length):
+    for i in range(epoch_length)[::-1]:
         block_hash = node.getblockhash(current_height - i)
         coinbase = node.getblock(block_hash, 2)['tx'][0]
         reward_out = coinbase['vout'][0]
         reward_script = CScript(hex_str_to_bytes(reward_out['scriptPubKey']['hex']))
         result.append(CTxOut(FULL_FINALIZATION_REWARD * UNIT, reward_script))
-    return result[::-1]
+    return result
 
 
 def generate(node, n, preserve_utxos=[]):

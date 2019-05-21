@@ -202,6 +202,14 @@ class WalletExtension : public staking::StakingWallet {
 
   void PostInitProcess(CScheduler &scheduler);
 
+  //! \brief Calls provided function for each mature output of the transaction.
+  //!
+  //! \param tx the transaction.
+  //! \param block a pointer to the block which contains tx. Can be nullptr.
+  //! \param depth the depth of the transaction in the main chain. See
+  //! CMerkleTx::GetDepthInMainChain for details.
+  //! \param f the function which will be called for each mature output. It must
+  //! accept two arguments: (CTxOut output, std::size_t index).
   template <typename Callable>
   void ForEachMatureOutput(
       const CTransaction &tx,
@@ -209,31 +217,43 @@ class WalletExtension : public staking::StakingWallet {
       blockchain::Depth depth,
       Callable f) const {
     std::size_t reward_offset = 0;
-    if (tx.IsCoinBase() && !block) {
-      // Coinbase transaction is not in the main chain
-      return;
-    }
-    if (tx.IsCoinBase() && depth <= COINBASE_MATURITY) {
-      reward_offset = m_dependencies.GetFinalizationRewardLogic().GetNumberOfRewardOutputs(block->nHeight) + 1;
+    if (tx.IsCoinBase()) {
+      if (!block) {
+        // Coinbase transaction is not in the main chain
+        return;
+      }
+      if (depth <= COINBASE_MATURITY) {
+        reward_offset = m_dependencies.GetFinalizationRewardLogic().GetNumberOfRewardOutputs(block->nHeight) + 1;
+      }
     }
     for (std::size_t i = reward_offset; i < tx.vout.size(); ++i) {
       f(tx.vout[i], i);
     }
   }
 
+  //! \brief Calls provided function for each output and passes the flag indicating maturity.
+  //!
+  //! \param tx the transaction.
+  //! \param block a pointer to the block which contains tx. Can be nullptr.
+  //! \param depth the depth of the transaction in the main chain. See
+  //! CMerkleTx::GetDepthInMainChain for details.
+  //! \param f the function which will be called for each mature output. It must
+  //! accept three arguments: (CTxOut out, std::size_t index, bool is_mature).
   template <typename Callable>
   void ForEachOutputWithMaturity(
       const CTransaction &tx,
       const CBlockIndex *block,
       blockchain::Depth depth,
       Callable f) const {
-    if (tx.IsCoinBase() && !block) {
-      // Coinbase transaction is not in the main chain, maturity cannot be determined
-      return;
-    }
     std::size_t num_immature_rewards = 0;
-    if (tx.IsCoinBase() && depth <= COINBASE_MATURITY) {
-      num_immature_rewards = m_dependencies.GetFinalizationRewardLogic().GetNumberOfRewardOutputs(block->nHeight) + 1;
+    if (tx.IsCoinBase()) {
+      if (!block) {
+        // Coinbase transaction is not in the main chain
+        return;
+      }
+      if (depth <= COINBASE_MATURITY) {
+        num_immature_rewards = m_dependencies.GetFinalizationRewardLogic().GetNumberOfRewardOutputs(block->nHeight) + 1;
+      }
     }
     for (std::size_t i = 0; i < tx.vout.size(); ++i) {
       const bool is_mature = i >= num_immature_rewards;
