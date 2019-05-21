@@ -8,35 +8,9 @@
 
 #include <test/test_unite.h>
 #include <boost/test/unit_test.hpp>
+#include <test/test_unite_mocks.h>
 
 namespace {
-
-class FinalizationRewardLogicMock : public proposer::FinalizationRewardLogic {
- public:
-  std::vector<CTxOut> rewards;
-  mutable std::uint32_t invocations_GetFinalizationRewards = 0;
-  mutable std::uint32_t invocations_GetFinalizationRewardAmounts = 0;
-  mutable boost::optional<blockchain::Height> arg_GetNumberOfRewardOutputs_height = boost::none;
-
-  std::vector<CTxOut> GetFinalizationRewards(const CBlockIndex &last_block) const override {
-    ++invocations_GetFinalizationRewards;
-    return rewards;
-  }
-
-  std::vector<CAmount> GetFinalizationRewardAmounts(const CBlockIndex &last_block) const override {
-    ++invocations_GetFinalizationRewardAmounts;
-    std::vector<CAmount> result;
-    for (const auto &r : rewards) {
-      result.push_back(r.nValue);
-    }
-    return result;
-  }
-
-  std::size_t GetNumberOfRewardOutputs(blockchain::Height height) const override {
-    arg_GetNumberOfRewardOutputs_height = height;
-    return rewards.size();
-  }
-};
 
 struct Fixture {
 
@@ -52,7 +26,7 @@ struct Fixture {
   std::unique_ptr<blockchain::Behavior> b =
       blockchain::Behavior::NewFromParameters(parameters);
 
-  FinalizationRewardLogicMock finalization_reward_logic;
+  mocks::FinalizationRewardLogicFake finalization_reward_logic;
 
   CBlockIndex prev_prev_block = []() {
     CBlockIndex b;
@@ -310,8 +284,8 @@ BOOST_AUTO_TEST_CASE(finalization_rewards_no_block_on_disk) {
   const bool result = validator->CheckBlockRewards(tx, validation_state, f.block, input_amount, fees);
   BOOST_CHECK(result);
   BOOST_CHECK(validation_state.IsValid());
-  BOOST_CHECK_EQUAL(f.finalization_reward_logic.invocations_GetFinalizationRewardAmounts, 1);
-  BOOST_CHECK_EQUAL(f.finalization_reward_logic.invocations_GetFinalizationRewards, 0);
+  BOOST_CHECK_EQUAL(f.finalization_reward_logic.mock_GetFinalizationRewardAmounts.CountInvocations(), 1);
+  BOOST_CHECK_EQUAL(f.finalization_reward_logic.mock_GetFinalizationRewards.CountInvocations(), 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

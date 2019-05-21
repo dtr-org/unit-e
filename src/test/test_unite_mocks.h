@@ -438,16 +438,43 @@ class StateRepositoryMock : public finalization::StateRepository {
   FinalizationStateSpy state;
 };
 
-class FinalizationRewardLogicMock : public proposer::FinalizationRewardLogic {
+class FinalizationRewardLogicMock : public proposer::FinalizationRewardLogic, public Mock {
  public:
+  MethodMock<decltype(&proposer::FinalizationRewardLogic::GetFinalizationRewards)> mock_GetFinalizationRewards{this, {}};
+  MethodMock<decltype(&proposer::FinalizationRewardLogic::GetFinalizationRewardAmounts)> mock_GetFinalizationRewardAmounts{this, {}};
+  MethodMock<decltype(&proposer::FinalizationRewardLogic::GetNumberOfRewardOutputs)> mock_GetNumberOfRewardOutputs{this, 0};
+
   std::vector<CTxOut> GetFinalizationRewards(const CBlockIndex &block_index) const override {
-    return {};
+    return mock_GetFinalizationRewards(block_index);
   }
   std::vector<CAmount> GetFinalizationRewardAmounts(const CBlockIndex &block_index) const override {
-    return {};
+    return mock_GetFinalizationRewardAmounts(block_index);
   }
   size_t GetNumberOfRewardOutputs(blockchain::Height height) const override {
-    return 0;
+    return mock_GetNumberOfRewardOutputs(height);
+  }
+};
+
+class FinalizationRewardLogicFake : public mocks::FinalizationRewardLogicMock {
+ public:
+  std::vector<CTxOut> rewards;
+  mutable boost::optional<blockchain::Height> arg_GetNumberOfRewardOutputs_height = boost::none;
+
+  FinalizationRewardLogicFake() {
+    mock_GetFinalizationRewards.SetStub([this](const CBlockIndex &last_block) {
+      return rewards;
+    });
+    mock_GetFinalizationRewardAmounts.SetStub([this](const CBlockIndex &last_block) {
+      std::vector<CAmount> result;
+      for (const auto &r : rewards) {
+        result.push_back(r.nValue);
+      }
+      return result;
+    });
+    mock_GetNumberOfRewardOutputs.SetStub([this](blockchain::Height height) {
+      arg_GetNumberOfRewardOutputs_height = height;
+      return rewards.size();
+    });
   }
 };
 
