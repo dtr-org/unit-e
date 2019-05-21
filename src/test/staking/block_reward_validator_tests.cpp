@@ -7,8 +7,8 @@
 #include <staking/block_reward_validator.h>
 
 #include <test/test_unite.h>
-#include <boost/test/unit_test.hpp>
 #include <test/test_unite_mocks.h>
+#include <boost/test/unit_test.hpp>
 
 namespace {
 
