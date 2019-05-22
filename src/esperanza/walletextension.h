@@ -25,7 +25,6 @@
 #include <vector>
 
 class CWallet;
-class CWalletDBWrapper;
 class CWalletTx;
 class COutput;
 class CScheduler;
