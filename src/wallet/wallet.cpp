@@ -2562,6 +2562,9 @@ void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const
 
         bool done = false;
         m_wallet_extension.ForEachMatureOutput(*pcoin->tx, block, nDepth, [&](const CTxOut &out, std::size_t i) {
+            AssertLockHeld(cs_main);
+            AssertLockHeld(cs_wallet);
+
             if (done) {
                 return;
             }
