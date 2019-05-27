@@ -13,7 +13,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(prevector_tests, TestingSetup)
+BOOST_AUTO_TEST_SUITE(PrevectorTests)
 
 template<unsigned int N, typename T>
 class prevector_tester {

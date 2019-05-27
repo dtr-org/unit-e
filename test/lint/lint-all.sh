@@ -16,11 +16,22 @@ set -u
 SCRIPTDIR=$(dirname "${BASH_SOURCE[0]}")
 LINTALL=$(basename "${BASH_SOURCE[0]}")
 
-for f in "${SCRIPTDIR}"/lint-*.sh; do
-  if [ "$(basename "$f")" != "$LINTALL" ]; then
-    if ! "$f"; then
-      echo "^---- failure generated from $f"
-      exit 1
-    fi
+SHELL_SCRIPTS=(
+  lint-circular-dependencies.sh
+  lint-filenames.sh
+  lint-format-strings.sh
+  lint-includes.sh
+  lint-locale-dependence.sh
+  lint-logs.sh
+  lint-python-shebang.sh
+  lint-python-utf8-encoding.sh
+  lint-shell-locale.sh
+  lint-whitespace.sh
+)
+
+for f in ${SHELL_SCRIPTS[@]}; do
+  if ! "${SCRIPTDIR}/$f"; then
+    echo "^---- failure generated from $f"
+    exit 1
   fi
 done

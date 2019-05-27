@@ -27,6 +27,8 @@ class WalletGroupTest(UnitETestFramework):
         self.skip_if_no_wallet()
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0])
+
         # Mine some coins
         self.nodes[0].generate(110)
 

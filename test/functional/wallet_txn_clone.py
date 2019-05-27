@@ -5,7 +5,7 @@
 """Test the wallet accounts properly when there are cloned transactions with malleated scriptsigs."""
 
 import io
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.util import (
     assert_equal,
     bytes_to_hex_str as b2x,
@@ -14,6 +14,21 @@ from test_framework.util import (
     sync_blocks,
 )
 from test_framework.messages import CTransaction, UNIT
+
+
+def find_vout(node, txid, amount):
+    utxos = node.listunspent(0)
+    return [x for x in utxos if x['txid'] == txid and x['amount'] == amount][0]['vout']
+
+
+def lock_all_utxos_except(node, txid, vout):
+    utxos = node.listunspent(0)
+    node.lockunspent(False, [{'txid': x['txid'], 'vout': x['vout']} for x in utxos
+                             if x['txid'] != txid or x['vout'] != vout])
+
+def unlock_all_utxos(node):
+    node.lockunspent(True)
+
 
 class TxnMallTest(UnitETestFramework):
     def set_test_params(self):
@@ -40,8 +55,7 @@ class TxnMallTest(UnitETestFramework):
         else:
             output_type = "legacy"
 
-        # All nodes should start with 1,250 UTE:
-        starting_balance = 1250
+        starting_balance = 10000 + 25 * PROPOSER_REWARD
         for i in range(4):
             assert_equal(self.nodes[i].getbalance(), starting_balance)
             self.nodes[i].getnewaddress()  # bug workaround, coins generated assigned to first getnewaddress!
@@ -62,15 +76,25 @@ class TxnMallTest(UnitETestFramework):
         # Coins are sent to node1_address
         node1_address = self.nodes[1].getnewaddress()
 
+        node0_utxos = self.nodes[0].listunspent(0)
+        fund_foo_vout = find_vout(self.nodes[0], node0_txid1, 1219)
+        fund_bar_vout = find_vout(self.nodes[0], node0_txid2, 29)
+
         # Send tx1, and another transaction tx2 that won't be cloned
+        lock_all_utxos_except(self.nodes[0], node0_txid1, fund_foo_vout)
         txid1 = self.nodes[0].sendtoaddress(node1_address, 40)
+        unlock_all_utxos(self.nodes[0])
+
+        lock_all_utxos_except(self.nodes[0], node0_txid2, fund_bar_vout)
         txid2 = self.nodes[0].sendtoaddress(node1_address, 20)
+        unlock_all_utxos(self.nodes[0])
 
         # Construct a clone of tx1, to be malleated
-        rawtx1 = self.nodes[0].getrawtransaction(txid1, 1)
-        clone_inputs = [{"txid": rawtx1["vin"][0]["txid"], "vout": rawtx1["vin"][0]["vout"], "sequence": rawtx1["vin"][0]["sequence"]}]
-        clone_outputs = {rawtx1["vout"][0]["scriptPubKey"]["addresses"][0]: rawtx1["vout"][0]["value"],
-                         rawtx1["vout"][1]["scriptPubKey"]["addresses"][0]: rawtx1["vout"][1]["value"]}
+        rawtx1 = self.nodes[0].getrawtransaction(txid1,1)
+        assert_equal(rawtx1['vin'][0]['txid'], node0_txid1)
+        clone_inputs = [{"txid":rawtx1["vin"][0]["txid"],"vout":rawtx1["vin"][0]["vout"], "sequence": rawtx1["vin"][0]["sequence"]}]
+        clone_outputs = {rawtx1["vout"][0]["scriptPubKey"]["addresses"][0]:rawtx1["vout"][0]["value"],
+                         rawtx1["vout"][1]["scriptPubKey"]["addresses"][0]:rawtx1["vout"][1]["value"]}
         clone_locktime = rawtx1["locktime"]
         clone_raw = self.nodes[0].createrawtransaction(clone_inputs, clone_outputs, clone_locktime)
 
@@ -93,11 +117,11 @@ class TxnMallTest(UnitETestFramework):
         tx1 = self.nodes[0].gettransaction(txid1)
         tx2 = self.nodes[0].gettransaction(txid2)
 
-        # Node0's balance should be starting balance, plus 50UTE for another
+        # Node0's balance should be starting balance, plus the proposer reward for another
         # matured block, minus tx1 and tx2 amounts, and minus transaction fees:
         expected = starting_balance + node0_tx1["fee"] + node0_tx2["fee"]
         if self.options.mine_block:
-            expected += 50
+            expected += PROPOSER_REWARD
         expected += tx1["amount"] + tx1["fee"]
         expected += tx2["amount"] + tx2["fee"]
         assert_equal(self.nodes[0].getbalance(), expected)
@@ -136,11 +160,11 @@ class TxnMallTest(UnitETestFramework):
         assert_equal(tx1_clone["confirmations"], 2)
         assert_equal(tx2["confirmations"], 1)
 
-        # Check node0's total balance; should be same as before the clone, + 100 UTE for 2 matured,
+        # Check node0's total balance; should be same as before the clone, + the reward for 2 matured blocks,
         # less possible orphaned matured subsidy
-        expected += 100
+        expected += 2 * PROPOSER_REWARD
         if (self.options.mine_block):
-            expected -= 50
+            expected -= PROPOSER_REWARD
         assert_equal(self.nodes[0].getbalance(), expected)
 
 if __name__ == '__main__':

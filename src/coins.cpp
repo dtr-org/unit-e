@@ -7,13 +7,17 @@
 #include <consensus/consensus.h>
 #include <random.h>
 #include <version.h>
+#include <logging.h>
+#include <snapshot/iterator.h>
+#include <util/strencodings.h>
 
 bool CCoinsView::GetCoin(const COutPoint &outpoint, Coin &coin) const { return false; }
 uint256 CCoinsView::GetBestBlock() const { return uint256(); }
+snapshot::SnapshotHash CCoinsView::GetSnapshotHash() const { return {}; }
 std::vector<uint256> CCoinsView::GetHeadBlocks() const { return std::vector<uint256>(); }
-bool CCoinsView::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) { return false; }
+bool CCoinsView::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, const snapshot::SnapshotHash &snapshot) { return false; }
 CCoinsViewCursor *CCoinsView::Cursor() const { return nullptr; }
-
+void CCoinsView::ClearCoins() {}
 bool CCoinsView::HaveCoin(const COutPoint &outpoint) const
 {
     Coin coin;
@@ -24,15 +28,17 @@ CCoinsViewBacked::CCoinsViewBacked(CCoinsView *viewIn) : base(viewIn) { }
 bool CCoinsViewBacked::GetCoin(const COutPoint &outpoint, Coin &coin) const { return base->GetCoin(outpoint, coin); }
 bool CCoinsViewBacked::HaveCoin(const COutPoint &outpoint) const { return base->HaveCoin(outpoint); }
 uint256 CCoinsViewBacked::GetBestBlock() const { return base->GetBestBlock(); }
+snapshot::SnapshotHash CCoinsViewBacked::GetSnapshotHash() const { return base->GetSnapshotHash(); }
 std::vector<uint256> CCoinsViewBacked::GetHeadBlocks() const { return base->GetHeadBlocks(); }
 void CCoinsViewBacked::SetBackend(CCoinsView &viewIn) { base = &viewIn; }
-bool CCoinsViewBacked::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) { return base->BatchWrite(mapCoins, hashBlock); }
+bool CCoinsViewBacked::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, const snapshot::SnapshotHash &snapshotHash) { return base->BatchWrite(mapCoins, hashBlock, snapshotHash); }
+void CCoinsViewBacked::ClearCoins() { base->ClearCoins(); }
 CCoinsViewCursor *CCoinsViewBacked::Cursor() const { return base->Cursor(); }
 size_t CCoinsViewBacked::EstimateSize() const { return base->EstimateSize(); }
 
 SaltedOutpointHasher::SaltedOutpointHasher() : k0(GetRand(std::numeric_limits<uint64_t>::max())), k1(GetRand(std::numeric_limits<uint64_t>::max())) {}
 
-CCoinsViewCache::CCoinsViewCache(CCoinsView *baseIn) : CCoinsViewBacked(baseIn), cachedCoinsUsage(0) {}
+CCoinsViewCache::CCoinsViewCache(CCoinsView *baseIn) : CCoinsViewBacked(baseIn), snapshotHash(baseIn->GetSnapshotHash()), cachedCoinsUsage(0) {}
 
 size_t CCoinsViewCache::DynamicMemoryUsage() const {
     return memusage::DynamicUsage(cacheCoins) + cachedCoinsUsage;
@@ -80,19 +86,27 @@ void CCoinsViewCache::AddCoin(const COutPoint &outpoint, Coin&& coin, bool possi
         }
         fresh = !(it->second.flags & CCoinsCacheEntry::DIRTY);
     }
+
+    if (!inserted) {
+        if (!it->second.coin.IsSpent()) {
+            // remove old UTXO before replacing it
+            snapshotHash.SubtractUTXO(snapshot::UTXO(outpoint, it->second.coin));
+        }
+    }
+
     it->second.coin = std::move(coin);
     it->second.flags |= CCoinsCacheEntry::DIRTY | (fresh ? CCoinsCacheEntry::FRESH : 0);
     cachedCoinsUsage += it->second.coin.DynamicMemoryUsage();
+    snapshotHash.AddUTXO(snapshot::UTXO(outpoint, it->second.coin));
 }
 
 void AddCoins(CCoinsViewCache& cache, const CTransaction &tx, int nHeight, bool check) {
-    bool fCoinbase = tx.IsCoinBase();
     const uint256& txid = tx.GetHash();
     for (size_t i = 0; i < tx.vout.size(); ++i) {
-        bool overwrite = check ? cache.HaveCoin(COutPoint(txid, i)) : fCoinbase;
+        const bool overwrite = check ? cache.HaveCoin(COutPoint(txid, i)) : tx.IsCoinBase();
         // Always set the possible_overwrite flag to AddCoin for coinbase txn, in order to correctly
         // deal with the pre-BIP30 occurrences of duplicate coinbase transactions.
-        cache.AddCoin(COutPoint(txid, i), Coin(tx.vout[i], nHeight, fCoinbase), overwrite);
+        cache.AddCoin(COutPoint(txid, i), Coin(tx.vout[i], nHeight, tx.GetType()), overwrite);
     }
 }
 
@@ -100,6 +114,7 @@ bool CCoinsViewCache::SpendCoin(const COutPoint &outpoint, Coin* moveout) {
     CCoinsMap::iterator it = FetchCoin(outpoint);
     if (it == cacheCoins.end()) return false;
     cachedCoinsUsage -= it->second.coin.DynamicMemoryUsage();
+    snapshotHash.SubtractUTXO(snapshot::UTXO(outpoint, it->second.coin));
     if (moveout) {
         *moveout = std::move(it->second.coin);
     }
@@ -139,11 +154,15 @@ uint256 CCoinsViewCache::GetBestBlock() const {
     return hashBlock;
 }
 
+snapshot::SnapshotHash CCoinsViewCache::GetSnapshotHash() const {
+    return snapshotHash;
+}
+
 void CCoinsViewCache::SetBestBlock(const uint256 &hashBlockIn) {
     hashBlock = hashBlockIn;
 }
 
-bool CCoinsViewCache::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlockIn) {
+bool CCoinsViewCache::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlockIn, const snapshot::SnapshotHash &snapshotHashIn) {
     for (CCoinsMap::iterator it = mapCoins.begin(); it != mapCoins.end(); it = mapCoins.erase(it)) {
         // Ignore non-dirty entries (optimization).
         if (!(it->second.flags & CCoinsCacheEntry::DIRTY)) {
@@ -198,11 +217,12 @@ bool CCoinsViewCache::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlockIn
         }
     }
     hashBlock = hashBlockIn;
+    snapshotHash = snapshotHashIn;
     return true;
 }
 
 bool CCoinsViewCache::Flush() {
-    bool fOk = base->BatchWrite(cacheCoins, hashBlock);
+    bool fOk = base->BatchWrite(cacheCoins, hashBlock, snapshotHash);
     cacheCoins.clear();
     cachedCoinsUsage = 0;
     return fOk;
@@ -217,29 +237,86 @@ void CCoinsViewCache::Uncache(const COutPoint& hash)
     }
 }
 
+void CCoinsViewCache::ClearCoins() {
+    base->ClearCoins();
+    cacheCoins.clear();
+    snapshotHash.Clear();
+    cachedCoinsUsage = 0;
+}
+
+bool CCoinsViewCache::ApplySnapshot(std::unique_ptr<snapshot::Indexer> &&indexer) {
+    LogPrint(BCLog::COINDB, "%s: Apply snapshot hash=%s.\n",
+             __func__, indexer->GetSnapshotHeader().snapshot_hash.GetHex());
+
+    ClearCoins();
+
+    snapshot::Iterator iter(std::move(indexer));
+    const snapshot::SnapshotHeader &snapshot_header = iter.GetSnapshotHeader();
+    LogPrint(BCLog::COINDB, "%s: 0/%i messages processed\n",
+             __func__, snapshot_header.total_utxo_subsets);
+
+    hashBlock = snapshot_header.block_hash;
+
+    uint64_t writtenSubsets = 0;
+    constexpr uint64_t batchSize = 100000;
+    while (iter.Valid()) {
+        snapshot::UTXOSubset &subset = iter.GetUTXOSubset();
+        for (auto const &p : subset.outputs) {
+            COutPoint out(subset.tx_id, p.first);
+            Coin coin(p.second, subset.height, subset.tx_type);
+            AddCoin(out, std::move(coin), true);
+        }
+
+        ++writtenSubsets;
+
+        if (writtenSubsets % batchSize == 0) { // ~12 MB/batch
+            if (!Flush()) {
+                LogPrint(BCLog::COINDB, "%s: can't write batch\n", __func__);
+                return false;
+            }
+        }
+
+        // log every 5% of processed messages
+        uint64_t chunk = snapshot_header.total_utxo_subsets / 20;
+        if (chunk > 0 && writtenSubsets % chunk == 0) {
+            LogPrint(BCLog::COINDB, "%s: %i/%i messages processed\n", __func__,
+                     writtenSubsets, snapshot_header.total_utxo_subsets);
+        }
+
+        iter.Next();
+    }
+
+    if (!Flush()) {
+        LogPrint(BCLog::COINDB, "%s: can't write batch\n", __func__);
+        return false;
+    }
+
+    assert(snapshot_header.total_utxo_subsets == writtenSubsets);
+    assert(snapshotHash.GetHash(snapshot_header.stake_modifier, snapshot_header.chain_work) == snapshot_header.snapshot_hash);
+    LogPrint(BCLog::COINDB, "%s: finished snapshot loading. UTXO subsets=%i\n",
+             __func__, writtenSubsets);
+
+    return true;
+}
+
 unsigned int CCoinsViewCache::GetCacheSize() const {
     return cacheCoins.size();
 }
 
 CAmount CCoinsViewCache::GetValueIn(const CTransaction& tx) const
 {
-    if (tx.IsCoinBase())
-        return 0;
-
     CAmount nResult = 0;
-    for (unsigned int i = 0; i < tx.vin.size(); i++)
+    for (std::size_t i = (tx.IsCoinBase() ? 1 : 0); i < tx.vin.size(); ++i) {
         nResult += AccessCoin(tx.vin[i].prevout).out.nValue;
-
+    }
     return nResult;
 }
 
 bool CCoinsViewCache::HaveInputs(const CTransaction& tx) const
 {
-    if (!tx.IsCoinBase()) {
-        for (unsigned int i = 0; i < tx.vin.size(); i++) {
-            if (!HaveCoin(tx.vin[i].prevout)) {
-                return false;
-            }
+    for (std::size_t i = tx.IsCoinBase() ? 1 : 0; i < tx.vin.size(); ++i) {
+        if (!HaveCoin(tx.vin[i].prevout)) {
+            return false;
         }
     }
     return true;

@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2018-2019 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -8,6 +9,7 @@
 
 #include <stdint.h>
 #include <amount.h>
+#include <primitives/txtype.h>
 #include <script/script.h>
 #include <serialize.h>
 #include <uint256.h>
@@ -259,11 +261,89 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
     s << tx.nLockTime;
 }
 
+template <typename T>
+class TransactionBase
+{
+public:
+
+    //! Returns the version of this transaction (considers only the two lower bytes of nVersion).
+    uint16_t GetVersion() const {
+        return static_cast<uint16_t>(GetDerived()->nVersion);
+    }
+
+    //! Returns the transaction type (TxType) of this transaction (stored in the two upper bytes of the nVersion field).
+    TxType GetType() const {
+        return TxType::_from_index_unchecked(GetDerived()->nVersion >> 16);
+    }
+
+    bool IsRegular() const {
+        return GetType() == +TxType::REGULAR;
+    }
+
+    bool IsCoinBase() const {
+        return GetType() == +TxType::COINBASE;
+    }
+
+    bool IsDeposit() const {
+        return GetType() == +TxType::DEPOSIT;
+    }
+
+    bool IsVote() const {
+        return GetType() == +TxType::VOTE;
+    }
+
+    bool IsLogout() const {
+        return GetType() == +TxType::LOGOUT;
+    }
+
+    bool IsSlash() const {
+        return GetType() == +TxType::SLASH;
+    }
+
+    bool IsWithdraw() const {
+        return GetType() == +TxType::WITHDRAW;
+    }
+
+    bool IsAdmin() const {
+        return GetType() == +TxType::ADMIN;
+    }
+
+    bool IsFinalizerCommit() const {
+        switch (+GetType()) {
+            case TxType::DEPOSIT:
+            case TxType::VOTE:
+            case TxType::LOGOUT:
+            case TxType::SLASH:
+            case TxType::WITHDRAW:
+            case TxType::ADMIN:
+                return true;
+            case TxType::REGULAR:
+            case TxType::COINBASE:
+                return false;
+        }
+        assert(!"silence gcc warnings");
+    }
+
+    bool HasWitness() const {
+        for (size_t i = 0; i < GetDerived()->vin.size(); i++) {
+            if (!GetDerived()->vin[i].scriptWitness.IsNull()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+private:
+    inline const T *GetDerived() const {
+        return static_cast<const T *>(this);
+    }
+
+};
 
 /** The basic transaction that is broadcasted on the network and contained in
  * blocks.  A transaction can contain multiple inputs and outputs.
  */
-class CTransaction
+class CTransaction : public TransactionBase<CTransaction>
 {
 public:
     // Default transaction version.
@@ -282,7 +362,16 @@ public:
     // structure, including the hash.
     const std::vector<CTxIn> vin;
     const std::vector<CTxOut> vout;
-    const int32_t nVersion;
+
+    /*! \brief The 4-byte version field of transactions.
+     *
+     * Change from bitcoin: The version field of transactions is unsigned in Unit-e.
+     * This is intentional. The actual version of a transaction are the two lower
+     * bytes of the version field. Unit-e distinguishes different types of transactions.
+     * Thus the upper two bytes are used to piggy back that type (also uint16_t) onto
+     * the version field.
+     */
+    const uint32_t nVersion;
     const uint32_t nLockTime;
 
 private:
@@ -330,11 +419,6 @@ public:
      */
     unsigned int GetTotalSize() const;
 
-    bool IsCoinBase() const
-    {
-        return (vin.size() == 1 && vin[0].prevout.IsNull());
-    }
-
     friend bool operator==(const CTransaction& a, const CTransaction& b)
     {
         return a.hash == b.hash;
@@ -346,24 +430,14 @@ public:
     }
 
     std::string ToString() const;
-
-    bool HasWitness() const
-    {
-        for (size_t i = 0; i < vin.size(); i++) {
-            if (!vin[i].scriptWitness.IsNull()) {
-                return true;
-            }
-        }
-        return false;
-    }
 };
 
 /** A mutable version of CTransaction. */
-struct CMutableTransaction
+struct CMutableTransaction : public TransactionBase<CMutableTransaction>
 {
     std::vector<CTxIn> vin;
     std::vector<CTxOut> vout;
-    int32_t nVersion;
+    uint32_t nVersion;
     uint32_t nLockTime;
 
     CMutableTransaction();
@@ -385,19 +459,18 @@ struct CMutableTransaction
         Unserialize(s);
     }
 
+    void SetVersion(uint16_t version);
+
+    void SetType(TxType type);
+
     /** Compute the hash of this CMutableTransaction. This is computed on the
      * fly, as opposed to GetHash() in CTransaction, which uses a cached result.
      */
     uint256 GetHash() const;
 
-    bool HasWitness() const
+    friend bool operator==(const CMutableTransaction& a, const CMutableTransaction& b)
     {
-        for (size_t i = 0; i < vin.size(); i++) {
-            if (!vin[i].scriptWitness.IsNull()) {
-                return true;
-            }
-        }
-        return false;
+        return a.GetHash() == b.GetHash();
     }
 };
 

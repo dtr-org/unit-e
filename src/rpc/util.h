@@ -11,14 +11,27 @@
 #include <script/standard.h>
 #include <univalue.h>
 
+#include <blockchain/blockchain_genesis.h>
+#include <blockchain/blockchain_parameters.h>
+#include <blockchain/blockchain_types.h>
+
+#include <cstdint>
 #include <string>
 #include <vector>
 
 #include <boost/variant.hpp>
 
 class CKeyStore;
+class COutPoint;
 class CPubKey;
 class CScript;
+class CTxIn;
+class CTxOut;
+
+namespace staking {
+class Coin;
+}
+
 struct InitInterfaces;
 
 //! Pointers to interfaces that need to be accessible from RPC methods. Due to
@@ -26,9 +39,36 @@ struct InitInterfaces;
 //! state to RPC method implementations.
 extern InitInterfaces* g_rpc_interfaces;
 
-CPubKey HexToPubKey(const std::string& hex_in);
-CPubKey AddrToPubKey(CKeyStore* const keystore, const std::string& addr_in);
-CScript CreateMultisigRedeemscript(const int required, const std::vector<CPubKey>& pubkeys);
+CPubKey HexToPubKey(const std::string &hex_in);
+CPubKey AddrToPubKey(CKeyStore *keystore, const std::string &addr_in);
+CScript CreateMultisigRedeemscript(const int required, const std::vector<CPubKey> &pubkeys);
+
+template <typename T>
+UniValue ToUniValue(const T &value) {
+  return UniValue(value);
+}
+
+template <typename T>
+UniValue ToUniValue(const std::vector<T> &vector) {
+  UniValue array(UniValue::VARR);
+  for (const T &v : vector) {
+    array.push_back(ToUniValue(v));
+  }
+  return array;
+}
+
+UniValue ToUniValue(std::uint32_t value);
+UniValue ToUniValue(std::uint64_t value);
+UniValue ToUniValue(float value);
+UniValue ToUniValue(double value);
+UniValue ToUniValue(const COutPoint &outpoint);
+UniValue ToUniValue(const CScript &script);
+UniValue ToUniValue(const CTxOut &txout);
+UniValue ToUniValue(const CTxIn &txin);
+UniValue ToUniValue(const staking::Coin &coin);
+UniValue ToUniValue(const uint256 &hash);
+UniValue ToUniValue(const blockchain::GenesisBlock &value);
+UniValue ToUniValue(const std::vector<unsigned char> base58_prefixes[blockchain::Base58Type::_size_constant]);
 
 UniValue DescribeAddress(const CTxDestination& dest);
 

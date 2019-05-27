@@ -23,18 +23,28 @@ import threading
 
 from test_framework.messages import (
     CBlockHeader,
+    CInv,
+    GrapheneTx,
     MIN_VERSION_SUPPORTED,
     msg_addr,
     msg_block,
     MSG_BLOCK,
     msg_blocktxn,
     msg_cmpctblock,
+    msg_commits,
     msg_feefilter,
     msg_getaddr,
     msg_getblocks,
     msg_getblocktxn,
+    msg_getcommits,
     msg_getdata,
     msg_getheaders,
+    msg_getsnaphead,
+    msg_getsnapshot,
+    msg_getgraphene,
+    msg_graphenblock,
+    msg_getgraphentx,
+    msg_graphenetx,
     msg_headers,
     msg_inv,
     msg_mempool,
@@ -44,14 +54,17 @@ from test_framework.messages import (
     msg_reject,
     msg_sendcmpct,
     msg_sendheaders,
+    msg_snaphead,
+    msg_snapshot,
     msg_tx,
     MSG_TX,
     MSG_TYPE_MASK,
     msg_verack,
     msg_version,
+    MSG_WITNESS_FLAG,
     NODE_NETWORK,
     NODE_WITNESS,
-    sha256,
+    sha256
 )
 from test_framework.util import wait_until
 
@@ -71,7 +84,6 @@ MESSAGEMAP = {
     b"headers": msg_headers,
     b"inv": msg_inv,
     b"mempool": msg_mempool,
-    b"notfound": msg_notfound,
     b"ping": msg_ping,
     b"pong": msg_pong,
     b"reject": msg_reject,
@@ -80,11 +92,22 @@ MESSAGEMAP = {
     b"tx": msg_tx,
     b"verack": msg_verack,
     b"version": msg_version,
+    b"getsnaphead": msg_getsnaphead,
+    b"snaphead": msg_snaphead,
+    b"getsnapshot": msg_getsnapshot,
+    b"snapshot": msg_snapshot,
+    b"notfound": msg_notfound,
+    b"getcommits": msg_getcommits,
+    b"commits": msg_commits,
+    b"getgraphene": msg_getgraphene,
+    b"graphenblock": msg_graphenblock,
+    b"getgraphentx": msg_getgraphentx,
+    b"graphenetx": msg_graphenetx,
 }
 
 MAGIC_BYTES = {
     "mainnet": b"\xf9\xbe\xb4\xd9",   # mainnet
-    "testnet3": b"\x0b\x11\x09\x07",  # testnet3
+    "testnet": b"\x0b\x11\x09\x07",   # testnet
     "regtest": b"\xfa\xbf\xb5\xda",   # regtest
 }
 
@@ -187,20 +210,27 @@ class P2PConnection(asyncio.Protocol):
                 self.recvbuf = self.recvbuf[4+12+4+4+msglen:]
                 if command not in MESSAGEMAP:
                     raise ValueError("Received unknown command from %s:%d: '%s' %s" % (self.dstaddr, self.dstport, command, repr(msg)))
-                f = BytesIO(msg)
-                t = MESSAGEMAP[command]()
-                t.deserialize(f)
-                self._log_message("receive", t)
-                self.on_message(t)
+                self.on_data(command, msg)
         except Exception as e:
             logger.exception('Error reading message:', repr(e))
             raise
+
+    def on_data(self, command, data):
+        f = BytesIO(data)
+        t = MESSAGEMAP[command]()
+        t.deserialize(f)
+        self._log_message("receive", t)
+        self.on_message(t)
 
     def on_message(self, message):
         """Callback for processing a P2P payload. Must be overridden by derived class."""
         raise NotImplementedError
 
     # Socket write methods
+
+    def send_data(self, command, data):
+        tmsg = self._build_data(command, data)
+        self._send_raw_message(tmsg)
 
     def send_message(self, message):
         """Send a P2P message over the socket.
@@ -209,9 +239,9 @@ class P2PConnection(asyncio.Protocol):
         the message to the send buffer to be sent over the socket."""
         tmsg = self.build_message(message)
         self._log_message("send", message)
-        return self.send_raw_message(tmsg)
+        return self._send_raw_message(tmsg)
 
-    def send_raw_message(self, raw_message_bytes):
+    def _send_raw_message(self, raw_message_bytes):
         if not self.is_connected:
             raise IOError('Not connected')
 
@@ -232,6 +262,9 @@ class P2PConnection(asyncio.Protocol):
         """Build a serialized P2P message"""
         command = message.command
         data = message.serialize()
+        return self._build_data(command, data)
+
+    def _build_data(self, command, data):
         tmsg = self.magic_bytes
         tmsg += command
         tmsg += b"\x00" * (12 - len(command))
@@ -336,6 +369,15 @@ class P2PInterface(P2PConnection):
     def on_sendcmpct(self, message): pass
     def on_sendheaders(self, message): pass
     def on_tx(self, message): pass
+    def on_getsnaphead(self, message): pass
+    def on_snaphead(self, message): pass
+    def on_getsnapshot(self, message): pass
+    def on_snapshot(self, message): pass
+    def on_getcommits(self, message): pass
+    def on_commits(self, message): pass
+    def on_graphenblock(self, message): pass
+    def on_getgraphentx(self, message): pass
+    def on_graphenetx(self, message): pass
 
     def on_inv(self, message):
         want = msg_getdata()
@@ -344,6 +386,9 @@ class P2PInterface(P2PConnection):
                 want.inv.append(i)
         if len(want.inv):
             self.send_message(want)
+
+    def on_getgraphene(self, message):
+        self.on_getdata(msg_getdata([CInv(2, message.request.requested_block_hash)]))
 
     def on_ping(self, message):
         self.send_message(msg_pong(message.nonce))
@@ -387,6 +432,24 @@ class P2PInterface(P2PConnection):
         test_function = lambda: self.last_message.get("getdata")
         wait_until(test_function, timeout=timeout, lock=mininode_lock)
 
+    def wait_for_block_request(self, block_hash, timeout=60):
+        def test_function():
+            getdata = self.last_message.get("getdata", None)
+            getgraphene = self.last_message.get("getgraphene", None)
+
+            if getdata:
+                for inv in getdata.inv:
+                    if inv.hash == block_hash:
+                        return True
+
+            if getgraphene:
+                if getgraphene.request.requested_block_hash == block_hash:
+                    return True
+
+            return False
+
+        wait_until(test_function, timeout=timeout, lock=mininode_lock)
+
     def wait_for_getheaders(self, timeout=60):
         """Waits for a getheaders message.
 
@@ -395,6 +458,16 @@ class P2PInterface(P2PConnection):
         immediately with success. TODO: change this method to take a hash value and only
         return true if the correct block header has been requested."""
         test_function = lambda: self.last_message.get("getheaders")
+        wait_until(test_function, timeout=timeout, lock=mininode_lock)
+
+    def wait_for_getcommits(self, timeout=60):
+        """Waits for a getcommits message.
+
+        Receiving any getcommits message will satisfy the predicate. the last_message["getcommits"]
+        value must be explicitly cleared before calling this method, or this will return
+        immediately with success. TODO: change this method to take a hash value and only
+        return true if the correct block header has been requested."""
+        test_function = lambda: self.last_message.get("getcommits")
         wait_until(test_function, timeout=timeout, lock=mininode_lock)
 
     def wait_for_inv(self, expected_inv, timeout=60):
@@ -407,8 +480,11 @@ class P2PInterface(P2PConnection):
         wait_until(test_function, timeout=timeout, lock=mininode_lock)
 
     def wait_for_verack(self, timeout=60):
-        test_function = lambda: self.message_count["verack"]
+        test_function = lambda: self.got_verack()
         wait_until(test_function, timeout=timeout, lock=mininode_lock)
+
+    def got_verack(self):
+        return self.message_count["verack"]
 
     # Message sending helper functions
 

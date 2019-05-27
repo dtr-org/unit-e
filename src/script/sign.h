@@ -14,6 +14,7 @@
 
 class CKey;
 class CKeyID;
+class CKeyStore;
 class CScript;
 class CScriptID;
 class CTransaction;
@@ -216,7 +217,7 @@ void SerializeHDKeypaths(Stream& s, const std::map<CPubKey, KeyOriginInfo>& hd_k
 }
 
 /** Produce a script signature using a generic signature creator. */
-bool ProduceSignature(const SigningProvider& provider, const BaseSignatureCreator& creator, const CScript& scriptPubKey, SignatureData& sigdata);
+bool ProduceSignature(const SigningProvider& provider, const BaseSignatureCreator& creator, const CScript& scriptPubKey, SignatureData& sigdata, const CTransaction* tx = nullptr);
 
 /** Produce a script signature for a transaction. */
 bool SignSignature(const SigningProvider &provider, const CScript& fromPubKey, CMutableTransaction& txTo, unsigned int nIn, const CAmount& amount, int nHashType);
@@ -231,5 +232,22 @@ void UpdateInput(CTxIn& input, const SignatureData& data);
  * provider is used to look up public keys and redeemscripts by hash.
  * Solvability is unrelated to whether we consider this output to be ours. */
 bool IsSolvable(const SigningProvider& provider, const CScript& script);
+
+#endif // UNITE_SCRIPT_SIGN_H
+//! \brief Signs the vote passed with the keystore passed
+//! \param[in] keystore the keystore used to sign the vote
+//! \param[in] vote the vote data
+//! \param[out] vote_sig_out the resulting signauture
+//! \return true if successful, false otherwise
+bool CreateVoteSignature(CKeyStore *keystore, const esperanza::Vote &vote,
+                            std::vector<unsigned char> &vote_sig_out);
+
+//! \brief Checks the vote and the signature passed against the pubkey passed.
+//! \param[in] pubkey the public key used to check the signature
+//! \param[in] vote the vote
+//! \param[in] vote_sig the vote signature
+//! \return true if the signature matches, false otherwise
+bool CheckVoteSignature(const CPubKey &pubkey, const esperanza::Vote &vote,
+                           std::vector<unsigned char> &vote_sig);
 
 #endif // UNITE_SCRIPT_SIGN_H

@@ -11,6 +11,10 @@ class CScheduler;
 class CRPCTable;
 struct InitInterfaces;
 
+namespace esperanza {
+class WalletExtensionDeps;
+}
+
 class WalletInitInterface {
 public:
     /** Is the wallet component enabled */

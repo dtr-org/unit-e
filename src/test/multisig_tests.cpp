@@ -16,7 +16,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(multisig_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(multisig_tests, ReducedTestingSetup)
 
 static CScript
 sign_multisig(const CScript& scriptPubKey, const std::vector<CKey>& keys, const CTransaction& transaction, int whichIn)

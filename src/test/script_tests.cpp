@@ -10,6 +10,7 @@
 #include <script/script.h>
 #include <script/script_error.h>
 #include <script/sign.h>
+#include <uint256.h>
 #include <util/system.h>
 #include <util/strencodings.h>
 #include <test/test_unite.h>
@@ -119,7 +120,7 @@ static ScriptError_t ParseScriptError(const std::string &name)
     return SCRIPT_ERR_UNKNOWN_ERROR;
 }
 
-BOOST_FIXTURE_TEST_SUITE(script_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(script_tests, ReducedTestingSetup)
 
 CMutableTransaction BuildCreditingTransaction(const CScript& scriptPubKey, int nValue = 0)
 {
@@ -483,6 +484,24 @@ std::string JSONPrettyPrint(const UniValue& univalue)
 }
 } // namespace
 
+
+CScript CreateSlashScript(CKey key1, CKey key2, esperanza::Vote vote1, esperanza::Vote vote2) {
+
+  std::vector<unsigned char> vote_sig_1;
+  key1.Sign(vote1.GetHash(), vote_sig_1);
+
+  std::vector<unsigned char> vote_sig_2;
+  key2.Sign(vote2.GetHash(), vote_sig_2);
+
+  CScript encoded_vote1 = CScript::EncodeVote(vote1, vote_sig_1);
+  std::vector<unsigned char> vote1_vector(encoded_vote1.begin(), encoded_vote1.end());
+
+  CScript encoded_vote2 = CScript::EncodeVote(vote2, vote_sig_2);
+  std::vector<unsigned char> vote2_vector(encoded_vote2.begin(), encoded_vote2.end());
+
+  return CScript() << vote1_vector << vote2_vector;
+}
+
 BOOST_AUTO_TEST_CASE(script_build)
 {
     const KeyData keys;
@@ -800,7 +819,7 @@ BOOST_AUTO_TEST_CASE(script_build)
 
     tests.push_back(TestBuilder(CScript() << ToByteVector(keys.pubkey0),
                                 "P2WPKH with future witness version", SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH |
-                                SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM, false, WitnessMode::PKH, 1
+                                SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM, false, WitnessMode::PKH, 4
                                ).PushWitSig(keys.key0).Push(keys.pubkey0).AsWit().ScriptError(SCRIPT_ERR_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM));
     {
         CScript witscript = CScript() << ToByteVector(keys.pubkey0);
@@ -948,7 +967,7 @@ BOOST_AUTO_TEST_CASE(script_build)
         strGen += str + ",\n";
 #else
         if (tests_set.count(str) == 0) {
-            BOOST_CHECK_MESSAGE(false, "Missing auto script_valid test: " + test.GetComment());
+            BOOST_CHECK_MESSAGE(false, "Missing auto script_valid test: " + test.GetComment() + ". " + str);
         }
 #endif
     }
@@ -1520,6 +1539,255 @@ BOOST_AUTO_TEST_CASE(script_can_append_self)
     BOOST_CHECK(s == d);
 }
 
+BOOST_AUTO_TEST_CASE(encode_decode_vote_data)
+{
+    std::string validatorAddress = "ccf3b9d00d72fd6d49193d45fdaafbe9c406f334";
+    std::string targetHash = "74963700000000055851e6a2ccf3b9d00d72fd6d49193d45fdaafbe9c406f334";
+    uint32_t sourceHeight = 0;
+    uint32_t targetHeight = 3231231;
+
+    esperanza::Vote data = {uint160S(validatorAddress),
+                     uint256(ParseHex(targetHash)),
+                     sourceHeight,
+                     targetHeight};
+
+    uint256 randomSig = GetRandHash();
+    std::vector<unsigned char> voteSig = std::vector<unsigned char>(randomSig.begin(), randomSig.end());
+    CScript s = CScript::EncodeVote(data, voteSig);
+
+    std::vector<unsigned char> extractedVoteSig;
+    esperanza::Vote decodedVote;
+    BOOST_CHECK(CScript::DecodeVote(s, decodedVote, extractedVoteSig));
+
+    BOOST_CHECK_EQUAL(decodedVote.m_validator_address.GetHex(), validatorAddress);
+    BOOST_CHECK_EQUAL(HexStr(decodedVote.m_target_hash), targetHash);
+    BOOST_CHECK_EQUAL(decodedVote.m_source_epoch, sourceHeight);
+    BOOST_CHECK_EQUAL(decodedVote.m_target_epoch, targetHeight);
+    BOOST_CHECK_EQUAL(HexStr(voteSig.begin(), voteSig.end()),
+                      HexStr(extractedVoteSig.begin(), extractedVoteSig.end()));
+}
+
+BOOST_AUTO_TEST_CASE(decode_invalid_vote) {
+    const uint256 bytes32;
+    const uint160 bytes20;
+    std::vector<uint8_t> bytes11(11, 0);
+    // Expected vote fields sizes:
+    //   Vote signature (not checked)
+    //   Validator address (20 bytes)
+    //   Target hash (32 bytes)
+    //   Source epoch: uint32_t (0-4 bytes)
+    //   Target epoch: uint32_t (0-4 bytes)
+
+    const CScript invalid_address = CScript() << bytes11
+                                              << ToByteVector(bytes11)
+                                              << ToByteVector(bytes32)
+                                              << CScriptNum(1)
+                                              << CScriptNum(2);
+
+    esperanza::Vote decoded_vote;
+    std::vector<unsigned char> extracted_vote_sig;
+
+    BOOST_CHECK(!CScript::DecodeVote(invalid_address, decoded_vote, extracted_vote_sig));
+
+    const CScript invalid_target_hash = CScript() << bytes11
+                                                  << ToByteVector(bytes20)
+                                                  << ToByteVector(bytes11)
+                                                  << CScriptNum(1)
+                                                  << CScriptNum(2);
+
+    BOOST_CHECK(!CScript::DecodeVote(invalid_target_hash, decoded_vote, extracted_vote_sig));
+
+    const CScript invalid_source = CScript() << bytes11
+                                             << ToByteVector(bytes20)
+                                             << ToByteVector(bytes32)
+                                             << CScriptNum(std::numeric_limits<int64_t>::max())
+                                             << CScriptNum(2);
+
+    BOOST_CHECK(!CScript::DecodeVote(invalid_source, decoded_vote, extracted_vote_sig));
+
+    const CScript invalid_target = CScript() << bytes11
+                                             << ToByteVector(bytes20)
+                                             << ToByteVector(bytes32)
+                                             << CScriptNum(1)
+                                             << CScriptNum(std::numeric_limits<int64_t>::min());
+
+    BOOST_CHECK(!CScript::DecodeVote(invalid_target, decoded_vote, extracted_vote_sig));
+
+    const CScript too_long = CScript() << bytes11
+                                       << ToByteVector(bytes20)
+                                       << ToByteVector(bytes32)
+                                       << CScriptNum(1)
+                                       << CScriptNum(2)
+                                       << CScriptNum(2);
+
+    BOOST_CHECK(!CScript::DecodeVote(too_long, decoded_vote, extracted_vote_sig));
+
+    const CScript valid = CScript() << bytes11
+                                    << ToByteVector(bytes20)
+                                    << ToByteVector(bytes32)
+                                    << std::vector<uint8_t>() // Empty vector denotes zero
+                                    << CScriptNum(0);
+
+    BOOST_CHECK(CScript::DecodeVote(valid, decoded_vote, extracted_vote_sig));
+}
+
+BOOST_AUTO_TEST_CASE(extract_vote_data_from_scriptsig)
+{
+    std::string signature = "304402204b9bb63f9b055a7d82841f064167df5d9b774f91a5d76eb807559a03f51dc39f02203af15ccb70a77801afdac05ef1723b07a59da9d3b19a4ced37e53cdc9a0db1bc01";
+    std::string validatorAddress = "c38defed743b2f274e31c54b8edb1c617c07d0e1";
+    std::string targetHash = "5abcb1b1868582266bdd2d683ece9396cc44673085e0738bc5f173ef8e248912";
+    uint32_t sourceHeight = 10;
+    uint32_t targetHeight = 100;
+
+    esperanza::Vote vote{uint160S(validatorAddress),
+                   uint256(ParseHex(targetHash)),
+                   sourceHeight,
+                   targetHeight};
+
+    uint256 randomSig = GetRandHash();
+    std::vector<unsigned char> voteSig = std::vector<unsigned char>(randomSig.begin(), randomSig.end());
+    CScript encodedVote = CScript::EncodeVote(vote, voteSig);
+    std::vector<unsigned char> voteVector(encodedVote.begin(), encodedVote.end());
+
+    CScript s = (CScript() << ParseHex(signature)) << voteVector;
+
+    std::vector<unsigned char> extractedVoteSig;
+    esperanza::Vote decodedVote;
+    BOOST_CHECK(CScript::ExtractVoteFromVoteSignature(s, decodedVote, extractedVoteSig));
+
+    BOOST_CHECK_EQUAL(decodedVote.m_validator_address.GetHex(), validatorAddress);
+    BOOST_CHECK_EQUAL(HexStr(decodedVote.m_target_hash), targetHash);
+    BOOST_CHECK_EQUAL(decodedVote.m_source_epoch, sourceHeight);
+    BOOST_CHECK_EQUAL(decodedVote.m_target_epoch, targetHeight);
+    BOOST_CHECK_EQUAL(HexStr(voteSig.begin(), voteSig.end()),
+                      HexStr(extractedVoteSig.begin(), extractedVoteSig.end()));
+}
+
+BOOST_AUTO_TEST_CASE(extract_vote_data_from_witness)
+{
+    std::string signature = "304402204b9bb63f9b055a7d82841f064167df5d9b774f91a5d76eb807559a03f51dc39f02203af15ccb70a77801afdac05ef1723b07a59da9d3b19a4ced37e53cdc9a0db1bc01";
+    std::string validatorAddress = "c38defed743b2f274e31c54b8edb1c617c07d0e1";
+    std::string targetHash = "5abcb1b1868582266bdd2d683ece9396cc44673085e0738bc5f173ef8e248912";
+    uint32_t sourceHeight = 10;
+    uint32_t targetHeight = 100;
+
+  esperanza::Vote vote{uint160S(validatorAddress),
+                         uint256(ParseHex(targetHash)),
+                         sourceHeight,
+                         targetHeight};
+
+    uint256 randomSig = GetRandHash();
+    std::vector<unsigned char> voteSig = std::vector<unsigned char>(randomSig.begin(), randomSig.end());
+    CScript encodedVote = CScript::EncodeVote(vote, voteSig);
+    std::vector<unsigned char> voteVector(encodedVote.begin(), encodedVote.end());
+
+    CScriptWitness s;
+    s.stack.push_back(ParseHex(signature));
+    s.stack.push_back(voteVector);
+
+    std::vector<unsigned char> extractedVoteSig;
+    esperanza::Vote decodedVote;
+    BOOST_CHECK(CScript::ExtractVoteFromWitness(s, decodedVote, extractedVoteSig));
+
+    BOOST_CHECK_EQUAL(decodedVote.m_validator_address.GetHex(), validatorAddress);
+    BOOST_CHECK_EQUAL(HexStr(decodedVote.m_target_hash), targetHash);
+    BOOST_CHECK_EQUAL(decodedVote.m_source_epoch, sourceHeight);
+    BOOST_CHECK_EQUAL(decodedVote.m_target_epoch, targetHeight);
+    BOOST_CHECK_EQUAL(HexStr(voteSig.begin(), voteSig.end()),
+                      HexStr(extractedVoteSig.begin(), extractedVoteSig.end()));
+}
+
+BOOST_AUTO_TEST_CASE(extract_admin_command_from_witness)
+{
+    std::string signature1 = "304402206acc44d797f424a2875c90dec3e82c55fca0275cb5e4d4b04f1462ee8377ac3c02206bc51ad98f22de5dbbd9d81ec9c4fb8d0ffffb7b29d0467effa13062a71190cd01";
+    std::string signature2 = "304402202dc4b972c10d517a86ec56b6584071b406f5ad8c892098530dcc06dcc96a28370220092841c527c9878c84b1afe36ccd0e2fcd061f2a0e2cdbfc40c32994a8c51cdd01";
+    std::string data = "5221038c0246da82d686e4638d8cf60452956518f8b63c020d23387df93d199fc089e82102f1563a8930739b653426380a8297e5f08682cb1e7c881209aa624f821e2684fa2103d2bc85e0b035285add07680695cb561c9b9fbe9cb3a4be4f1f5be2fc1255944c53ae";
+
+    CScriptWitness witness;
+    witness.stack.push_back({});
+    witness.stack.push_back(ParseHex(signature1));
+    witness.stack.push_back(ParseHex(signature2));
+    witness.stack.push_back(ParseHex(data));
+
+    std::vector<CPubKey> keys;
+
+    BOOST_CHECK(CScript::ExtractAdminKeysFromWitness(witness, keys));
+    BOOST_CHECK_EQUAL(3, keys.size());
+
+    std::string key0 = "038c0246da82d686e4638d8cf60452956518f8b63c020d23387df93d199fc089e8";
+    std::string key1 = "02f1563a8930739b653426380a8297e5f08682cb1e7c881209aa624f821e2684fa";
+    std::string key2 = "03d2bc85e0b035285add07680695cb561c9b9fbe9cb3a4be4f1f5be2fc1255944c";
+
+    BOOST_CHECK_EQUAL(key0, HexStr(keys[0]));
+    BOOST_CHECK_EQUAL(key1, HexStr(keys[1]));
+    BOOST_CHECK_EQUAL(key2, HexStr(keys[2]));
+}
+
+BOOST_AUTO_TEST_CASE(push_tx_type)
+{
+    CScript script;
+    script << OP_PUSH_TX_TYPE;
+
+    for (auto tx_type : TxType::_values()) {
+        CMutableTransaction tx;
+        tx.SetType(tx_type);
+        MutableTransactionSignatureChecker checker(&tx, 0, 0);
+
+        ScriptError err;
+        std::vector<std::vector<unsigned char> > stack;
+        BOOST_CHECK(EvalScript(stack, script, SCRIPT_VERIFY_NONE, checker, SigVersion::BASE, &err));
+        BOOST_CHECK_EQUAL(stack.size(), 1);
+        if (static_cast<int>(tx_type) == 0) {
+            BOOST_CHECK_EQUAL(stack[0].size(), 0);
+        } else {
+            BOOST_CHECK_EQUAL(stack[0].size(), 1);
+            BOOST_CHECK_EQUAL(stack[0][0], static_cast<int>(tx_type));
+        }
+    }
+}
+
+BOOST_AUTO_TEST_CASE(witness_program)
+{
+    auto hash_160 = ParseHex("8dd36db6ed8e9d56aa10aad9db1321208be82bce");
+    auto hash_256 = ParseHex("f6c5081e8ee9d76a0abe8ad271bca9bf51d0da8fe56ec835addf1518ba4c853b");
+    CScript script;
+    WitnessProgram program;
+
+    script << OP_0;
+    BOOST_CHECK(!script.ExtractWitnessProgram(program));
+
+    script.clear();
+    script << OP_0 << hash_160;
+    BOOST_CHECK(script.ExtractWitnessProgram(program));
+    BOOST_CHECK(program.IsPayToPubkeyHash());
+    BOOST_CHECK_EQUAL_COLLECTIONS(program.program[0].begin(), program.program[0].end(),
+                                  hash_160.begin(), hash_160.end());
+
+    script.clear();
+    script << OP_0 << hash_256;
+    BOOST_CHECK(script.ExtractWitnessProgram(program));
+    BOOST_CHECK(program.IsPayToScriptHash());
+    BOOST_CHECK_EQUAL_COLLECTIONS(program.program[0].begin(), program.program[0].end(),
+                                  hash_256.begin(), hash_256.end());
+
+    script.clear();
+    script << OP_1 << hash_160 << hash_256;
+    BOOST_CHECK(script.ExtractWitnessProgram(program));
+    BOOST_CHECK(program.IsRemoteStakingP2WPKH());
+    BOOST_CHECK_EQUAL_COLLECTIONS(program.program[0].begin(), program.program[0].end(),
+                                  hash_160.begin(), hash_160.end());
+    BOOST_CHECK_EQUAL_COLLECTIONS(program.program[1].begin(), program.program[1].end(),
+                                  hash_256.begin(), hash_256.end());
+
+    script.clear();
+    script << OP_2 << hash_160 << hash_256;
+    BOOST_CHECK(script.ExtractWitnessProgram(program));
+    BOOST_CHECK(program.IsRemoteStakingP2WSH());
+    BOOST_CHECK_EQUAL_COLLECTIONS(program.program[0].begin(), program.program[0].end(),
+                                  hash_160.begin(), hash_160.end());
+    BOOST_CHECK_EQUAL_COLLECTIONS(program.program[1].begin(), program.program[1].end(),
+                                  hash_256.begin(), hash_256.end());
+}
 
 #if defined(HAVE_CONSENSUS_LIB)
 
@@ -1662,4 +1930,278 @@ BOOST_AUTO_TEST_CASE(uniteconsensus_verify_script_invalid_flags)
 }
 
 #endif
+
+BOOST_AUTO_TEST_CASE(create_unspendable_script)
+{
+    const CScript unspendable = CScript::CreateUnspendableScript();
+    BOOST_CHECK(unspendable.IsUnspendable());
+}
+
+BOOST_AUTO_TEST_CASE(create_p2pkh_script)
+{
+  const uint256 randomKey = GetRandHash();
+  const CPubKey pubKey(randomKey.begin(), randomKey.end());
+  CScript script = CScript::CreateP2PKHScript(ToByteVector(pubKey.GetID()));
+  BOOST_CHECK(script.IsPayToPublicKeyHash());
+}
+
+BOOST_AUTO_TEST_CASE(extract_votes_from_vote_signature)
+{
+  std::string validatorAddress = "c38defed743b2f274e31c54b8edb1c617c07d0e1";
+  uint32_t sourceHeight = 10;
+  uint32_t targetHeight = 100;
+  uint256 vote1TargetHash = GetRandHash();
+  uint256 vote2TargetHash = GetRandHash();
+
+  esperanza::Vote vote1{uint160(ParseHex(validatorAddress)),
+                       vote1TargetHash,
+                       sourceHeight,
+                       targetHeight};
+
+  esperanza::Vote vote2{uint160(ParseHex(validatorAddress)),
+                        vote2TargetHash,
+                        sourceHeight,
+                        targetHeight};
+
+  uint256 randomSig1 = GetRandHash();
+  std::vector<unsigned char> vote1Sig = std::vector<unsigned char>(randomSig1.begin(), randomSig1.end());
+  CScript encodedVote1 = CScript::EncodeVote(vote1, vote1Sig);
+  std::vector<unsigned char> vote1Vector(encodedVote1.begin(), encodedVote1.end());
+
+  uint256 randomSig2 = GetRandHash();
+  std::vector<unsigned char> vote2Sig = std::vector<unsigned char>(randomSig2.begin(), randomSig2.end());
+  CScript encodedVote2 = CScript::EncodeVote(vote2, vote2Sig);
+  std::vector<unsigned char> vote2Vector(encodedVote2.begin(), encodedVote2.end());
+
+  CScript scriptSig = CScript() << vote1Vector << vote2Vector;
+
+  esperanza::Vote extractedVote1;
+  esperanza::Vote extractedVote2;
+  std::vector<unsigned char> extractedVote1Sig;
+  std::vector<unsigned char> extractedVote2Sig;
+  BOOST_CHECK(CScript::ExtractVotesFromSlashSignature(scriptSig, extractedVote1, extractedVote2, extractedVote1Sig, extractedVote2Sig));
+
+  BOOST_CHECK_EQUAL(HexStr(extractedVote1.m_validator_address), validatorAddress);
+  BOOST_CHECK_EQUAL(extractedVote1.m_target_hash, vote1TargetHash);
+  BOOST_CHECK_EQUAL(extractedVote1.m_source_epoch, sourceHeight);
+  BOOST_CHECK_EQUAL(extractedVote1.m_target_epoch, targetHeight);
+  BOOST_CHECK_EQUAL(extractedVote1.m_target_epoch, targetHeight);
+  BOOST_CHECK_EQUAL(HexStr(vote1Sig), HexStr(extractedVote1Sig));
+
+  BOOST_CHECK_EQUAL(HexStr(extractedVote2.m_validator_address), validatorAddress);
+  BOOST_CHECK_EQUAL(extractedVote2.m_target_hash, vote2TargetHash);
+  BOOST_CHECK_EQUAL(extractedVote2.m_source_epoch, sourceHeight);
+  BOOST_CHECK_EQUAL(extractedVote2.m_target_epoch, targetHeight);
+  BOOST_CHECK_EQUAL(HexStr(vote2Sig), HexStr(extractedVote2Sig));
+}
+
+BOOST_AUTO_TEST_CASE(create_commit_script)
+{
+  CKey key;
+  key.MakeNewKey(true);
+  CScript script = CScript::CreateFinalizerCommitScript(key.GetPubKey());
+  BOOST_CHECK(script.IsFinalizerCommitScript());
+}
+
+BOOST_AUTO_TEST_CASE(verify_slash_script)
+{
+  CKey key;
+  key.MakeNewKey(true);
+  ScriptError *s_error = nullptr;
+
+  CMutableTransaction txn;
+  txn.SetType(TxType::SLASH);
+
+  const CScript& slash_script = CScript::CreateFinalizerCommitScript(key.GetPubKey());
+  CTxOut txout(0, CScript());
+
+  txn.vout.push_back(txout);
+
+  // Test invalid scriptsig
+  {
+      CScript scriptSig = CScript() << ToByteVector(GetRandHash());
+
+      txn.vin.clear();
+      txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+      CTransaction txToConst(txn);
+      CScriptWitness witness;
+      const TransactionSignatureChecker checker(&txToConst, 0, CAmount());
+
+      BOOST_CHECK(!VerifyScript(scriptSig, slash_script, &witness, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, s_error));
+  }
+
+  // Test duplicate votes
+  {
+      esperanza::Vote vote = {key.GetPubKey().GetID(), GetRandHash(), 10, 20};
+      CScript scriptSig = CreateSlashScript(key, key, vote, vote);
+
+      txn.vin.clear();
+      txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+      CTransaction txToConst(txn);
+      CScriptWitness witness;
+      const TransactionSignatureChecker checker(&txToConst, 0, CAmount());
+
+      BOOST_CHECK(!VerifyScript(scriptSig, slash_script, &witness, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, s_error));
+  }
+
+  // Test double votes with the same target_hash
+  {
+      uint256 target_hash = GetRandHash();
+      esperanza::Vote vote1 = {key.GetPubKey().GetID(), target_hash, 10, 20};
+      esperanza::Vote vote2 = {key.GetPubKey().GetID(), target_hash, 5, 20};
+      CScript scriptSig = CreateSlashScript(key, key, vote1, vote2);
+
+      txn.vin.clear();
+      txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+      CTransaction txToConst(txn);
+      CScriptWitness witness;
+      const TransactionSignatureChecker checker(&txToConst, 0, CAmount());
+
+      BOOST_CHECK(!VerifyScript(scriptSig, slash_script, &witness, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, s_error));
+  }
+
+  // Test that double votes with different signatures
+  {
+      CKey other_key;
+      other_key.MakeNewKey(true);
+
+      uint256 target_hash_1 = GetRandHash();
+      uint256 target_hash_2 = GetRandHash();
+      BOOST_REQUIRE(target_hash_1 != target_hash_2);
+
+      esperanza::Vote vote1 = {key.GetPubKey().GetID(), target_hash_1, 10, 20};
+      esperanza::Vote vote2 = {other_key.GetPubKey().GetID(), target_hash_2, 10, 20};
+      CScript scriptSig = CreateSlashScript(key, other_key, vote1, vote2);
+
+      txn.vin.clear();
+      txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+      CTransaction txToConst(txn);
+      CScriptWitness witness;
+      const TransactionSignatureChecker checker(&txToConst, 0, CAmount());
+
+      BOOST_CHECK(!VerifyScript(scriptSig, slash_script, &witness, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, s_error));
+  }
+
+  // Test valid sequential votes
+  {
+    uint256 target_hash_1 = GetRandHash();
+    uint256 target_hash_2 = GetRandHash();
+    BOOST_REQUIRE(target_hash_1 != target_hash_2);
+
+    esperanza::Vote vote1 = {key.GetPubKey().GetID(), target_hash_1, 10, 11};
+    esperanza::Vote vote2 = {key.GetPubKey().GetID(), target_hash_2, 11, 13};
+    CScript scriptSig = CreateSlashScript(key, key, vote1, vote2);
+
+    txn.vin.clear();
+    txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+    CTransaction txToConst(txn);
+    CScriptWitness witness;
+    const TransactionSignatureChecker checker(&txToConst, 0, CAmount());
+
+    BOOST_CHECK(!VerifyScript(scriptSig, slash_script, &witness, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, s_error));
+  }
+
+  // Test valid overlapping votes
+  {
+      uint256 target_hash_1 = GetRandHash();
+      uint256 target_hash_2 = GetRandHash();
+      BOOST_REQUIRE(target_hash_1 != target_hash_2);
+
+      esperanza::Vote vote1 = {key.GetPubKey().GetID(), target_hash_1, 10, 11};
+      esperanza::Vote vote2 = {key.GetPubKey().GetID(), target_hash_2, 11, 13};
+      CScript scriptSig = CreateSlashScript(key, key, vote1, vote2);
+
+      txn.vin.clear();
+      txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+      CTransaction txToConst(txn);
+      CScriptWitness witness;
+      const TransactionSignatureChecker checker(&txToConst, 0, CAmount());
+
+      BOOST_CHECK(!VerifyScript(scriptSig, slash_script, &witness, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, s_error));
+  }
+
+  // Test that double votes with different addresses
+  {
+    CKey other_key;
+    other_key.MakeNewKey(true);
+
+    uint256 target_hash_1 = GetRandHash();
+    uint256 target_hash_2 = GetRandHash();
+    BOOST_REQUIRE(target_hash_1 != target_hash_2);
+
+    esperanza::Vote vote1 = {other_key.GetPubKey().GetID(), target_hash_1, 10, 20};
+    esperanza::Vote vote2 = {other_key.GetPubKey().GetID(), target_hash_2, 10, 20};
+    CScript scriptSig = CreateSlashScript(key, key, vote1, vote2);
+
+    txn.vin.clear();
+    txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+    CTransaction txToConst(txn);
+    CScriptWitness witness;
+    const TransactionSignatureChecker checker(&txToConst, 0, CAmount());
+
+    BOOST_CHECK(VerifyScript(scriptSig, slash_script, &witness, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, s_error));
+  }
+
+  // Test invalid vote signatures
+  {
+
+      CKey other_key;
+      other_key.MakeNewKey(true);
+
+      uint256 target_hash_1 = GetRandHash();
+      uint256 target_hash_2 = GetRandHash();
+      BOOST_REQUIRE(target_hash_1 != target_hash_2);
+
+      esperanza::Vote vote1 = {key.GetPubKey().GetID(), target_hash_1, 10, 20};
+      esperanza::Vote vote2 = {key.GetPubKey().GetID(), target_hash_2, 10, 20};
+      CScript scriptSig = CreateSlashScript(other_key, other_key, vote1, vote2);
+
+      txn.vin.clear();
+      txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+      CTransaction txToConst(txn);
+      CScriptWitness witness;
+      const TransactionSignatureChecker checker(&txToConst, 0, CAmount());
+
+      BOOST_CHECK(!VerifyScript(scriptSig, slash_script, &witness, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, s_error));
+  }
+
+  // Test double votes
+  {
+      uint256 target_hash_1 = GetRandHash();
+      uint256 target_hash_2 = GetRandHash();
+      BOOST_REQUIRE(target_hash_1 != target_hash_2);
+
+      esperanza::Vote vote1 = {key.GetPubKey().GetID(), target_hash_1, 10, 20};
+      esperanza::Vote vote2 = {key.GetPubKey().GetID(), target_hash_2, 5, 20};
+      CScript scriptSig = CreateSlashScript(key, key, vote1, vote2);
+
+      txn.vin.clear();
+      txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+      CTransaction txToConst(txn);
+      CScriptWitness witness;
+      const TransactionSignatureChecker checker(&txToConst, 0, CAmount());
+
+      BOOST_CHECK(VerifyScript(scriptSig, slash_script, &witness, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, s_error));
+  }
+
+  // Test surrounding votes
+  {
+      uint256 target_hash_1 = GetRandHash();
+      uint256 target_hash_2 = GetRandHash();
+      BOOST_REQUIRE(target_hash_1 != target_hash_2);
+
+      esperanza::Vote vote1 = {key.GetPubKey().GetID(), target_hash_1, 10, 11};
+      esperanza::Vote vote2 = {key.GetPubKey().GetID(), target_hash_2, 5, 20};
+      CScript scriptSig = CreateSlashScript(key, key, vote1, vote2);
+
+      txn.vin.clear();
+      txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+      CTransaction txToConst(txn);
+      CScriptWitness witness;
+      const TransactionSignatureChecker checker(&txToConst, 0, CAmount());
+
+      BOOST_CHECK(VerifyScript(scriptSig, slash_script, &witness, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, s_error));
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()

@@ -6,6 +6,7 @@
 
 #include <banman.h>
 #include <net.h>
+#include <scheduler.h>
 
 #include <memory>
 
@@ -13,6 +14,13 @@
 
 std::unique_ptr<CConnman> g_connman;
 std::unique_ptr<BanMan> g_banman;
+
+static CScheduler scheduler;
+
+CScheduler& GetScheduler()
+{
+    return scheduler;
+}
 
 [[noreturn]] void Shutdown(void* parg)
 {

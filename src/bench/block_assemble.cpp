@@ -8,9 +8,9 @@
 #include <consensus/merkle.h>
 #include <consensus/validation.h>
 #include <crypto/sha256.h>
+#include <injector.h>
 #include <miner.h>
 #include <policy/policy.h>
-#include <pow.h>
 #include <scheduler.h>
 #include <txdb.h>
 #include <txmempool.h>
@@ -41,11 +41,6 @@ static CTxIn MineBlock(const CScript& coinbase_scriptPubKey)
 {
     auto block = PrepareBlock(coinbase_scriptPubKey);
 
-    while (!CheckProofOfWork(block->GetHash(), block->nBits, Params().GetConsensus())) {
-        ++block->nNonce;
-        assert(block->nNonce);
-    }
-
     bool processed{ProcessNewBlock(Params(), block, true, nullptr)};
     assert(processed);
 
@@ -66,7 +61,7 @@ static void AssembleBlock(benchmark::State& state)
 
     // Switch to regtest so we can mine faster
     // Also segwit is active, so we can include witness transactions
-    SelectParams(CBaseChainParams::REGTEST);
+    SelectParams(GetComponent<blockchain::Behavior>(), CBaseChainParams::REGTEST);
 
     InitScriptExecutionCache();
 
@@ -86,8 +81,6 @@ static void AssembleBlock(benchmark::State& state)
         CValidationState state;
         ActivateBestChain(state, chainparams);
         assert(::chainActive.Tip() != nullptr);
-        const bool witness_enabled{IsWitnessEnabled(::chainActive.Tip(), chainparams.GetConsensus())};
-        assert(witness_enabled);
     }
 
     // Collect some loose transactions that spend the coinbases of our mined blocks

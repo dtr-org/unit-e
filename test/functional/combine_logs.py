@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Combine logs from multiple unite nodes as well as the test_framework log.
+# Copyright (c) 2017-2019 The Bitcoin Core developers
+# Distributed under the MIT software license, see the accompanying
+# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+"""Combine logs from multiple unit-e nodes as well as the test_framework log.
 
 This streams the combined log output to stdout. Use combine_logs.py > outputfile
 to write to an outputfile.

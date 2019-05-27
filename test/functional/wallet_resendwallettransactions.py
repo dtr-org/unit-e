@@ -10,7 +10,7 @@ from test_framework.blocktools import create_block, create_coinbase
 from test_framework.messages import ToHex
 from test_framework.mininode import P2PInterface, mininode_lock
 from test_framework.test_framework import UnitETestFramework
-from test_framework.util import assert_equal, wait_until
+from test_framework.util import assert_equal, assert_raises_rpc_error, wait_until
 
 class P2PStoreTxInvs(P2PInterface):
     def __init__(self):

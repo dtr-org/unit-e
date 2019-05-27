@@ -1,31 +1,16 @@
-Pull requests without a rationale and clear improvement may be closed
-immediately.
+---
+*Thanks for contributing! Here are some hints how to create a great pull request:*
 
-Please provide clear motivation for your patch and explain how it improves
-unit-e user experience or unit-e developer experience
-significantly.
-
-* Any test improvements or new tests that improve coverage are always welcome.
-* All other changes should have accompanying unit tests (see `src/test/`) or
-  functional tests (see `test/`). Contributors should note which tests cover
-  modified code. If no tests exist for a region of modified code, new tests
-  should accompany the change.
-* Bug fixes are most welcome when they come with steps to reproduce or an
-  explanation of the potential issue as well as reasoning for the way the bug
-  was fixed.
-* Features are welcome, but might be rejected due to design or scope issues.
-  If a feature is based on a lot of dependencies, contributors should first
-  consider building the system outside of unit-e, if possible.
-* Refactoring changes are only accepted if they are required for a feature or
-  bug fix or otherwise improve developer experience significantly. For example,
-  most "code style" refactoring changes require a thorough explanation why they
-  are useful, what downsides they have and why they *significantly* improve
-  developer experience or avoid serious programming bugs. Note that code style
-  is often a subjective matter. Unless they are explicitly mentioned to be
-  preferred in the [developer notes](/doc/developer-notes.md), stylistic code
-  changes are usually rejected.
-
-unit-e has a thorough review process and even the most trivial change
-needs to pass a lot of eyes and requires non-zero or even substantial time
-effort to review. There is a huge lack of active reviewers on the project, so
-patches often sit for a long time.
+* Follow the guidelines from
+  https://github.com/dtr-org/unit-e/blob/master/CONTRIBUTING.md
+* Make sure unit tests are green. Run them with `make check`.
+* Make sure functional tests are green. Run them with
+  `test/functional/test_runner.py`.
+* Adapt documentation if affected by the pull request
+* Sign your work (see
+  https://github.com/dtr-org/unit-e/blob/master/CONTRIBUTING.md#sign-your-work)
+* Add a summary of your changes and any additional context which is not in the
+  commit messages to the description of the pull request (you are editing this
+  right now ;-)
+* Reference issues the pull request addresses, e.g. by adding a line `Fixes
+  #123`.

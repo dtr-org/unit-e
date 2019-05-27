@@ -20,7 +20,9 @@
 #include <scheduler.h>
 #include <ui_interface.h>
 #include <util/strencodings.h>
+#include <snapshot/state.h>
 
+#include <memory>
 #ifdef WIN32
 #include <string.h>
 #else
@@ -1543,44 +1545,64 @@ void CConnman::ThreadDNSAddressSeed()
         }
     }
 
-    const std::vector<std::string> &vSeeds = Params().DNSSeeds();
+    std::vector<std::string> vSeeds = Params().DNSSeeds();
     int found = 0;
 
     LogPrintf("Loading addresses from DNS seeds (could take a while)\n");
 
+    // Discover nodes that have from the most specific service flags to the least.
+    // E.g.: find nodes that support full chain + snapshot, then full chain only.
+    std::vector<ServiceFlags> extra_flags;
+    if (snapshot::IsISDEnabled() && snapshot::IsInitialSnapshotDownload()) {
+        extra_flags.emplace_back(NODE_SNAPSHOT);
+    }
+    extra_flags.emplace_back(NODE_NONE);
+
+    for (const ServiceFlags extra_flag : extra_flags) {
+        std::vector<std::string> retry_seeds;
+
+        for (const std::string &seed : vSeeds) {
+            if (interruptNet) {
+                return;
+            }
+            if (HaveNameProxy()) {
+                AddOneShot(seed);
+            } else {
+                std::vector<CNetAddr> vIPs;
+                std::vector<CAddress> vAdd;
+                ServiceFlags requiredServiceBits = ServiceFlags(GetDesirableServiceFlags(NODE_NONE) | extra_flag);
+                std::string host = strprintf("x%x.%s", requiredServiceBits, seed);
+                CNetAddr resolveSource;
+                if (!resolveSource.SetInternal(host)) {
+                    continue;
+                }
+                unsigned int nMaxIPs = 256; // Limits number of IPs learned from a DNS seed
+                if (LookupHost(host.c_str(), vIPs, nMaxIPs, true)) {
+                    for (const CNetAddr &ip : vIPs) {
+                        int nOneDay = 24 * 3600;
+                        CAddress addr = CAddress(CService(ip, Params().GetDefaultPort()), requiredServiceBits);
+                        addr.nTime = GetTime() - 3 * nOneDay - GetRand(4 * nOneDay); // use a random age between 3 and 7 days old
+                        vAdd.push_back(addr);
+                        found++;
+                    }
+                    addrman.Add(vAdd, resolveSource);
+                } else {
+                    retry_seeds.push_back(seed);
+                }
+            }
+        }
+
+        vSeeds = std::move(retry_seeds);
+    }
+
+    // We now avoid directly using results from DNS Seeds which do not support service bit filtering,
+    // instead using them as a oneshot to get nodes with our desired service bits.
     for (const std::string &seed : vSeeds) {
         if (interruptNet) {
             return;
         }
-        if (HaveNameProxy()) {
-            AddOneShot(seed);
-        } else {
-            std::vector<CNetAddr> vIPs;
-            std::vector<CAddress> vAdd;
-            ServiceFlags requiredServiceBits = GetDesirableServiceFlags(NODE_NONE);
-            std::string host = strprintf("x%x.%s", requiredServiceBits, seed);
-            CNetAddr resolveSource;
-            if (!resolveSource.SetInternal(host)) {
-                continue;
-            }
-            unsigned int nMaxIPs = 256; // Limits number of IPs learned from a DNS seed
-            if (LookupHost(host.c_str(), vIPs, nMaxIPs, true))
-            {
-                for (const CNetAddr& ip : vIPs)
-                {
-                    int nOneDay = 24*3600;
-                    CAddress addr = CAddress(CService(ip, Params().GetDefaultPort()), requiredServiceBits);
-                    addr.nTime = GetTime() - 3*nOneDay - GetRand(4*nOneDay); // use a random age between 3 and 7 days old
-                    vAdd.push_back(addr);
-                    found++;
-                }
-                addrman.Add(vAdd, resolveSource);
-            } else {
-                // We now avoid directly using results from DNS Seeds which do not support service bit filtering,
-                // instead using them as a oneshot to get nodes with our desired service bits.
-                AddOneShot(seed);
-            }
-        }
+
+        AddOneShot(seed);
     }
 
     LogPrintf("%d addresses found from DNS seeds\n", found);
@@ -1949,21 +1971,24 @@ void CConnman::ThreadMessageHandler()
     while (!flagInterruptMsgProc)
     {
         std::vector<CNode*> vNodesCopy;
+        vNodesCopy.reserve(vNodes.size());
         {
             LOCK(cs_vNodes);
-            vNodesCopy = vNodes;
-            for (CNode* pnode : vNodesCopy) {
+            for (CNode* pnode : vNodes) {
+                if (pnode->fDisconnect) {
+                    continue;
+                }
+
                 pnode->AddRef();
+                vNodesCopy.emplace_back(pnode);
             }
         }
 
         bool fMoreWork = false;
 
-        for (CNode* pnode : vNodesCopy)
+        for (size_t i = 0; i < vNodesCopy.size(); ++i)
         {
-            if (pnode->fDisconnect)
-                continue;
-
+            CNode *pnode = vNodesCopy[i];
             // Receive messages
             bool fMoreNodeWork = m_msgproc->ProcessMessages(pnode, flagInterruptMsgProc);
             fMoreWork |= (fMoreNodeWork && !pnode->fPauseSend);
@@ -1972,7 +1997,7 @@ void CConnman::ThreadMessageHandler()
             // Send messages
             {
                 LOCK(pnode->cs_sendProcessing);
-                m_msgproc->SendMessages(pnode);
+                m_msgproc->SendMessages(pnode, i, vNodesCopy.size());
             }
 
             if (flagInterruptMsgProc)
@@ -2633,6 +2658,11 @@ CNode::CNode(NodeId idIn, ServiceFlags nLocalServicesIn, int nMyStartingHeightIn
     hashContinue = uint256();
     filterInventoryKnown.reset();
     pfilter = MakeUnique<CBloomFilter>();
+
+    m_snapshot_discovery_sent = false;
+    m_best_snapshot = snapshot::SnapshotHeader();
+    m_requested_snapshot_at = std::chrono::steady_clock::time_point::min();
+    sentGetParentBlockForSnapshot = false;
 
     for (const std::string &msg : getAllNetMessageTypes())
         mapRecvBytesPerMsgCmd[msg] = 0;

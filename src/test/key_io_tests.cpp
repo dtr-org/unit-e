@@ -5,6 +5,7 @@
 #include <test/data/key_io_invalid.json.h>
 #include <test/data/key_io_valid.json.h>
 
+#include <injector.h>
 #include <key.h>
 #include <key_io.h>
 #include <script/script.h>
@@ -25,7 +26,7 @@ BOOST_AUTO_TEST_CASE(key_io_valid_parse)
     UniValue tests = read_json(std::string(json_tests::key_io_valid, json_tests::key_io_valid + sizeof(json_tests::key_io_valid)));
     CKey privkey;
     CTxDestination destination;
-    SelectParams(CBaseChainParams::MAIN);
+    SelectParams(GetComponent<blockchain::Behavior>(), CBaseChainParams::REGTEST);
 
     for (unsigned int idx = 0; idx < tests.size(); idx++) {
         UniValue test = tests[idx];
@@ -114,7 +115,7 @@ BOOST_AUTO_TEST_CASE(key_io_valid_gen)
         }
     }
 
-    SelectParams(CBaseChainParams::MAIN);
+    SelectParams(GetComponent<blockchain::Behavior>(), CBaseChainParams::REGTEST);
 }
 
 
@@ -136,8 +137,8 @@ BOOST_AUTO_TEST_CASE(key_io_invalid)
         std::string exp_base58string = test[0].get_str();
 
         // must be invalid as public and as private key
-        for (const auto& chain : { CBaseChainParams::MAIN, CBaseChainParams::TESTNET, CBaseChainParams::REGTEST }) {
-            SelectParams(chain);
+        for (const auto& chain : { CBaseChainParams::TESTNET, CBaseChainParams::REGTEST }) {
+            SelectParams(GetComponent<blockchain::Behavior>(), chain);
             destination = DecodeDestination(exp_base58string);
             BOOST_CHECK_MESSAGE(!IsValidDestination(destination), "IsValid pubkey in mainnet:" + strTest);
             privkey = DecodeSecret(exp_base58string);

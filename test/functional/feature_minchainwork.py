@@ -31,6 +31,9 @@ class MinimumChainWorkTest(UnitETestFramework):
         self.extra_args = [[], ["-minimumchainwork=0x65"], ["-minimumchainwork=0x65"]]
         self.node_min_work = [0, 101, 101]
 
+    def skip_test_if_missing_module(self):
+        self.skip_if_no_wallet()
+
     def setup_network(self):
         # This test relies on the chain setup being:
         # node0 <- node1 <- node2
@@ -48,6 +51,8 @@ class MinimumChainWorkTest(UnitETestFramework):
         self.log.info("Testing relay across node %d (minChainWork = %d)", 1, self.node_min_work[1])
 
         starting_blockcount = self.nodes[2].getblockcount()
+
+        self.setup_stake_coins(self.nodes[0])
 
         num_blocks_to_generate = int((self.node_min_work[1] - starting_chain_work) / REGTEST_WORK_PER_BLOCK)
         self.log.info("Generating %d blocks on node0", num_blocks_to_generate)

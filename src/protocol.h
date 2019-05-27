@@ -238,6 +238,64 @@ extern const char *GETBLOCKTXN;
  * @since protocol version 70014 as described by BIP 152
  */
 extern const char *BLOCKTXN;
+
+/**
+ * Contains the snapshot::GetSnapshotHeader message.
+ * Peer should respond with the "snaphead" message.
+ */
+extern const char *GETSNAPSHOTHEADER;
+
+/**
+ * Contains the snapshot::SnapshotHeader message.
+ * Sent in response to a "getsnaphead" message.
+ */
+extern const char *SNAPSHOTHEADER;
+
+/**
+ * Contains the snapshot::GetSnapshot message.
+ * Peer should respond with the "snapshot" message.
+ */
+extern const char *GETSNAPSHOT;
+
+/**
+ * Contains the snapshot::Snapshot object
+ * Sent in response to a "getsnapshot" message.
+ */
+extern const char *SNAPSHOT;
+/**
+ * Contains a getcommits request as described in UIP-21.
+ * Peer should respond with the "commits" message.
+ */
+extern const char *GETCOMMITS;
+/**
+ * Contains commits message as described in UIP-21.
+ * Sent in respose to a "getcommits" message.
+ */
+extern const char *COMMITS;
+
+/**
+ * Contains a p2p::GrapheneBlockRequest
+ * Sent in response "headers" message
+ */
+extern const char *GETGRAPHENE;
+
+/**
+ * Contains a p2p::GrapheneBlock
+ * Sent in response to "GETGRAPHENE" message
+ */
+extern const char *GRAPHENEBLOCK;
+
+/**
+ * Contains a p2p::GrapheneTxRequest
+ * Sent in response to "GRAPHENEBLOCK" message
+ */
+extern const char *GETGRAPHENETX;
+
+/**
+ * Contains a p2p::GrapheneTx
+ * Sent in response to "GETGRAPHENETX" message
+ */
+extern const char *GRAPHENETX;
 };
 
 /* Get a vector of all valid message types (see above) */
@@ -269,9 +327,14 @@ enum ServiceFlags : uint64_t {
     // See BIP159 for details on how this is implemented.
     NODE_NETWORK_LIMITED = (1 << 10),
 
+    // NODE_SNAPSHOT means that node generates periodically snapshots
+    // and is capable of responding to the getsnapshot protocol request.
+    // See UIP-11 for details
+    NODE_SNAPSHOT = (1 << 15),
+
     // Bits 24-31 are reserved for temporary experiments. Just pick a bit that
-    // isn't getting used, or one not being used much, and notify the
-    // unite-development mailing list. Remember that service bits are just
+    // isn't getting used, or one not being used much, and notify the community
+    // at https://github.com/dtr-org/unit-e. Remember that service bits are just
     // unauthenticated advertisements, so your code must be robust against
     // collisions and other cases where nodes may be advertising a service they
     // do not actually support. Other service bits should be allocated via the
@@ -379,6 +442,8 @@ enum GetDataMsg
     MSG_WITNESS_BLOCK = MSG_BLOCK | MSG_WITNESS_FLAG, //!< Defined in BIP144
     MSG_WITNESS_TX = MSG_TX | MSG_WITNESS_FLAG,       //!< Defined in BIP144
     MSG_FILTERED_WITNESS_BLOCK = MSG_FILTERED_BLOCK | MSG_WITNESS_FLAG,
+
+    MSG_GRAPHENE_BLOCK = 99, // Value used only in implementation, not part of the protocol
 };
 
 /** inv message data */

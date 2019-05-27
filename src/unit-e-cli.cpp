@@ -10,7 +10,7 @@
 #include <chainparamsbase.h>
 #include <clientversion.h>
 #include <fs.h>
-#include <rpc/client.h>
+#include <rpc/parameter_conversion.h>
 #include <rpc/protocol.h>
 #include <util/system.h>
 #include <util/strencodings.h>
@@ -36,9 +36,9 @@ static void SetupCliArgs()
 {
     SetupHelpOptions(gArgs);
 
-    const auto defaultBaseParams = CreateBaseChainParams(CBaseChainParams::MAIN);
     const auto testnetBaseParams = CreateBaseChainParams(CBaseChainParams::TESTNET);
     const auto regtestBaseParams = CreateBaseChainParams(CBaseChainParams::REGTEST);
+    const auto &defaultBaseParams = testnetBaseParams;
 
     gArgs.AddArg("-version", "Print version and exit", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-conf=<file>", strprintf("Specify configuration file. Relative paths will be prefixed by datadir location. (default: %s)", UNITE_CONF_FILENAME), false, OptionsCategory::OPTIONS);

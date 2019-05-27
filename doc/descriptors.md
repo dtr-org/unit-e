@@ -1,6 +1,6 @@
 # Support for Output Descriptors in unit-e
 
-Since unit-e v0.17, there is support for Output Descriptors. This is a
+Unit-e supports Output Descriptors. This is a
 simple language which can be used to describe collections of output scripts.
 Supporting RPCs are:
 - `scantxoutset` takes as input descriptors to scan for, and also reports
@@ -41,7 +41,6 @@ Output descriptors currently support:
 - `sh(wsh(multi(1,03f28773c2d975288bc7d1d205c3748651b075fbc6610e58cddeeddf8f19405aa8,03499fdf9e895e719cfd64e67f07d38e3226aa7b63678949e6e49b241a60e823e4,02d7924d4f7d43ea965a465ae3095ff41131e5946f3c85f79e44adbcf8e27e080e)))` describes a P2SH-P2WSH *1-of-3* multisig output with keys in the specified order.
 - `pk(xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8)` describes a P2PK output with the public key of the specified xpub.
 - `pkh(xpub68Gmy5EdvgibQVfPdqkBBCHxA5htiqg55crXYuXoQRKfDBFA1WEjWgP6LHhwBZeNK1VTsfTFUHCdrfp1bgwQ9xv5ski8PX9rL2dZXvgGDnw/1'/2)` describes a P2PKH output with child key *1'/2* of the specified xpub.
-- `pkh([d34db33f/44'/0'/0']xpub6ERApfZwUNrhLCkDtcHTcxd75RbzS1ed54G1LkBUHQVHQKqhMkhgbmJbZRkrgZw4koxb5JaHWkY4ALHY2grBGRjaDMzQLcgJvLJuZZvRcEL/1/*)` describes a set of P2PKH outputs, but additionally specifies that the specified xpub is a child of a master with fingerprint `d34db33f`, and derived using path `44'/0'/0'`.
 - `wsh(multi(1,xpub661MyMwAqRbcFW31YEwpkMuc5THy2PSt5bDMsktWQcFF8syAmRUapSCGu8ED9W6oDMSgv6Zz8idoc4a6mr8BDzTJY47LJhkJ8UB7WEGuduB/1/0/*,xpub69H7F5d8KSRgmmdJg2KhpAK8SR3DjMwAdkxj3ZuxV27CprR9LgpeyGmXUbC6wb7ERfvrnKZjXoUmmDznezpbZb7ap6r1D3tgFxHmwMkQTPH/0/0/*))` describes a set of *1-of-2* P2WSH multisig outputs where the first multisig key is the *1/0/`i`* child of the first specified xpub and the second multisig key is the *0/0/`i`* child of the second specified xpub, and `i` is any number in a configurable range (`0-1000` by default).
 
 ## Reference
@@ -77,9 +76,9 @@ Descriptors consist of several types of expressions. The top level expression is
 (Anywhere a `'` suffix is permitted to denote hardened derivation, the suffix `h` can be used instead.)
 
 `ADDR` expressions are any type of supported address:
-- P2PKH addresses (base58, of the form `1...` for mainnet or `[nm]...` for testnet). Note that P2PKH addresses in descriptors cannot be used for P2PK outputs (use the `pk` function instead).
-- P2SH addresses (base58, of the form `3...` for mainnet or `2...` for testnet, defined in [BIP 13](https://github.com/bitcoin/bips/blob/master/bip-0013.mediawiki)).
-- Segwit addresses (bech32, of the form `bc1...` for mainnet or `tb1...` for testnet, defined in [BIP 173](https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki)).
+- P2PKH addresses (base58, of the form `1...`). Note that P2PKH addresses in descriptors cannot be used for P2PK outputs (use the `pk` function instead).
+- P2SH addresses (base58, of the form `3...`, defined in [BIP 13](https://github.com/bitcoin/bips/blob/master/bip-0013.mediawiki)).
+- Segwit addresses (bech32, of the form `bc1...`, defined in [BIP 173](https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki)).
 
 ## Explanation
 

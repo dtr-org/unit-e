@@ -131,12 +131,11 @@ const char* GetOpName(opcodetype opcode)
     case OP_NOP1                   : return "OP_NOP1";
     case OP_CHECKLOCKTIMEVERIFY    : return "OP_CHECKLOCKTIMEVERIFY";
     case OP_CHECKSEQUENCEVERIFY    : return "OP_CHECKSEQUENCEVERIFY";
-    case OP_NOP4                   : return "OP_NOP4";
-    case OP_NOP5                   : return "OP_NOP5";
+    case OP_CHECKCOMMIT            : return "OP_CHECKCOMMIT";
     case OP_NOP6                   : return "OP_NOP6";
     case OP_NOP7                   : return "OP_NOP7";
     case OP_NOP8                   : return "OP_NOP8";
-    case OP_NOP9                   : return "OP_NOP9";
+    case OP_PUSH_TX_TYPE           : return "OP_PUSH_TX_TYPE";
     case OP_NOP10                  : return "OP_NOP10";
 
     case OP_INVALIDOPCODE          : return "OP_INVALIDOPCODE";
@@ -144,6 +143,28 @@ const char* GetOpName(opcodetype opcode)
     default:
         return "OP_UNKNOWN";
     }
+}
+
+bool WitnessProgram::IsPayToScriptHash() const
+{
+    return version == 0 && program.size() == 1 && program[0].size() == 32;
+}
+
+bool WitnessProgram::IsPayToPubkeyHash() const
+{
+    return version == 0 && program.size() == 1 && program[0].size() == 20;
+}
+
+bool WitnessProgram::IsRemoteStakingP2WPKH() const
+{
+    return version == 1 && program.size() == 2 && program[0].size() == 20
+        && program[1].size() == 32;
+}
+
+bool WitnessProgram::IsRemoteStakingP2WSH() const
+{
+    return version == 2 && program.size() == 2 && program[0].size() == 20
+        && program[1].size() == 32;
 }
 
 unsigned int CScript::GetSigOpCount(bool fAccurate) const
@@ -194,6 +215,89 @@ unsigned int CScript::GetSigOpCount(const CScript& scriptSig) const
     return subscript.GetSigOpCount(true);
 }
 
+bool CScript::IsPayToPublicKeyHash() const
+{
+    // Extra-fast test for pay-to-pubkey-hash CScripts:
+    return (this->size() == 25 &&
+        (*this)[0] == OP_DUP &&
+        (*this)[1] == OP_HASH160 &&
+        (*this)[2] == 0x14 &&
+        (*this)[23] == OP_EQUALVERIFY &&
+        (*this)[24] == OP_CHECKSIG);
+}
+
+CScript CScript::CreateFinalizerCommitScript(const CPubKey &pubkey)
+{
+    return CScript() <<
+                     ToByteVector(pubkey) <<
+                     OP_CHECKCOMMIT <<
+
+                     OP_IF << OP_TRUE << OP_ELSE <<
+
+                     OP_DUP <<
+                     OP_HASH160 <<
+                     ToByteVector(pubkey.GetID()) <<
+                     OP_EQUALVERIFY <<
+                     OP_CHECKSIG <<
+
+                     OP_ENDIF;
+}
+
+CScript CScript::CreateUnspendableScript() {
+    return CScript() << OP_RETURN;
+}
+
+CScript CScript::CreateP2PKHScript(const std::vector<unsigned char> &publicKeyHash) {
+    return CScript() << OP_DUP << OP_HASH160
+            << publicKeyHash << OP_EQUALVERIFY << OP_CHECKSIG;
+}
+
+CScript CScript::CreateRemoteStakingKeyhashScript(const std::vector<unsigned char> &staking_key_hash,
+                                                  const std::vector<unsigned char> &spending_key_hash) {
+    assert(staking_key_hash.size() == 20);
+    assert(spending_key_hash.size() == 32);
+    return CScript() << OP_1 << staking_key_hash << spending_key_hash;
+}
+
+CScript CScript::CreateRemoteStakingScripthashScript(const std::vector<unsigned char> &staking_key_hash,
+                                                     const std::vector<unsigned char> &spending_script_hash) {
+    assert(staking_key_hash.size() == 20);
+    assert(spending_script_hash.size() == 32);
+    return CScript() << OP_2 << staking_key_hash << spending_script_hash;
+}
+
+bool CScript::MatchPayToPublicKeyHash(size_t ofs) const
+{
+    // Extra-fast test for pay-to-script-hash CScripts:
+    return (this->size() - ofs >= 25 &&
+        (*this)[ofs + 0] == OP_DUP &&
+        (*this)[ofs + 1] == OP_HASH160 &&
+        (*this)[ofs + 2] == 0x14 &&
+        (*this)[ofs + 23] == OP_EQUALVERIFY &&
+        (*this)[ofs + 24] == OP_CHECKSIG);
+}
+
+bool CScript::MatchFinalizerCommitScript(size_t ofs) const
+{
+    // Extra-fast test for pay-vote-slash script hash CScripts:
+    return (this->size() - ofs == 64 &&
+        (*this)[ofs + 0] == 0x21 &&
+        (*this)[ofs + 34] == OP_CHECKCOMMIT) &&
+
+        (*this)[ofs + 35] == OP_IF &&
+        (*this)[ofs + 36] == OP_TRUE &&
+        (*this)[ofs + 37] == OP_ELSE &&
+
+        this->MatchPayToPublicKeyHash(38) &&
+
+        (*this)[ofs + 63] == OP_ENDIF;
+}
+
+bool CScript::IsFinalizerCommitScript() const
+{
+    return this->MatchFinalizerCommitScript(0);
+}
+
 bool CScript::IsPayToScriptHash() const
 {
     // Extra-fast test for pay-to-script-hash CScripts:
@@ -211,22 +315,66 @@ bool CScript::IsPayToWitnessScriptHash() const
             (*this)[1] == 0x20);
 }
 
-// A witness program is any valid CScript that consists of a 1-byte push opcode
-// followed by a data push between 2 and 40 bytes.
-bool CScript::IsWitnessProgram(int& version, std::vector<unsigned char>& program) const
+bool CScript::IsPayToWitnessPublicKeyHash() const
 {
-    if (this->size() < 4 || this->size() > 42) {
+    // Extra-fast test for pay-to-witness-script-hash CScripts:
+    return (this->size() == 22 &&
+            (*this)[0] == OP_0 &&
+            (*this)[1] == 0x14);
+}
+
+// A witness program is any valid CScript that consists of a 1-byte push opcode
+// followed by several data pushes between 2 and 40 bytes each.
+bool CScript::IsWitnessProgram() const
+{
+    if (this->size() < 4 || this->size() > 83) {
+        // 83 is the size of a witness scriptPubKey with two 40-byte data pushes
         return false;
     }
-    if ((*this)[0] != OP_0 && ((*this)[0] < OP_1 || (*this)[0] > OP_16)) {
+
+    opcodetype opcode;
+    auto pc = begin();
+    if (!GetOp(pc, opcode)) {
         return false;
     }
-    if ((size_t)((*this)[1] + 2) == this->size()) {
-        version = DecodeOP_N((opcodetype)(*this)[0]);
-        program = std::vector<unsigned char>(this->begin() + 2, this->end());
-        return true;
+    if (opcode != OP_0 && (opcode < OP_1 || opcode > OP_16)) {
+        return false;
     }
-    return false;
+    if (opcode == OP_0) {
+        return (size_t)((*this)[1] + 2) == this->size();
+    }
+
+    do {
+        if (!GetOp(pc, opcode) || opcode == OP_0 || opcode > 40) {
+            return false;
+        }
+    } while (pc < end());
+    return true;
+}
+
+bool CScript::ExtractWitnessProgram(WitnessProgram &witness_program) const
+{
+    if (!IsWitnessProgram()) {
+        return false;
+    }
+
+    opcodetype opcode;
+    auto pc = begin();
+    if (!GetOp(pc, opcode)) {
+        return false;
+    }
+    witness_program.version = DecodeOP_N(opcode);
+
+    witness_program.program.clear();
+    do {
+        std::vector<unsigned char> data;
+        if (!GetOp(pc, opcode, data)) {
+            return false;
+        }
+        witness_program.program.emplace_back(std::move(data));
+    } while (pc < end());
+
+    return true;
 }
 
 bool CScript::IsPushOnly(const_iterator pc) const
@@ -326,4 +474,190 @@ bool GetScriptOp(CScriptBase::const_iterator& pc, CScriptBase::const_iterator en
 
     opcodeRet = static_cast<opcodetype>(opcode);
     return true;
+}
+
+
+//UNIT-E: this can be probably optimized for faster access
+bool CScript::DecodeVote(const CScript &script, esperanza::Vote &voteOut, std::vector<unsigned char> &voteSig)
+{
+    CScript::const_iterator it = script.begin();
+    opcodetype opcode;
+
+    //Recover the voteSig
+    if (!script.GetOp(it, opcode, voteSig)) {
+      return false;
+    }
+    std::vector<unsigned char> validator;
+    if (!script.GetOp(it, opcode, validator)) {
+      return false;
+    }
+
+    if (validator.size() != CHash160::OUTPUT_SIZE) {
+      return false;
+    }
+
+    uint160 validatorAddress(validator);
+
+    std::vector<unsigned char> target;
+    if (!script.GetOp(it, opcode, target)) {
+      return false;
+    }
+
+    if (target.size() != CHash256::OUTPUT_SIZE) {
+      return false;
+    }
+
+    uint256 targetHash(target);
+
+    std::vector<unsigned char> sourceEpochVec;
+    if (!script.GetOp(it, opcode, sourceEpochVec)) {
+      return false;
+    }
+
+    uint32_t sourceEpoch = 0;
+    if (!CScriptNum::deserialize(sourceEpochVec, sourceEpoch)) {
+      return false;
+    }
+
+    std::vector<unsigned char> targetEpochVec;
+    if (!script.GetOp(it, opcode, targetEpochVec)) {
+      return false;
+    }
+
+    uint32_t targetEpoch = 0;
+    if (!CScriptNum::deserialize(targetEpochVec, targetEpoch)) {
+      return false;
+    }
+
+    voteOut.m_validator_address = validatorAddress;
+    voteOut.m_target_hash = targetHash;
+    voteOut.m_source_epoch = sourceEpoch;
+    voteOut.m_target_epoch = targetEpoch;
+
+    return it == script.end();
+}
+
+CScript CScript::EncodeVote(const esperanza::Vote &data,
+                            const std::vector<unsigned char> &voteSig)
+{
+    assert(!voteSig.empty());
+
+    return CScript() << voteSig
+                     << ToByteVector(data.m_validator_address)
+                     << ToByteVector(data.m_target_hash)
+                     << CScriptNum::serialize(data.m_source_epoch)
+                     << CScriptNum::serialize(data.m_target_epoch);
+}
+
+bool CScript::ExtractVoteFromWitness(const CScriptWitness &witness,
+    esperanza::Vote &voteOut,
+    std::vector<unsigned char> &voteSig)
+{
+    CScriptWitness wt{witness};
+
+    //We want to skip the first element since is the signature of the transaction
+    auto it = ++(wt.stack.begin());
+
+    CScript voteScript(it->begin(), it->end());
+
+    return DecodeVote(voteScript, voteOut, voteSig);
+}
+
+bool CScript::ExtractVoteFromVoteSignature(const CScript &scriptSig,
+                                                  esperanza::Vote &voteOut,
+                                                  std::vector<unsigned char> &voteSigOut)
+{
+    const_iterator pc = scriptSig.begin();
+    std::vector<unsigned char> vData;
+    opcodetype opcode;
+
+    //Skip the first value (txSig)
+    if (!scriptSig.GetOp(pc, opcode)) {
+        return false;
+    }
+
+    //Unpack the vote
+    if (!scriptSig.GetOp(pc, opcode, vData)) {
+        return false;
+    }
+    CScript voteScript(vData.begin(), vData.end());
+    if (!DecodeVote(voteScript, voteOut, voteSigOut)) {
+      return false;
+    }
+
+    return true;
+}
+
+bool CScript::ExtractVotesFromSlashSignature(const CScript &scriptSig,
+                                              esperanza::Vote &vote1,
+                                              esperanza::Vote &vote2,
+                                              std::vector<unsigned char> &vote1Sig,
+                                              std::vector<unsigned char> &vote2Sig)
+{
+  const_iterator pc = scriptSig.begin();
+  std::vector<unsigned char> vData;
+  opcodetype opcode;
+
+  //Unpack the first vote
+  if (!scriptSig.GetOp(pc, opcode, vData)) {
+    return false;
+  }
+  CScript voteScript = CScript(vData.begin(), vData.end());
+  if (!DecodeVote(voteScript, vote1, vote1Sig)) {
+    return false;
+  }
+
+  //Unpack the second vote
+  if (!scriptSig.GetOp(pc, opcode, vData)) {
+    return false;
+  }
+  voteScript = CScript(vData.begin(), vData.end());
+  if (!DecodeVote(voteScript, vote2, vote2Sig)) {
+    return false;
+  }
+
+  return true;
+}
+
+bool CScript::ExtractAdminKeysFromWitness(const CScriptWitness &witness,
+                                          std::vector<CPubKey> &outKeys)
+{
+    // stack is expected to look like:
+    // empty
+    // signature
+    // ...
+    // signature
+    // <OP_N> <PubKey> ... <PubKey> <OP_M> <OP_CHECKMULTISIG>
+
+    if (witness.stack.size() < 2) {
+        return false;
+    }
+
+    opcodetype opcode;
+    std::vector<uint8_t> buffer;
+    outKeys.clear();
+
+    const auto &witnessBack = witness.stack.back();
+    CScript script(witnessBack.begin(), witnessBack.end());
+    CScript::const_iterator it = script.begin();
+
+    // Ignore OP_N
+    if (!script.GetOp(it, opcode)) {
+        return false;
+    }
+
+    while (script.GetOp(it, opcode, buffer)) {
+        if (buffer.size() == CPubKey::COMPRESSED_PUBLIC_KEY_SIZE) {
+            outKeys.emplace_back(CPubKey(buffer.begin(), buffer.end()));
+        } else {
+            // It is either OP_M or something invalid
+            break;
+        }
+    }
+
+    if (!script.GetOp(it, opcode) || opcode != OP_CHECKMULTISIG) {
+        return false;
+    }
+
+    return it == script.end();
 }

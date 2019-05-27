@@ -30,10 +30,16 @@ class KeypoolRestoreTest(UnitETestFramework):
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
 
+    def skip_test_if_missing_module(self):
+        self.skip_if_no_wallet()
+
     def run_test(self):
         wallet_path = os.path.join(self.nodes[1].datadir, "regtest", "wallets", "wallet.dat")
         wallet_backup_path = os.path.join(self.nodes[1].datadir, "wallet.bak")
+        self.setup_stake_coins(self.nodes[0])
         self.nodes[0].generate(101)
+
+        sync_blocks(self.nodes)
 
         self.log.info("Make backup of wallet")
         self.stop_node(1)

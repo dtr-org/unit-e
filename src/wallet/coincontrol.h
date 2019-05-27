@@ -36,6 +36,8 @@ public:
     bool m_avoid_partial_spends;
     //! Fee estimation mode to control arguments to estimateSmartFee
     FeeEstimateMode m_fee_mode;
+    //! Omit coins that are staked remotely.
+    bool m_ignore_remote_staked;
 
     CCoinControl()
     {

@@ -10,6 +10,7 @@
 #include <util/strencodings.h>
 #include <netbase.h>
 #include <rpc/protocol.h> // For HTTP status codes
+#include <init.h>
 #include <shutdown.h>
 #include <sync.h>
 #include <ui_interface.h>
@@ -35,6 +36,7 @@
 #include <netinet/in.h>
 #ifdef _XOPEN_SOURCE_EXTENDED
 #include <arpa/inet.h>
+
 #endif
 #endif
 

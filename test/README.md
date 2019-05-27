@@ -6,7 +6,7 @@ etc.
 This directory contains the following sets of tests:
 
 - [functional](/test/functional) which test the functionality of
-unit-e and unite-qt by interacting with them through the RPC and P2P
+unit-e by interacting with it through the RPC and P2P
 interfaces.
 - [util](/test/util) which tests the unite utilities, currently only
 unit-e-tx.
@@ -139,8 +139,7 @@ combine_logs.py -c <test data directory> | less -r
 will pipe the colorized logs from the test into less.
 
 Use `--tracerpc` to trace out all the RPC calls and responses to the console. For
-some tests (eg any that use `submitblock` to submit a full block over RPC),
-this can result in a lot of screen output.
+some tests this can result in a lot of screen output.
 
 By default, the test data directory will be deleted after a successful run.
 Use `--nocleanup` to leave the test data directory intact. The test data

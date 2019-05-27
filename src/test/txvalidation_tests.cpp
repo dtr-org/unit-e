@@ -11,6 +11,7 @@
 #include <test/test_unite.h>
 
 #include <boost/test/unit_test.hpp>
+#include <wallet/test/wallet_test_fixture.h>
 
 
 BOOST_AUTO_TEST_SUITE(txvalidation_tests)
@@ -26,6 +27,7 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_reject_coinbase, TestChain100Setup)
     coinbaseTx.nVersion = 1;
     coinbaseTx.vin.resize(1);
     coinbaseTx.vout.resize(1);
+    coinbaseTx.SetType(TxType::COINBASE);
     coinbaseTx.vin[0].scriptSig = CScript() << OP_11 << OP_EQUAL;
     coinbaseTx.vout[0].nValue = 1 * EEES;
     coinbaseTx.vout[0].scriptPubKey = scriptPubKey;

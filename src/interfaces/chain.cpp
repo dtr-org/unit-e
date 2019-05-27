@@ -6,6 +6,7 @@
 
 #include <chain.h>
 #include <chainparams.h>
+#include <consensus/consensus.h>
 #include <primitives/block.h>
 #include <sync.h>
 #include <txmempool.h>
@@ -41,7 +42,14 @@ class LockImpl : public Chain::Lock
     {
         const Optional<int> tip_height = getHeight();
         const Optional<int> height = getBlockHeight(hash);
-        return tip_height && height ? *tip_height - *height + 1 : 0;
+        if (!tip_hegiht || !height) {
+            return 0;
+        }
+        const int depth = *tip_height - *height + 1;
+        if (height == 0) { // genesis block
+            return std::max(COINBASE_MATURITY+1, depth);
+        }
+        return depth;
     }
     uint256 getBlockHash(int height) override
     {

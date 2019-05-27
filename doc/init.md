@@ -43,9 +43,6 @@ This allows for running unit-e without having to do any manual configuration.
 `conf`, `pid`, and `wallet` accept relative paths which are interpreted as
 relative to the data directory. `wallet` *only* supports relative paths.
 
-For an example configuration file that describes the configuration settings,
-see `share/examples/unit-e.conf`.
-
 Paths
 ---------------------------------
 
@@ -56,7 +53,7 @@ All three configurations assume several paths that might need to be adjusted.
 Binary:              `/usr/bin/unit-e`
 Configuration file:  `/etc/unite/unit-e.conf`
 Data directory:      `/var/lib/unit-e`
-PID file:            `/var/run/unit-e/unit-e.pid` (OpenRC and Upstart) or `/run/unit-e/unit-e.pid` (systemd)
+PID file:            `/var/run/unit-e/unit-e.pid` (OpenRC and Upstart) or `/var/lib/unit-e/unit-e.pid` (systemd)
 Lock file:           `/var/lock/subsys/unit-e` (CentOS)
 
 The configuration file, PID directory (if applicable) and data directory
@@ -99,8 +96,6 @@ Installing this .service file consists of just copying it to
 
 To test, run `systemctl start unit-e` and to enable for system startup run
 `systemctl enable unit-e`
-
-NOTE: When installing for systemd in Debian/Ubuntu the .service file needs to be copied to the /lib/systemd/system directory instead.
 
 ### OpenRC
 

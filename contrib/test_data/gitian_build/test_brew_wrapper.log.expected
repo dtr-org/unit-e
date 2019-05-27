@@ -1,0 +1,9 @@
+Test: test_brew_wrapper
+brew ls package_1  stdout=-3  stderr=-3
+brew ls package_2a  stdout=-3  stderr=-3
+brew ls package_2b  stdout=-3  stderr=-3
+brew update
+brew install package_3
+brew update
+brew install package_1 package_2a package_2b
+brew install package_3

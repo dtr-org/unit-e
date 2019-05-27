@@ -6,7 +6,7 @@
 import struct
 
 from test_framework.address import ADDRESS_BCRT1_UNSPENDABLE
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, BLOCK_HEADER_SIZE
 from test_framework.messages import CTransaction
 from test_framework.util import (
     assert_equal,
@@ -70,6 +70,8 @@ class ZMQTest (UnitETestFramework):
         self.add_nodes(self.num_nodes, self.extra_args)
         self.start_nodes()
         self.import_deterministic_coinbase_privkeys()
+        # UNIT-E TODO [0.18.0]: Do we need to stop them?
+        # self.stop_nodes()
 
     def run_test(self):
         try:
@@ -104,7 +106,7 @@ class ZMQTest (UnitETestFramework):
 
             # Should receive the generated raw block.
             block = self.rawblock.receive()
-            assert_equal(genhashes[x], bytes_to_hex_str(hash256(block[:80])))
+            assert_equal(genhashes[x], bytes_to_hex_str(hash256(block[:BLOCK_HEADER_SIZE])))
 
         if self.is_wallet_compiled():
             self.log.info("Wait for tx from second node")

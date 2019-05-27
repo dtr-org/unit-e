@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2018-2019 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -57,6 +58,14 @@ std::string CTxOut::ToString() const
 CMutableTransaction::CMutableTransaction() : nVersion(CTransaction::CURRENT_VERSION), nLockTime(0) {}
 CMutableTransaction::CMutableTransaction(const CTransaction& tx) : vin(tx.vin), vout(tx.vout), nVersion(tx.nVersion), nLockTime(tx.nLockTime) {}
 
+void CMutableTransaction::SetType(TxType type) {
+  nVersion = (nVersion & 0x0000FFFF) | (static_cast<uint16_t>(type) << 16);
+}
+
+void CMutableTransaction::SetVersion(uint16_t type) {
+  nVersion = (nVersion & 0xFFFF0000) | (static_cast<uint16_t>(type));
+}
+
 uint256 CMutableTransaction::GetHash() const
 {
     return SerializeHash(*this, SER_GETHASH, SERIALIZE_TRANSACTION_NO_WITNESS);
@@ -113,3 +122,4 @@ std::string CTransaction::ToString() const
         str += "    " + tx_out.ToString() + "\n";
     return str;
 }
+

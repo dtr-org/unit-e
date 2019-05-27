@@ -1,5 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2018 The Bitcoin ABC developers
+// Copyright (c) 2018-2019 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -27,6 +29,7 @@ public:
     }
 
     explicit base_blob(const std::vector<unsigned char>& vch);
+    explicit base_blob(const uint8_t *p, size_t l);
 
     bool IsNull() const
     {
@@ -42,6 +45,21 @@ public:
     }
 
     inline int Compare(const base_blob& other) const { return memcmp(data, other.data, sizeof(data)); }
+
+    inline int CompareAsNumber(const base_blob& other) const {
+        for (int i = WIDTH - 1; i >= 0; --i) {
+            uint8_t a = data[i];
+            uint8_t b = other.data[i];
+            if (a > b) {
+                return 1;
+            }
+            if (a < b) {
+                return -1;
+            }
+        }
+
+        return 0;
+    }
 
     friend inline bool operator==(const base_blob& a, const base_blob& b) { return a.Compare(b) == 0; }
     friend inline bool operator!=(const base_blob& a, const base_blob& b) { return a.Compare(b) != 0; }
@@ -111,6 +129,7 @@ class uint160 : public base_blob<160> {
 public:
     uint160() {}
     explicit uint160(const std::vector<unsigned char>& vch) : base_blob<160>(vch) {}
+    explicit uint160(const uint8_t *p, size_t l) : base_blob<160>(p, l) {}
 };
 
 /** 256-bit opaque blob.
@@ -120,8 +139,12 @@ public:
  */
 class uint256 : public base_blob<256> {
 public:
+
+    static const uint256 zero;
+
     uint256() {}
     explicit uint256(const std::vector<unsigned char>& vch) : base_blob<256>(vch) {}
+    explicit uint256(const uint8_t *p, size_t l) : base_blob<256>(p, l) {}
 };
 
 /* uint256 from const char *.
@@ -144,5 +167,20 @@ inline uint256 uint256S(const std::string& str)
     rv.SetHex(str);
     return rv;
 }
+
+inline uint160 uint160S(const char *str)
+{
+  uint160 rv;
+  rv.SetHex(str);
+  return rv;
+}
+
+inline uint160 uint160S(const std::string& str)
+{
+  uint160 rv;
+  rv.SetHex(str);
+  return rv;
+}
+
 
 #endif // UNITE_UINT256_H

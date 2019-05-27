@@ -13,7 +13,7 @@ You will need the following dependencies, which can be installed as root via pkg
 ```shell
 pkg install autoconf automake boost-libs git gmake libevent libtool openssl pkgconf
 
-git clone https://github.com/bitcoin/bitcoin.git
+git clone https://github.com/dtr-org/unit-e.git
 ```
 
 In order to run the test suite (recommended), you will need to have Python 3 installed:
@@ -38,23 +38,12 @@ export BDB_PREFIX="$PWD/db4"
 
 **Important**: Use `gmake` (the non-GNU `make` will exit with an error):
 
-With wallet:
 ```shell
 ./autogen.sh
-./configure --with-gui=no \
-    BDB_LIBS="-L${BDB_PREFIX}/lib -ldb_cxx-4.8" \
-    BDB_CFLAGS="-I${BDB_PREFIX}/include"
-```
 
-Without wallet:
-```shell
-./autogen.sh
-./configure --with-gui=no --disable-wallet
-```
+./configure                  # to build with wallet OR
+./configure --disable-wallet # to build without wallet
 
-followed by:
-
-```shell
-gmake # use -jX here for parallelism
+gmake       # use -jX here for parallelism
 gmake check # Run tests if Python 3 is available
 ```

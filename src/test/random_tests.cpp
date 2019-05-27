@@ -11,7 +11,7 @@
 #include <random>
 #include <algorithm>
 
-BOOST_FIXTURE_TEST_SUITE(random_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(random_tests, ReducedTestingSetup)
 
 BOOST_AUTO_TEST_CASE(osrandom_tests)
 {

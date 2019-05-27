@@ -13,7 +13,7 @@ For a description of arguments recognized by test scripts, see
 """
 
 import argparse
-from collections import deque
+from collections import (deque, Counter)
 import configparser
 import datetime
 import os
@@ -66,92 +66,155 @@ if os.name != 'nt' or sys.getwindowsversion() >= (10, 0, 14393):
 TEST_EXIT_PASSED = 0
 TEST_EXIT_SKIPPED = 77
 
+# 20 minutes represented in seconds
+# UNIT-E TODO [0.18.0]: Deleted
+TRAVIS_TIMEOUT_DURATION = 20 * 60
+
 BASE_SCRIPTS = [
     # Scripts that are run by the travis build process.
     # Longest test should go first, to favor running tests in parallel
-    'feature_fee_estimation.py',
-    'wallet_hd.py',
-    'wallet_backup.py',
-    # vv Tests less than 5m vv
-    'mining_getblocktemplate_longpoll.py',
-    'feature_maxuploadtarget.py',
     'feature_block.py',
-    'rpc_fundrawtransaction.py',
-    'p2p_compactblocks.py',
-    'feature_segwit.py',
-    # vv Tests less than 2m vv
-    'wallet_basic.py',
-    'wallet_labels.py',
+    'feature_fee_estimation.py',
+    # vv Tests less than 5m vv
+    'wallet_multiwallet.py --usecli',
+    'feature_maxuploadtarget.py',
     'p2p_segwit.py',
+    'wallet_backup.py',
+    # vv Tests less than 2m vv
+    'proposer_balance.py',
+    'feature_bip68_sequence.py',
+    'wallet_address_types.py',
     'p2p_timeouts.py',
-    'wallet_dump.py',
-    'wallet_listtransactions.py',
     # vv Tests less than 60s vv
-    'p2p_sendheaders.py',
-    'wallet_zapwallettxes.py',
-    'wallet_importmulti.py',
-    'mempool_limit.py',
-    'rpc_txoutproof.py',
-    'wallet_listreceivedby.py',
-    'wallet_abandonconflict.py',
+    'p2p_embargoman_star.py',
+    'rpc_fundrawtransaction.py',
+    'wallet_hd.py',
+    'feature_no_vote_tx_relay_delay.py',
+    'finalization_admin_full_cycle.py',
+    'wallet_basic.py',
+    'feature_graphene_passive.py',
+    'p2p_feefilter.py',
+    'feature_assumevalid.py',
+    'feature_staking.py',
+    'feature_graphene_active.py',
+    # vv Tests less than 30s vv
+    'finalization_slash_restart.py',
+    'wallet_keys.py',
+    'p2p_compactblocks.py',
+    'finalization_expired_vote_conflict.py',
+    'finalization_vote_reorg.py',
     'feature_csv_activation.py',
     'rpc_rawtransaction.py',
-    'wallet_address_types.py',
-    'feature_bip68_sequence.py',
-    'p2p_feefilter.py',
-    'feature_reindex.py',
-    # vv Tests less than 30s vv
+    'p2p_embargoman_probing.py',
+    'p2p_embargoman_loop.py',
+    'wallet_listtransactions.py',
+    'finalization_slash.py',
+    'feature_segwit.py',
+    'finalization_withdraw.py',
+    'finalization_deposit_reorg.py',
+    'feature_fork_choice_forked_finalize_epoch.py',
+    'p2p_snapshot.py',
+    'proposer_settings.py',
+    'p2p_sendheaders.py',
+    'wallet_bumpfee.py',
+    'wallet_dump.py',
+    'mining_prioritisetransaction.py',
+    'mempool_limit.py',
+    'interface_rest.py',
+    'proposer_stake_maturity.py',
+    'mempool_persist.py',
+    'wallet_multiwallet.py',
+    'mempool_packages.py',
+    'wallet_abandonconflict.py',
+    'feature_snapshot.py',
+    'wallet_importmulti.py',
+    'rpc_tracestake.py',
+    'wallet_labels.py',
+    'wallet_listreceivedby.py',
+    'feature_commits_forkchoice.py',
+    'feature_ltor.py',
     'wallet_keypool_topup.py',
+    'p2p_commits.py',
+    'rpc_blockchain.py',
+    'rpc_liststakeablecoins.py',
+    'finalization_logout.py',
+    'feature_versionbits_warning.py',
+    'rpc_filtertransactions.py',
+    'wallet_encryption.py',
+    'feature_rbf.py',
+    'p2p_fingerprint.py',
+    'rpc_tracechain.py',
+    'rpc_invalidateblock.py',
+    'wallet_zapwallettxes.py',
+    'feature_fork_choice_finalization.py',
+    'feature_fork_choice_parallel_justifications.py',
+    'p2p_leak.py',
+    'rpc_txoutproof.py',
+    'wallet_keypool.py',
+    'feature_reindex.py',
+    'rpc_getchaintips.py',
+    'mempool_reorg.py',
+    'finalization_deposit.py',
+    'finalization_vote.py',
+    'wallet_listsinceblock.py',
+    'finalization_slash_itself.py',
+    'feature_minchainwork.py',
+    'feature_reindex_commits.py',
+    'p2p_unrequested_blocks.py',
+    'rpc_finalization.py',
+    'feature_logging.py',
+    'rpc_preciousblock.py',
+    'finalization_state_restoration.py',
     'interface_zmq.py',
-    'interface_unit_e_cli.py',
-    'mempool_resurrect.py',
     'wallet_txn_doublespend.py --mineblock',
     'tool_wallet.py',
     'wallet_txn_clone.py',
     'wallet_txn_clone.py --segwit',
-    'rpc_getchaintips.py',
-    'rpc_misc.py',
-    'interface_rest.py',
-    'mempool_spend_coinbase.py',
-    'mempool_reorg.py',
-    'mempool_persist.py',
-    'wallet_multiwallet.py',
-    'wallet_multiwallet.py --usecli',
+    'wallet_disableprivatekeys.py',
+    'wallet_disableprivatekeys.py --usecli',
     'wallet_createwallet.py',
     'wallet_createwallet.py --usecli',
-    'interface_http.py',
     'interface_rpc.py',
+    'rpc_misc.py',
     'rpc_psbt.py',
     'rpc_users.py',
-    'feature_proxy.py',
-    'rpc_signrawtransaction.py',
-    'wallet_groups.py',
-    'p2p_disconnect_ban.py',
-    'rpc_decodescript.py',
-    'rpc_blockchain.py',
-    'rpc_deprecated.py',
-    'wallet_disable.py',
-    'rpc_net.py',
-    'wallet_keypool.py',
-    'p2p_mempool.py',
-    'mining_prioritisetransaction.py',
-    'p2p_invalid_locator.py',
     'p2p_invalid_block.py',
-    'p2p_invalid_messages.py',
     'p2p_invalid_tx.py',
-    'feature_assumevalid.py',
-    'example_test.py',
+    'rpc_sendtypeto.py',
     'wallet_txn_doublespend.py',
     'wallet_txn_clone.py --mineblock',
     'feature_notifications.py',
-    'rpc_invalidateblock.py',
-    'feature_rbf.py',
-    'mempool_packages.py',
-    'rpc_createmultisig.py',
-    'feature_versionbits_warning.py',
-    'rpc_preciousblock.py',
+    'finalization_admin_validation.py',
+    'proposer_stakeable_balance.py',
     'wallet_importprunedfunds.py',
+    'feature_proxy.py',
+    'feature_spend_genesis.py',
+    'wallet_groups.py',
+    'p2p_disconnect_ban.py',
+    'proposer_remote_staking.py',
+    'feature_uacomment.py',
+    'p2p_node_network_limited.py',
+    'rpc_runstringcommand.py',
+    'feature_config_args.py',
+    'rpc_getblocksnapshot.py',
+    'feature_snapshot_creation.py',
+    'feature_finalizer.py',
+    'interface_unit_e_cli.py',
+    'mempool_resurrect.py',
+    'mempool_spend_coinbase.py',
+    'p2p_invalid_stake.py',
+    'interface_http.py',
+    'rpc_signrawtransaction.py',
+    'rpc_decodescript.py',
+    'rpc_deprecated.py',
+    'rpc_net.py',
+    'p2p_mempool.py',
+    'finalization_finalizationstate.py',
+    'p2p_invalid_messages.py',
+    'p2p_invalid_locator.py',
+    'rpc_createmultisig.py',
     'p2p_leak_tx.py',
+    'rpc_zmq.py',
     'rpc_signmessage.py',
     'wallet_balance.py',
     'feature_nulldummy.py',
@@ -161,34 +224,35 @@ BASE_SCRIPTS = [
     'rpc_bind.py --ipv4',
     'rpc_bind.py --ipv6',
     'rpc_bind.py --nonloopback',
-    'mining_basic.py',
-    'wallet_bumpfee.py',
     'rpc_named_arguments.py',
-    'wallet_listsinceblock.py',
-    'p2p_leak.py',
-    'wallet_encryption.py',
+    'rpc_addressbook.py',
     'feature_dersig.py',
+    'rpc_propose.py',
     'feature_cltv.py',
     'rpc_uptime.py',
+    'feature_remote_staking.py',
+    'wallet_disable.py',
     'wallet_resendwallettransactions.py',
     'wallet_fallbackfee.py',
-    'feature_minchainwork.py',
-    'rpc_getblockstats.py',
+    'wallet_mnemonicinfo.py',
+    'wallet_mnemonicnew.py',
+    'wallet_importmasterkey.py',
+    'proposer_multiwallet.py',
     'wallet_create_tx.py',
-    'p2p_fingerprint.py',
-    'feature_uacomment.py',
     'wallet_coinbase_category.py',
     'feature_filelock.py',
-    'p2p_unrequested_blocks.py',
+    'rpc_getblockstats.py',
     'feature_includeconf.py',
     'rpc_deriveaddresses.py',
     'rpc_deriveaddresses.py --usecli',
     'rpc_scantxoutset.py',
-    'feature_logging.py',
-    'p2p_node_network_limited.py',
     'feature_blocksdir.py',
-    'feature_config_args.py',
+    'feature_snapshot_finalization.py',
+    'rpc_getchainparams.py',
     'rpc_help.py',
+    'rpc_calcsnapshothash.py',
+    'rpc_validator.py',
+    'example_test.py',
     'feature_help.py',
     'feature_shutdown.py',
     # Don't append tests at the end to avoid merge conflicts
@@ -202,8 +266,17 @@ EXTENDED_SCRIPTS = [
     'feature_dbcrash.py',
 ]
 
+USBDEVICE_SCRIPTS = [
+    # These tests are enabled or disabled based on the ENABLE_USBDEVICE
+    # flag in configure.ini
+    'wallet_hwquery.py',
+    'wallet_hwsign.py',
+]
+
+DISABLED_SCRIPTS = []
+
 # Place EXTENDED_SCRIPTS first since it has the 3 longest running tests
-ALL_SCRIPTS = EXTENDED_SCRIPTS + BASE_SCRIPTS
+ALL_SCRIPTS = EXTENDED_SCRIPTS + BASE_SCRIPTS + DISABLED_SCRIPTS + USBDEVICE_SCRIPTS
 
 NON_SCRIPTS = [
     # These are python files that live in the functional tests directory, but are not test scripts.
@@ -250,17 +323,34 @@ def main():
 
     # Create base test directory
     tmpdir = "%s/test_runner_U⋮_🏃_%s" % (args.tmpdirprefix, datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-
     os.makedirs(tmpdir)
 
     logging.debug("Temporary test directory at %s" % tmpdir)
 
+    enable_wallet = config["components"].getboolean("ENABLE_WALLET")
+    enable_utils = config["components"].getboolean("ENABLE_UTILS")
     enable_unit_e = config["components"].getboolean("ENABLE_UNIT_E")
+    enable_usbdevice = config["components"].getboolean("ENABLE_USBDEVICE")
 
-    if not enable_unit_e:
-        print("No functional tests to run.")
-        print("Rerun ./configure with --with-daemon and then make")
+    if config["environment"]["EXEEXT"] == ".exe" and not args.force:
+        # https://github.com/bitcoin/bitcoin/commit/d52802551752140cf41f0d9a225a43e84404d3e9
+        # https://github.com/bitcoin/bitcoin/pull/5677#issuecomment-136646964
+        print("Tests currently disabled on Windows by default. Use --force option to enable")
         sys.exit(0)
+
+    if not (enable_wallet and enable_unit_e and enable_utils):
+        print("No functional tests to run. Wallet, utils, and unit-e must all be enabled")
+        print("Rerun ./configure with --enable-wallet, --with-utils and --with-daemon and then make")
+        sys.exit(0)
+
+    unique_scripts = Counter(ALL_SCRIPTS)
+    if len(ALL_SCRIPTS) != len(unique_scripts):
+        print("{}WARNING!{} There are duplicate tests in the test list:".format(BOLD[1], BOLD[0]))
+        for s in unique_scripts:
+            if unique_scripts.get(s) > 1:
+                print('-', s)
+
+        sys.exit(1)
 
     # Build list of tests
     test_list = []
@@ -279,6 +369,8 @@ def main():
     else:
         # Run base tests only
         test_list += BASE_SCRIPTS
+        if enable_usbdevice:
+            test_list += USBDEVICE_SCRIPTS
 
     # Remove the test cases that the user has explicitly asked to exclude.
     if args.exclude:
@@ -466,6 +558,8 @@ class TestHandler:
             log_stderr = tempfile.SpooledTemporaryFile(max_size=2**16)
             test_argv = test.split()
             testdir = "{}/{}_{}".format(self.tmpdir, re.sub(".py$", "", test_argv[0]), portseed)
+            test_file_path = self.tests_dir + test_argv[0]
+            assert os.access(test_file_path, os.X_OK), test_file_path + " is not executable"
             tmpdir_arg = ["--tmpdir={}".format(testdir)]
             self.jobs.append((test,
                               time.time(),
@@ -553,7 +647,7 @@ class TestResult():
 def check_script_prefixes():
     """Check that test scripts start with one of the allowed name prefixes."""
 
-    good_prefixes_re = re.compile("(example|feature|interface|mempool|mining|p2p|rpc|wallet|tool)_")
+    good_prefixes_re = re.compile("(example|finalization|feature|interface|mempool|mining|p2p|proposer|rpc|wallet|tool)_")
     bad_script_names = [script for script in ALL_SCRIPTS if good_prefixes_re.match(script) is None]
 
     if bad_script_names:

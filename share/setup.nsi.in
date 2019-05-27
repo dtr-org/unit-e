@@ -20,7 +20,6 @@ SetCompressor /SOLID lzma
 !define MUI_STARTMENUPAGE_REGISTRY_VALUENAME StartMenuGroup
 !define MUI_STARTMENUPAGE_DEFAULTFOLDER "@PACKAGE_NAME@"
 !define MUI_FINISHPAGE_RUN "$WINDIR\explorer.exe"
-!define MUI_FINISHPAGE_RUN_PARAMETERS $INSTDIR\@UNITE_GUI_NAME@@EXEEXT@
 !define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\modern-uninstall.ico"
 !define MUI_UNWELCOMEFINISHPAGE_BITMAP "@abs_top_srcdir@/share/pixmaps/nsis-wizard.bmp"
 !define MUI_UNFINISHPAGE_NOAUTOCLOSE
@@ -73,9 +72,6 @@ ShowUninstDetails show
 Section -Main SEC0000
     SetOutPath $INSTDIR
     SetOverwrite on
-    File @abs_top_srcdir@/release/@UNITE_GUI_NAME@@EXEEXT@
-    File /oname=COPYING.txt @abs_top_srcdir@/COPYING
-    File /oname=readme.txt @abs_top_srcdir@/doc/README_windows.txt
     SetOutPath $INSTDIR\daemon
     File @abs_top_srcdir@/release/@UNITE_DAEMON_NAME@@EXEEXT@
     File @abs_top_srcdir@/release/@UNITE_CLI_NAME@@EXEEXT@
@@ -85,30 +81,6 @@ Section -Main SEC0000
     File /r /x Makefile* @abs_top_srcdir@/doc\*.*
     SetOutPath $INSTDIR
     WriteRegStr HKCU "${REGKEY}\Components" Main 1
-SectionEnd
-
-Section -post SEC0001
-    WriteRegStr HKCU "${REGKEY}" Path $INSTDIR
-    SetOutPath $INSTDIR
-    WriteUninstaller $INSTDIR\uninstall.exe
-    !insertmacro MUI_STARTMENU_WRITE_BEGIN Application
-    CreateDirectory $SMPROGRAMS\$StartMenuGroup
-    CreateShortcut "$SMPROGRAMS\$StartMenuGroup\$(^Name).lnk" $INSTDIR\@UNITE_GUI_NAME@@EXEEXT@
-    CreateShortcut "$SMPROGRAMS\$StartMenuGroup\@PACKAGE_NAME@ (testnet, @WINDOWS_BITS@-bit).lnk" "$INSTDIR\@UNITE_GUI_NAME@@EXEEXT@" "-testnet" "$INSTDIR\@UNITE_GUI_NAME@@EXEEXT@" 1
-    CreateShortcut "$SMPROGRAMS\$StartMenuGroup\Uninstall $(^Name).lnk" $INSTDIR\uninstall.exe
-    !insertmacro MUI_STARTMENU_WRITE_END
-    WriteRegStr HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$(^Name)" DisplayName "$(^Name)"
-    WriteRegStr HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$(^Name)" DisplayVersion "@PACKAGE_VERSION@"
-    WriteRegStr HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$(^Name)" Publisher "${COMPANY}"
-    WriteRegStr HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$(^Name)" URLInfoAbout "${URL}"
-    WriteRegStr HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$(^Name)" DisplayIcon $INSTDIR\uninstall.exe
-    WriteRegStr HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$(^Name)" UninstallString $INSTDIR\uninstall.exe
-    WriteRegDWORD HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$(^Name)" NoModify 1
-    WriteRegDWORD HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$(^Name)" NoRepair 1
-    WriteRegStr HKCR "@PACKAGE_TARNAME@" "URL Protocol" ""
-    WriteRegStr HKCR "@PACKAGE_TARNAME@" "" "URL:Unit-e"
-    WriteRegStr HKCR "@PACKAGE_TARNAME@\DefaultIcon" "" $INSTDIR\@UNITE_GUI_NAME@@EXEEXT@
-    WriteRegStr HKCR "@PACKAGE_TARNAME@\shell\open\command" "" '"$INSTDIR\@UNITE_GUI_NAME@@EXEEXT@" "%1"'
 SectionEnd
 
 # Macro for selecting uninstaller sections
@@ -126,9 +98,6 @@ done${UNSECTION_ID}:
 
 # Uninstaller sections
 Section /o -un.Main UNSEC0000
-    Delete /REBOOTOK $INSTDIR\@UNITE_GUI_NAME@@EXEEXT@
-    Delete /REBOOTOK $INSTDIR\COPYING.txt
-    Delete /REBOOTOK $INSTDIR\readme.txt
     RMDir /r /REBOOTOK $INSTDIR\daemon
     RMDir /r /REBOOTOK $INSTDIR\doc
     DeleteRegValue HKCU "${REGKEY}\Components" Main

@@ -13,7 +13,12 @@
 #include <util/moneystr.h>
 #include <validation.h>
 #include <walletinitinterface.h>
+#include <wallet/rpcaddressbook.h>
+#include <wallet/rpcadmin.h>
+#include <wallet/rpcmnemonic.h>
+#include <wallet/rpcvalidator.h>
 #include <wallet/rpcwallet.h>
+#include <wallet/rpcwalletext.h>
 #include <wallet/wallet.h>
 #include <wallet/walletutil.h>
 
@@ -118,14 +123,17 @@ bool WalletInit::ParameterInteraction() const
         }
     }
 
-    if (gArgs.GetBoolArg("-sysperms", false))
+    if (gArgs.GetBoolArg("-sysperms", false)) {
         return InitError("-sysperms is not allowed in combination with enabled wallet functionality");
-    if (gArgs.GetArg("-prune", 0) && gArgs.GetBoolArg("-rescan", false))
+    }
+    if (gArgs.GetArg("-prune", 0) && gArgs.GetBoolArg("-rescan", false)) {
         return InitError(_("Rescans are not possible in pruned mode. You will need to use -reindex which will download the whole blockchain again."));
+    }
 
-    if (::minRelayTxFee.GetFeePerK() > HIGH_TX_FEE_PER_KB)
+    if (::minRelayTxFee.GetFeePerK() > HIGH_TX_FEE_PER_KB) {
         InitWarning(AmountHighWarn("-minrelaytxfee") + " " +
                     _("The wallet will avoid paying less than the minimum relay fee."));
+    }
 
     return true;
 }
@@ -188,10 +196,11 @@ void WalletInit::Construct(InitInterfaces& interfaces) const
     interfaces.chain_clients.emplace_back(interfaces::MakeWalletClient(*interfaces.chain, gArgs.GetArgs("-wallet")));
 }
 
-bool LoadWallets(interfaces::Chain& chain, const std::vector<std::string>& wallet_files)
+bool LoadWallets(const esperanza::WalletExtensionDeps& deps,
+                 interfaces::Chain& chain, const std::vector<std::string>& wallet_files)
 {
     for (const std::string& walletFile : wallet_files) {
-        std::shared_ptr<CWallet> pwallet = CWallet::CreateWalletFromFile(chain, WalletLocation(walletFile));
+        std::shared_ptr<CWallet> pwallet = CWallet::CreateWalletFromFile(deps, chain, WalletLocation(walletFile));
         if (!pwallet) {
             return false;
         }
@@ -204,7 +213,7 @@ bool LoadWallets(interfaces::Chain& chain, const std::vector<std::string>& walle
 void StartWallets(CScheduler& scheduler)
 {
     for (const std::shared_ptr<CWallet>& pwallet : GetWallets()) {
-        pwallet->postInitProcess();
+        pwallet->postInitProcess(scheduler);
     }
 
     // Run a thread to flush wallet periodically

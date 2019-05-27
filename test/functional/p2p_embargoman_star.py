@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+# Copyright (c) 2018-2019 The Unit-e developers
+# Distributed under the MIT software license, see the accompanying
+# file COPYING or http: // www.opensource.org/licenses/mit-license.php.
+"""
+Tests EmbargoMan on a network that has a shape of a star.
+Star topology ensures that transactions are not propagating - all nodes
+except the star center are conceptually black holes
+
+This test ensures that under EmbargoMan:
+1) Transactions are sent to only one peer. They are embargoed and no
+other nodes have this transaction until embargo timeout
+2) After some time all transactions should fluff => all nodes have them
+3) Relay changes after too many transactions were sent to a black hole
+"""
+
+from test_framework.util import connect_nodes, assert_equal
+from test_framework.test_framework import UnitETestFramework
+import time
+
+# Number of transactions to send in this test
+TRANSACTIONS_N = 5
+
+# Minimum embargo to use in this test
+EMBARGO_SECONDS = 20
+
+
+class EmbargoManStar(UnitETestFramework):
+    def set_test_params(self):
+        self.num_nodes = 4
+
+        common_args = ['-debug=all',
+                       '-whitelist=127.0.0.1',
+                       '-embargotxs=1',
+                       '-embargomin=%s' % EMBARGO_SECONDS,
+                       '-embargoavgadd=0']
+
+        self.extra_args = [common_args + ["-stakesplitthreshold=1000000000"]] + [common_args] * 3
+        self.setup_clean_chain = True
+
+    def setup_network(self):
+        super().setup_nodes()
+
+        # Creating star-like topology with node 0 in the middle
+        for node in range(1, self.num_nodes):
+            connect_nodes(self.nodes[0], node)
+
+    def run_test(self):
+        self.setup_stake_coins(self.nodes[0])
+
+        # Exit IBD
+        self.generate_sync(self.nodes[0])
+
+        relay1 = self.single_run()
+
+        # Resets mempool - we want to check only txs relevant to the current run
+        self.generate_sync(self.nodes[0])
+
+        relay2 = self.single_run()
+
+        # Relay should change because txs were fluffed too often
+        assert relay1 != relay2
+
+    def single_run(self):
+        run_start_time = time.perf_counter()
+        txs = []
+        for _ in range(TRANSACTIONS_N):
+            address = self.nodes[0].getnewaddress("", "legacy")
+            tx = self.nodes[0].sendtoaddress(address, 1)
+            txs.append(tx)
+
+        # Minimum embargo is EMBARGO_SECONDS seconds, we want to
+        # ensure that during this time only relay has txs. We also wait a
+        # little less than embargo to account for different synchronization
+        # issues
+        nodes_with_txs_before_fluff = set()
+        while True:
+            presence = self.collect_tx_presence(txs)
+            if time.perf_counter() >= run_start_time + EMBARGO_SECONDS - 1:
+                break
+            nodes_with_txs_before_fluff |= presence
+
+        # Check that only one node has tx(relay)
+        assert_equal(1, len(nodes_with_txs_before_fluff))
+
+        # Now we want to ensure that fluff happened and all nodes receive
+        # transactions. Do not want to exceed a minute for the whole run
+        supposed_end_time = run_start_time + 60
+
+        for tx in txs:
+            timeout = supposed_end_time - time.perf_counter()
+            self.wait_for_transaction(tx, timeout=timeout)
+
+        return next(iter(nodes_with_txs_before_fluff))
+
+    def collect_tx_presence(self, txs_to_look):
+        txs_to_look = set(txs_to_look)
+        presence = set()
+
+        for leaf in range(1, self.num_nodes):
+            mempool = self.nodes[leaf].getrawmempool()
+            for mempool_tx in mempool:
+                if mempool_tx in txs_to_look:
+                    presence.add(leaf)
+                    break
+
+        return presence
+
+
+if __name__ == '__main__':
+    EmbargoManStar().main()

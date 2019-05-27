@@ -6,6 +6,7 @@
 
 #include <base58.h>
 #include <bech32.h>
+#include <blockchain/blockchain_types.h>
 #include <script/script.h>
 #include <util/strencodings.h>
 
@@ -28,14 +29,14 @@ public:
 
     std::string operator()(const CKeyID& id) const
     {
-        std::vector<unsigned char> data = m_params.Base58Prefix(CChainParams::PUBKEY_ADDRESS);
+        std::vector<unsigned char> data = m_params.parameters.base58_prefixes[blockchain::Base58Type::PUBKEY_ADDRESS];
         data.insert(data.end(), id.begin(), id.end());
         return EncodeBase58Check(data);
     }
 
     std::string operator()(const CScriptID& id) const
     {
-        std::vector<unsigned char> data = m_params.Base58Prefix(CChainParams::SCRIPT_ADDRESS);
+        std::vector<unsigned char> data = m_params.parameters.base58_prefixes[blockchain::Base58Type::SCRIPT_ADDRESS];
         data.insert(data.end(), id.begin(), id.end());
         return EncodeBase58Check(data);
     }
@@ -45,7 +46,7 @@ public:
         std::vector<unsigned char> data = {0};
         data.reserve(33);
         ConvertBits<8, 5, true>([&](unsigned char c) { data.push_back(c); }, id.begin(), id.end());
-        return bech32::Encode(m_params.Bech32HRP(), data);
+        return bech32::Encode(m_params.parameters.bech32_human_readable_prefix, data);
     }
 
     std::string operator()(const WitnessV0ScriptHash& id) const
@@ -53,7 +54,7 @@ public:
         std::vector<unsigned char> data = {0};
         data.reserve(53);
         ConvertBits<8, 5, true>([&](unsigned char c) { data.push_back(c); }, id.begin(), id.end());
-        return bech32::Encode(m_params.Bech32HRP(), data);
+        return bech32::Encode(m_params.parameters.bech32_human_readable_prefix, data);
     }
 
     std::string operator()(const WitnessUnknown& id) const
@@ -64,7 +65,7 @@ public:
         std::vector<unsigned char> data = {(unsigned char)id.version};
         data.reserve(1 + (id.length * 8 + 4) / 5);
         ConvertBits<8, 5, true>([&](unsigned char c) { data.push_back(c); }, id.program, id.program + id.length);
-        return bech32::Encode(m_params.Bech32HRP(), data);
+        return bech32::Encode(m_params.parameters.bech32_human_readable_prefix, data);
     }
 
     std::string operator()(const CNoDestination& no) const { return {}; }
@@ -78,14 +79,14 @@ CTxDestination DecodeDestination(const std::string& str, const CChainParams& par
         // base58-encoded Unit-e addresses.
         // Public-key-hash-addresses have version 0 (or 111 testnet).
         // The data vector contains RIPEMD160(SHA256(pubkey)), where pubkey is the serialized public key.
-        const std::vector<unsigned char>& pubkey_prefix = params.Base58Prefix(CChainParams::PUBKEY_ADDRESS);
+        const std::vector<unsigned char>& pubkey_prefix = params.parameters.base58_prefixes[blockchain::Base58Type::PUBKEY_ADDRESS];
         if (data.size() == hash.size() + pubkey_prefix.size() && std::equal(pubkey_prefix.begin(), pubkey_prefix.end(), data.begin())) {
             std::copy(data.begin() + pubkey_prefix.size(), data.end(), hash.begin());
             return CKeyID(hash);
         }
         // Script-hash-addresses have version 5 (or 196 testnet).
         // The data vector contains RIPEMD160(SHA256(cscript)), where cscript is the serialized redemption script.
-        const std::vector<unsigned char>& script_prefix = params.Base58Prefix(CChainParams::SCRIPT_ADDRESS);
+        const std::vector<unsigned char>& script_prefix = params.parameters.base58_prefixes[blockchain::Base58Type::SCRIPT_ADDRESS];
         if (data.size() == hash.size() + script_prefix.size() && std::equal(script_prefix.begin(), script_prefix.end(), data.begin())) {
             std::copy(data.begin() + script_prefix.size(), data.end(), hash.begin());
             return CScriptID(hash);
@@ -93,7 +94,7 @@ CTxDestination DecodeDestination(const std::string& str, const CChainParams& par
     }
     data.clear();
     auto bech = bech32::Decode(str);
-    if (bech.second.size() > 0 && bech.first == params.Bech32HRP()) {
+    if (bech.second.size() > 0 && bech.first == params.parameters.bech32_human_readable_prefix) {
         // Bech32 decoding
         int version = bech.second[0]; // The first 5 bit symbol is the witness version (0-16)
         // The rest of the symbols are converted witness program bytes.
@@ -135,7 +136,7 @@ CKey DecodeSecret(const std::string& str)
     CKey key;
     std::vector<unsigned char> data;
     if (DecodeBase58Check(str, data)) {
-        const std::vector<unsigned char>& privkey_prefix = Params().Base58Prefix(CChainParams::SECRET_KEY);
+        const std::vector<unsigned char>& privkey_prefix = Params().parameters.base58_prefixes[blockchain::Base58Type::SECRET_KEY];
         if ((data.size() == 32 + privkey_prefix.size() || (data.size() == 33 + privkey_prefix.size() && data.back() == 1)) &&
             std::equal(privkey_prefix.begin(), privkey_prefix.end(), data.begin())) {
             bool compressed = data.size() == 33 + privkey_prefix.size();
@@ -151,7 +152,7 @@ CKey DecodeSecret(const std::string& str)
 std::string EncodeSecret(const CKey& key)
 {
     assert(key.IsValid());
-    std::vector<unsigned char> data = Params().Base58Prefix(CChainParams::SECRET_KEY);
+    std::vector<unsigned char> data = Params().parameters.base58_prefixes[blockchain::Base58Type::SECRET_KEY];
     data.insert(data.end(), key.begin(), key.end());
     if (key.IsCompressed()) {
         data.push_back(1);
@@ -166,7 +167,7 @@ CExtPubKey DecodeExtPubKey(const std::string& str)
     CExtPubKey key;
     std::vector<unsigned char> data;
     if (DecodeBase58Check(str, data)) {
-        const std::vector<unsigned char>& prefix = Params().Base58Prefix(CChainParams::EXT_PUBLIC_KEY);
+        const std::vector<unsigned char>& prefix = Params().parameters.base58_prefixes[blockchain::Base58Type::EXT_PUBLIC_KEY];
         if (data.size() == BIP32_EXTKEY_SIZE + prefix.size() && std::equal(prefix.begin(), prefix.end(), data.begin())) {
             key.Decode(data.data() + prefix.size());
         }
@@ -176,7 +177,7 @@ CExtPubKey DecodeExtPubKey(const std::string& str)
 
 std::string EncodeExtPubKey(const CExtPubKey& key)
 {
-    std::vector<unsigned char> data = Params().Base58Prefix(CChainParams::EXT_PUBLIC_KEY);
+    std::vector<unsigned char> data = Params().parameters.base58_prefixes[blockchain::Base58Type::EXT_PUBLIC_KEY];
     size_t size = data.size();
     data.resize(size + BIP32_EXTKEY_SIZE);
     key.Encode(data.data() + size);
@@ -189,7 +190,7 @@ CExtKey DecodeExtKey(const std::string& str)
     CExtKey key;
     std::vector<unsigned char> data;
     if (DecodeBase58Check(str, data)) {
-        const std::vector<unsigned char>& prefix = Params().Base58Prefix(CChainParams::EXT_SECRET_KEY);
+        const std::vector<unsigned char>& prefix = Params().parameters.base58_prefixes[blockchain::Base58Type::EXT_SECRET_KEY];
         if (data.size() == BIP32_EXTKEY_SIZE + prefix.size() && std::equal(prefix.begin(), prefix.end(), data.begin())) {
             key.Decode(data.data() + prefix.size());
         }
@@ -199,7 +200,7 @@ CExtKey DecodeExtKey(const std::string& str)
 
 std::string EncodeExtKey(const CExtKey& key)
 {
-    std::vector<unsigned char> data = Params().Base58Prefix(CChainParams::EXT_SECRET_KEY);
+    std::vector<unsigned char> data = Params().parameters.base58_prefixes[blockchain::Base58Type::EXT_SECRET_KEY];
     size_t size = data.size();
     data.resize(size + BIP32_EXTKEY_SIZE);
     key.Encode(data.data() + size);

@@ -5,8 +5,10 @@
 """Test gettxoutproof and verifytxoutproof RPCs."""
 
 from test_framework.messages import CMerkleBlock, FromHex, ToHex
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.util import assert_equal, assert_raises_rpc_error, connect_nodes
+
+from decimal import Decimal
 
 class MerkleBlockTest(UnitETestFramework):
     def set_test_params(self):
@@ -27,6 +29,8 @@ class MerkleBlockTest(UnitETestFramework):
         self.sync_all()
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0])
+
         self.log.info("Mining blocks...")
         self.nodes[0].generate(105)
         self.sync_all()
@@ -36,10 +40,15 @@ class MerkleBlockTest(UnitETestFramework):
         assert_equal(self.nodes[1].getbalance(), 0)
         assert_equal(self.nodes[2].getbalance(), 0)
 
-        node0utxos = self.nodes[0].listunspent(1)
-        tx1 = self.nodes[0].createrawtransaction([node0utxos.pop()], {self.nodes[1].getnewaddress(): 49.99})
+        tx1 = self.nodes[0].createrawtransaction(
+            [self.find_utxo_with_amount(self.nodes[0], PROPOSER_REWARD)],
+            {self.nodes[1].getnewaddress(): PROPOSER_REWARD - Decimal('0.01')}
+        )
         txid1 = self.nodes[0].sendrawtransaction(self.nodes[0].signrawtransactionwithwallet(tx1)["hex"])
-        tx2 = self.nodes[0].createrawtransaction([node0utxos.pop()], {self.nodes[1].getnewaddress(): 49.99})
+        tx2 = self.nodes[0].createrawtransaction(
+            [self.find_utxo_with_amount(self.nodes[0], PROPOSER_REWARD)],
+            {self.nodes[1].getnewaddress(): PROPOSER_REWARD - Decimal('0.01')}
+        )
         txid2 = self.nodes[0].sendrawtransaction(self.nodes[0].signrawtransactionwithwallet(tx2)["hex"])
         # This will raise an exception because the transaction is not yet in a block
         assert_raises_rpc_error(-5, "Transaction not yet in block", self.nodes[0].gettxoutproof, [txid1])
@@ -58,7 +67,7 @@ class MerkleBlockTest(UnitETestFramework):
         assert_equal(self.nodes[2].verifytxoutproof(self.nodes[2].gettxoutproof([txid1, txid2], blockhash)), txlist)
 
         txin_spent = self.nodes[1].listunspent(1).pop()
-        tx3 = self.nodes[1].createrawtransaction([txin_spent], {self.nodes[0].getnewaddress(): 49.98})
+        tx3 = self.nodes[1].createrawtransaction([txin_spent], {self.nodes[0].getnewaddress(): PROPOSER_REWARD - Decimal('0.02')})
         txid3 = self.nodes[0].sendrawtransaction(self.nodes[1].signrawtransactionwithwallet(tx3)["hex"])
         self.nodes[0].generate(1)
         self.sync_all()
@@ -109,6 +118,15 @@ class MerkleBlockTest(UnitETestFramework):
 
         # TODO: try more variants, eg transactions at different depths, and
         # verify that the proofs are invalid
+
+    @staticmethod
+    def find_utxo_with_amount(node, desired_amount):
+        for utxo in node.listunspent(1):
+            if utxo['amount'] == desired_amount:
+                return utxo
+
+        raise AssertionError("Utxo with %d coins is not found" % desired_amount)
+
 
 if __name__ == '__main__':
     MerkleBlockTest().main()

@@ -18,6 +18,8 @@
 #include <string.h>
 #include <string>
 #include <vector>
+#include <pubkey.h>
+#include <esperanza/vote.h>
 
 // Maximum number of bytes pushable to the stack
 static const unsigned int MAX_SCRIPT_ELEMENT_SIZE = 520;
@@ -179,12 +181,19 @@ enum opcodetype
     OP_NOP2 = OP_CHECKLOCKTIMEVERIFY,
     OP_CHECKSEQUENCEVERIFY = 0xb2,
     OP_NOP3 = OP_CHECKSEQUENCEVERIFY,
-    OP_NOP4 = 0xb3,
+
+    OP_CHECKCOMMIT = 0xb3,
+    OP_NOP4 = OP_CHECKCOMMIT,
+
     OP_NOP5 = 0xb4,
     OP_NOP6 = 0xb5,
     OP_NOP7 = 0xb6,
     OP_NOP8 = 0xb7,
-    OP_NOP9 = 0xb8,
+
+    // Custom operation to push transaction type to the stack
+    OP_PUSH_TX_TYPE = 0xb8,
+    OP_NOP9 = OP_PUSH_TX_TYPE,
+
     OP_NOP10 = 0xb9,
 
     OP_INVALIDOPCODE = 0xff,
@@ -199,6 +208,21 @@ class scriptnum_error : public std::runtime_error
 {
 public:
     explicit scriptnum_error(const std::string& str) : std::runtime_error(str) {}
+};
+
+struct CScriptWitness
+{
+    // Note that this encodes the data elements being pushed, rather than
+    // encoding them as a CScript that pushes them.
+    std::vector<std::vector<unsigned char>> stack;
+
+    CScriptWitness() {};
+
+    bool IsNull() const { return stack.empty(); }
+
+    void SetNull() { stack.clear(); stack.shrink_to_fit(); }
+
+    std::string ToString() const;
 };
 
 class CScriptNum
@@ -322,6 +346,34 @@ public:
         return serialize(m_value);
     }
 
+    template<typename T>
+    static bool deserialize(const std::vector<unsigned char>& vch, T& value_out)
+    {
+        using LargestType = int64_t;
+
+        static_assert(std::is_integral<T>::value, "Only integral types are supported");
+        static_assert(!std::is_same<uint64_t, T>::value, "Type is not supported");
+        static_assert(sizeof(T) <= sizeof(LargestType), "Type is too big");
+
+        if (vch.size() > sizeof(LargestType)) {
+          // Special case for negative values, see set_vch
+          if (!(vch.back() & 0x80) || vch.size() != sizeof(LargestType) + 1) {
+            return false;
+          }
+        }
+
+        const LargestType num = CScriptNum::set_vch(vch);
+        if (num > static_cast<LargestType >(std::numeric_limits<T>::max())) {
+            return false;
+        }
+        if (num < static_cast<LargestType>(std::numeric_limits<T>::min())) {
+            return false;
+        }
+
+        value_out = static_cast<T>(num);
+        return true;
+    }
+
     static std::vector<unsigned char> serialize(const int64_t& value)
     {
         if(value == 0)
@@ -329,7 +381,8 @@ public:
 
         std::vector<unsigned char> result;
         const bool neg = value < 0;
-        uint64_t absvalue = neg ? -value : value;
+        // See https://stackoverflow.com/a/12231604
+        uint64_t absvalue = neg ? -(static_cast<uint64_t>(value)) : value;
 
         while(absvalue)
         {
@@ -361,19 +414,36 @@ private:
       if (vch.empty())
           return 0;
 
-      int64_t result = 0;
-      for (size_t i = 0; i != vch.size(); ++i)
-          result |= static_cast<int64_t>(vch[i]) << 8*i;
+      uint64_t result = 0;
+      for (size_t i = 0; i != std::min(vch.size(), sizeof(uint64_t)); ++i)
+          result |= static_cast<uint64_t>(vch[i]) << 8*i;
 
       // If the input vector's most significant byte is 0x80, remove it from
       // the result's msb and return a negative.
-      if (vch.back() & 0x80)
-          return -((int64_t)(result & ~(0x80ULL << (8 * (vch.size() - 1)))));
+      if (vch.back() & 0x80) {
+          if (__builtin_expect(result == -(static_cast<uint64_t>(std::numeric_limits<int64_t>::min())), 0)) {
+              return std::numeric_limits<int64_t>::min();
+          } else {
+              return -((int64_t) (result & ~(0x80ULL << (8 * (vch.size() - 1)))));
+          }
+      }
 
       return result;
     }
 
     int64_t m_value;
+};
+
+struct WitnessProgram
+{
+  int version;
+  std::vector<std::vector<unsigned char>> program;
+
+  bool IsPayToScriptHash() const;
+  bool IsPayToPubkeyHash() const;
+  bool IsRemoteStakingP2WPKH() const;
+  bool IsRemoteStakingP2WSH() const;
+  bool IsRemoteStaking() const { return IsRemoteStakingP2WPKH() || IsRemoteStakingP2WSH(); }
 };
 
 /**
@@ -536,9 +606,23 @@ public:
      */
     unsigned int GetSigOpCount(const CScript& scriptSig) const;
 
+    static CScript CreateFinalizerCommitScript(const CPubKey &pubkey);
+    static CScript CreateP2PKHScript(const std::vector<unsigned char> &publicKeyHash);
+    static CScript CreateUnspendableScript();
+    static CScript CreateRemoteStakingKeyhashScript(const std::vector<unsigned char> &staking_key_hash,
+                                                    const std::vector<unsigned char> &spending_key_hash);
+    static CScript CreateRemoteStakingScripthashScript(const std::vector<unsigned char> &staking_key_hash,
+                                                       const std::vector<unsigned char> &spending_script_hash);
+
+    bool IsPayToPublicKeyHash() const;
     bool IsPayToScriptHash() const;
+    bool IsFinalizerCommitScript() const;
     bool IsPayToWitnessScriptHash() const;
-    bool IsWitnessProgram(int& version, std::vector<unsigned char>& program) const;
+    bool IsPayToWitnessPublicKeyHash() const;
+    bool IsWitnessProgram() const;
+    bool ExtractWitnessProgram(WitnessProgram &witnessProgram) const;
+    bool MatchPayToPublicKeyHash(size_t ofs) const;
+    bool MatchFinalizerCommitScript(size_t ofs) const;
 
     /** Called by IsStandardTx and P2SH/BIP62 VerifyScript (which makes it consensus-critical). */
     bool IsPushOnly(const_iterator pc) const;
@@ -546,6 +630,13 @@ public:
 
     /** Check if the script contains valid OP_CODES */
     bool HasValidOps() const;
+
+    static bool DecodeVote(const CScript &script, esperanza::Vote &voteOut, std::vector<unsigned char> &voteSigOut);
+    static CScript EncodeVote(const esperanza::Vote &data, const std::vector<unsigned char> &voteSigOut);
+    static bool ExtractVoteFromWitness(const CScriptWitness &witness, esperanza::Vote &voteOut, std::vector<unsigned char> &voteSigOut);
+    static bool ExtractVoteFromVoteSignature(const CScript &scriptSig, esperanza::Vote &voteOut, std::vector<unsigned char> &voteSigOut);
+    static bool ExtractVotesFromSlashSignature(const CScript &scriptSig, esperanza::Vote &vote1, esperanza::Vote &vote2, std::vector<unsigned char> &vote1Sig, std::vector<unsigned char> &vote2Sig);
+    static bool ExtractAdminKeysFromWitness(const CScriptWitness &witness, std::vector<CPubKey> &outKeys);
 
     /**
      * Returns whether the script is guaranteed to fail at execution,
@@ -563,22 +654,6 @@ public:
         CScriptBase::clear();
         shrink_to_fit();
     }
-};
-
-struct CScriptWitness
-{
-    // Note that this encodes the data elements being pushed, rather than
-    // encoding them as a CScript that pushes them.
-    std::vector<std::vector<unsigned char> > stack;
-
-    // Some compilers complain without a default constructor
-    CScriptWitness() { }
-
-    bool IsNull() const { return stack.empty(); }
-
-    void SetNull() { stack.clear(); stack.shrink_to_fit(); }
-
-    std::string ToString() const;
 };
 
 class CReserveScript

@@ -5,11 +5,13 @@
 #ifndef UNITE_WALLET_RPCWALLET_H
 #define UNITE_WALLET_RPCWALLET_H
 
+#include <memory>
 #include <string>
 
 class CRPCTable;
 class CWallet;
 class JSONRPCRequest;
+class CWalletTx;
 class UniValue;
 struct PartiallySignedTransaction;
 class CTransaction;

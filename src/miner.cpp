@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2018-2019 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -10,24 +11,35 @@
 #include <chainparams.h>
 #include <coins.h>
 #include <consensus/consensus.h>
+#include <consensus/ltor.h>
 #include <consensus/merkle.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
+#include <esperanza/checks.h>
+#include <esperanza/finalizationstate.h>
+#include <injector.h>
 #include <hash.h>
 #include <net.h>
 #include <policy/feerate.h>
 #include <policy/policy.h>
-#include <pow.h>
 #include <primitives/transaction.h>
 #include <script/standard.h>
 #include <timedata.h>
+#include <txdb.h>
 #include <util/moneystr.h>
 #include <util/system.h>
 #include <validationinterface.h>
+#include <wallet/wallet.h>
 
 #include <algorithm>
+#include <memory>
 #include <queue>
 #include <utility>
+
+// Unconfirmed transactions in the memory pool often depend on other
+// transactions in the memory pool. When we select transactions from the
+// pool, we select by highest fee rate of a transaction combined with all
+// its ancestors.
 
 int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev)
 {
@@ -36,10 +48,6 @@ int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParam
 
     if (nOldTime < nNewTime)
         pblock->nTime = nNewTime;
-
-    // Updating time can change work required on testnet:
-    if (consensusParams.fPowAllowMinDifficultyBlocks)
-        pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, consensusParams);
 
     return nNewTime - nOldTime;
 }
@@ -80,18 +88,25 @@ void BlockAssembler::resetBlock()
     // Reserve space for coinbase tx
     nBlockWeight = 4000;
     nBlockSigOpsCost = 400;
-    fIncludeWitness = false;
 
     // These counters do not include coinbase tx
     nBlockTx = 0;
     nFees = 0;
 }
 
-Optional<int64_t> BlockAssembler::m_last_block_num_txs{nullopt};
-Optional<int64_t> BlockAssembler::m_last_block_weight{nullopt};
-
-std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
+std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, CWallet *pwallet)
 {
+    //TODO UNIT-E: Remove this as soon as we move to the new proposing logic
+    // Get the wallet that is used to retrieve the stakable coins.
+    // If a wallet is not explicitly provided, stake on the first one available.
+    std::shared_ptr<CWallet> wallet;
+    if (!pwallet) {
+        std::vector<std::shared_ptr<CWallet>> wallets = GetComponent<proposer::MultiWallet>()->GetWallets();
+        assert(!wallets.empty());
+        wallet = wallets[0];
+        pwallet = wallet.get();
+    }
+
     int64_t nTimeStart = GetTimeMicros();
 
     resetBlock();
@@ -107,7 +122,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     pblocktemplate->vTxFees.push_back(-1); // updated at end
     pblocktemplate->vTxSigOpsCost.push_back(-1); // updated at end
 
-    LOCK2(cs_main, mempool.cs);
+    LOCK(cs_main);
+    LOCK(pwallet->cs_wallet);
+    LOCK(GetComponent<finalization::StateRepository>()->GetLock());
+    LOCK(mempool.cs);
     CBlockIndex* pindexPrev = chainActive.Tip();
     assert(pindexPrev != nullptr);
     nHeight = pindexPrev->nHeight + 1;
@@ -125,49 +143,69 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
                        ? nMedianTimePast
                        : pblock->GetBlockTime();
 
-    // Decide whether to include witness transactions
-    // This is only needed in case the witness softfork activation is reverted
-    // (which would require a very deep reorganization).
-    // Note that the mempool would accept transactions with witness data before
-    // IsWitnessEnabled, but we would only ever mine blocks after IsWitnessEnabled
-    // unless there is a massive block reorganization with the witness softfork
-    // not activated.
-    // TODO: replace this with a call to main to assess validity of a mempool
-    // transaction (which in most cases can be a no-op).
-    fIncludeWitness = IsWitnessEnabled(pindexPrev, chainparams.GetConsensus());
+    AddMandatoryTxs();
 
     int nPackagesSelected = 0;
     int nDescendantsUpdated = 0;
     addPackageTxs(nPackagesSelected, nDescendantsUpdated);
 
+    ltor::SortTransactions(pblock->vtx);
+
     int64_t nTime1 = GetTimeMicros();
 
-    m_last_block_num_txs = nBlockTx;
-    m_last_block_weight = nBlockWeight;
+    std::vector<uint8_t> snapshot_hash = pcoinsTip->GetSnapshotHash().GetHashVector(*chainActive.Tip());
 
     // Create coinbase transaction.
-    CMutableTransaction coinbaseTx;
-    coinbaseTx.vin.resize(1);
-    coinbaseTx.vin[0].prevout.SetNull();
-    coinbaseTx.vout.resize(1);
-    coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
-    coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
-    coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
-    pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
-    pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
-    pblocktemplate->vTxFees[0] = -nFees;
+    const staking::CoinSet &stakeable_coins = pwallet->GetWalletExtension().GetStakeableCoins();
+    if (stakeable_coins.empty()) {
+      throw std::runtime_error(strprintf("%s: no stakeable coins.", __func__));
+    }
 
-    LogPrintf("CreateNewBlock(): block weight: %u txs: %u fees: %ld sigops %d\n", GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost);
-
-    // Fill in header
-    pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
-    UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
-    pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
-    pblock->nNonce         = 0;
-    pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
-
+    // TODO UNIT-E: We can completely remove the whole `CreateNewBlock` once we
+    // migrated all the functional tests. At the moment this is a workaround to
+    // make them still work.
+    bool success = false;
     CValidationState state;
-    if (!TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false)) {
+    const staking::ActiveChain *active_chain = GetComponent<staking::ActiveChain>();
+    for (const staking::Coin &coin : stakeable_coins) {
+      proposer::EligibleCoin eligible_coin = {
+          staking::Coin(active_chain->GetBlockIndex(coin.GetTransactionId()),
+              COutPoint(coin.GetTransactionId(), coin.GetOutputIndex()),
+              CTxOut(coin.GetAmount(), scriptPubKeyIn)),
+          GetRandHash(), //TODO UNIT-E: At the moment is not used, since we still have PoW here
+          GetComponent<blockchain::Behavior>()->CalculateBlockReward(nHeight),
+          0, //TODO UNIT-E: At the moment is not used, since we still have PoW here
+          0, //TODO UNIT-E: At the moment is not used, since we still have PoW here
+          0 //TODO UNIT-E: At the moment is not used, since we still have PoW here
+      };
+
+      const CTransactionRef coinbase = GetComponent<proposer::BlockBuilder>()->BuildCoinbaseTransaction(uint256(snapshot_hash), eligible_coin, staking::CoinSet(), nFees, scriptPubKeyIn, pwallet->GetWalletExtension());
+      pblocktemplate->block.vtx[0] = coinbase;
+
+      LogPrintf("%s: block weight=%u txs=%u fees=%ld sigops=%d\n", __func__, GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost);
+
+      // Fill in header
+      pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
+      UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
+      pblock->nBits          = GetComponent<blockchain::Behavior>()->GetGenesisBlock().nBits;
+      pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
+
+      state = CValidationState();
+      // The Block created here is not a proper block and will be fully checked later
+      // when invoking ProcessNewBlock. Here we do not have a proper coinbase, no
+      // stake, and the merkle tree is not computed yet - thus these checks are
+      // skipped. The merkle tree computation was bypassed in bitcoin using a
+      // boolean flag fCheckMerkleTree too.
+      const TestBlockValidityFlags::Type flags =
+          TestBlockValidityFlags::SKIP_MERKLE_TREE_CHECK |
+          TestBlockValidityFlags::SKIP_ELIGIBILITY_CHECK;
+      if (TestBlockValidity(state, chainparams, *pblock, pindexPrev, flags)) {
+        success = true;
+        break;
+      }
+    }
+
+    if (!success) {
         throw std::runtime_error(strprintf("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state)));
     }
     int64_t nTime2 = GetTimeMicros();
@@ -175,6 +213,63 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     LogPrint(BCLog::BENCH, "CreateNewBlock() packages: %.2fms (%d packages, %d updated descendants), validity: %.2fms (total %.2fms)\n", 0.001 * (nTime1 - nTimeStart), nPackagesSelected, nDescendantsUpdated, 0.001 * (nTime2 - nTime1), 0.001 * (nTime2 - nTimeStart));
 
     return std::move(pblocktemplate);
+}
+
+std::unique_ptr<CBlockTemplate> BlockAssembler::PickTransactions()
+{
+    LOCK(GetComponent<finalization::StateRepository>()->GetLock());
+    LOCK(mempool.cs);
+
+    resetBlock();
+
+    pblocktemplate.reset(new CBlockTemplate());
+    pblock = &pblocktemplate->block; // pointer for convenience
+
+    // Add dummy coinbase tx as first transaction
+    pblock->vtx.emplace_back();
+
+    AddMandatoryTxs();
+
+    int nPackagesSelected = 0;
+    int nDescendantsUpdated = 0;
+    addPackageTxs(nPackagesSelected, nDescendantsUpdated);
+
+    ltor::SortTransactions(pblock->vtx);
+    pblock->vtx.erase(pblock->vtx.begin());
+
+    return std::move(pblocktemplate);
+}
+
+void BlockAssembler::AddMandatoryTxs()
+{
+    const finalization::FinalizationState *fin_state =
+        GetComponent<finalization::StateRepository>()->GetTipState();
+    assert(fin_state !=nullptr);
+
+    auto mi = mempool.mapTx.get<ancestor_score>().begin();
+    for (;mi != mempool.mapTx.get<ancestor_score>().end(); ++mi) {
+
+        if (mi->GetTx().IsVote()) {
+            CValidationState state;
+            //Check again in case the vote became invalid in the meanwhile (different target now)
+            if (esperanza::ContextualCheckVoteTx(mi->GetTx(), state, *fin_state, *pcoinsTip)) {
+                AddToBlock(mempool.mapTx.project<0>(mi));
+                LogPrint(BCLog::FINALIZATION, /* Continued */
+                         "%s: Add vote with id %s to a new block.\n",
+                         __func__,
+                         mi->GetTx().GetHash().GetHex());
+            }
+            continue;
+        }
+        if (mi->GetTx().IsSlash()) {
+
+            AddToBlock(mempool.mapTx.project<0>(mi));
+            LogPrint(BCLog::FINALIZATION, "%s: Add slash with id %s to a new block.\n",
+                     __func__,
+                     mi->GetTx().GetHash().GetHex());
+            continue;
+        }
+    }
 }
 
 void BlockAssembler::onlyUnconfirmed(CTxMemPool::setEntries& testSet)
@@ -202,14 +297,10 @@ bool BlockAssembler::TestPackage(uint64_t packageSize, int64_t packageSigOpsCost
 
 // Perform transaction-level checks before adding to block:
 // - transaction finality (locktime)
-// - premature witness (in case segwit transactions are added to mempool before
-//   segwit activation)
 bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& package)
 {
     for (CTxMemPool::txiter it : package) {
         if (!IsFinalTx(it->GetTx(), nHeight, nLockTimeCutoff))
-            return false;
-        if (!fIncludeWitness && it->GetTx().HasWitness())
             return false;
     }
     return true;
@@ -438,10 +529,12 @@ void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned
     }
     ++nExtraNonce;
     unsigned int nHeight = pindexPrev->nHeight+1; // Height first in coinbase required for block.version=2
+
+    const std::vector<uint8_t> snapshot_hash = pcoinsTip->GetSnapshotHash().GetHashVector(*pindexPrev);
     CMutableTransaction txCoinbase(*pblock->vtx[0]);
-    txCoinbase.vin[0].scriptSig = (CScript() << nHeight << CScriptNum(nExtraNonce)) + COINBASE_FLAGS;
+    txCoinbase.vin[0].scriptSig = (CScript() << CScriptNum::serialize(nHeight) << snapshot_hash << CScriptNum(nExtraNonce)) + COINBASE_FLAGS;
     assert(txCoinbase.vin[0].scriptSig.size() <= 100);
 
     pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));
-    pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
+    pblock->ComputeMerkleTrees();
 }

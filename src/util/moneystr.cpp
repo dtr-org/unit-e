@@ -48,7 +48,7 @@ bool ParseMoney(const char* pszIn, CAmount& nRet)
         if (*p == '.')
         {
             p++;
-            int64_t nMult = UNIT / 10;
+            int64_t nMult = EEES*10;
             while (IsDigit(*p) && (nMult > 0))
             {
                 nUnits += nMult * (*p++ - '0');

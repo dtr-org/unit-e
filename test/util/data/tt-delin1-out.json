@@ -2,6 +2,7 @@
     "txid": "81b2035be1da1abe745c6141174a73d151009ec17b3d5ebffa2e177408c50dfd",
     "hash": "81b2035be1da1abe745c6141174a73d151009ec17b3d5ebffa2e177408c50dfd",
     "version": 1,
+    "txtype": 0,
     "size": 3040,
     "vsize": 3040,
     "weight": 12160,
@@ -198,7 +199,7 @@
                 "reqSigs": 1,
                 "type": "pubkeyhash",
                 "addresses": [
-                    "1E7SGgAZFCHDnVZLuRViX3gUmxpMfdvd2o"
+                    "mtdPZjFY4DiUZc2xczU6LxtodxR4UYWdPk"
                 ]
             }
         },
@@ -211,7 +212,7 @@
                 "reqSigs": 1,
                 "type": "pubkeyhash",
                 "addresses": [
-                    "1AtWkdmfmYkErU16d3KYykJUbEp9MAj9Sb"
+                    "mqQU3greaaBVdaUiLcHvofWoTEQrHaV1vB"
                 ]
             }
         }

@@ -11,6 +11,7 @@
 #include <consensus/consensus.h>
 #include <primitives/transaction.h>
 #include <primitives/block.h>
+#include <staking/block_validation_info.h>
 
 /** "reject" message codes */
 static const unsigned char REJECT_MALFORMED = 0x01;
@@ -36,6 +37,7 @@ private:
     bool corruptionPossible;
     std::string strDebugMessage;
 public:
+    staking::BlockValidationInfo block_validation_info;
     CValidationState() : mode(MODE_VALID), nDoS(0), chRejectCode(0), corruptionPossible(false) {}
     bool DoS(int level, bool ret = false,
              unsigned int chRejectCodeIn=0, const std::string &strRejectReasonIn="",

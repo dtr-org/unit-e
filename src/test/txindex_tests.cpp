@@ -9,6 +9,7 @@
 #include <util/system.h>
 #include <util/time.h>
 #include <validation.h>
+#include <wallet/test/wallet_test_fixture.h>
 
 #include <boost/test/unit_test.hpp>
 
@@ -23,7 +24,7 @@ BOOST_FIXTURE_TEST_CASE(txindex_initial_sync, TestChain100Setup)
 
     // Transaction should not be found in the index before it is started.
     for (const auto& txn : m_coinbase_txns) {
-        BOOST_CHECK(!txindex.FindTx(txn->GetHash(), block_hash, tx_disk));
+        BOOST_CHECK(!txindex.FindTx(txn.GetHash(), block_hash, tx_disk));
     }
 
     // BlockUntilSyncedToCurrentChain should return false before txindex is started.
@@ -47,9 +48,9 @@ BOOST_FIXTURE_TEST_CASE(txindex_initial_sync, TestChain100Setup)
 
     // Check that txindex has all txs that were in the chain before it started.
     for (const auto& txn : m_coinbase_txns) {
-        if (!txindex.FindTx(txn->GetHash(), block_hash, tx_disk)) {
+        if (!txindex.FindTx(txn.GetHash(), block_hash, tx_disk)) {
             BOOST_ERROR("FindTx failed");
-        } else if (tx_disk->GetHash() != txn->GetHash()) {
+        } else if (tx_disk->GetHash() != txn.GetHash()) {
             BOOST_ERROR("Read incorrect tx");
         }
     }

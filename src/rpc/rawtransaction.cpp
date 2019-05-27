@@ -4,6 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chain.h>
+#include <chainparams.h>
 #include <coins.h>
 #include <compat/byteswap.h>
 #include <consensus/tx_verify.h>
@@ -31,6 +32,10 @@
 #include <util/strencodings.h>
 #include <validation.h>
 #include <validationinterface.h>
+#ifdef ENABLE_WALLET
+#include <wallet/wallet.h>
+#include <wallet/rpcwallet.h>
+#endif
 
 
 #include <numeric>
@@ -154,11 +159,6 @@ static UniValue getrawtransaction(const JSONRPCRequest& request)
     bool in_active_chain = true;
     uint256 hash = ParseHashV(request.params[0], "parameter 1");
     CBlockIndex* blockindex = nullptr;
-
-    if (hash == Params().GenesisBlock().hashMerkleRoot) {
-        // Special exception for the genesis block coinbase transaction
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "The genesis block coinbase is not considered an ordinary transaction and cannot be retrieved");
-    }
 
     // Accept either a bool (true) or a num (>=1) to indicate verbose output.
     bool fVerbose = false;
@@ -431,11 +431,13 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
     bool has_data{false};
 
     for (const std::string& name_ : outputs.getKeys()) {
-        if (name_ == "data") {
-            if (has_data) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, duplicate key: data");
+        if (name_.compare(0, 4, "data") == 0) {
+            if (name_.size() == 4) {
+                if (has_data) {
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, duplicate key: data");
+                }
+                has_data = true;
             }
-            has_data = true;
             std::vector<unsigned char> data = ParseHexV(outputs[name_].getValStr(), "Data");
 
             CTxOut out(0, CScript() << OP_RETURN << data);
@@ -782,7 +784,7 @@ static UniValue combinerawtransaction(const JSONRPCRequest& request)
                 sigdata.MergeSignatureData(DataFromTransaction(txv, i, coin.out));
             }
         }
-        ProduceSignature(DUMMY_SIGNING_PROVIDER, MutableTransactionSignatureCreator(&mergedTx, i, coin.out.nValue, 1), coin.out.scriptPubKey, sigdata);
+        ProduceSignature(DUMMY_SIGNING_PROVIDER, MutableTransactionSignatureCreator(&mergedTx, i, coin.out.nValue, 1), coin.out.scriptPubKey, sigdata, &txConst);
 
         UpdateInput(txin, sigdata);
     }
@@ -894,7 +896,20 @@ UniValue SignTransaction(interfaces::Chain& chain, CMutableTransaction& mtx, con
     // transaction to avoid rehashing.
     const CTransaction txConst(mtx);
     // Sign what we can:
-    for (unsigned int i = 0; i < mtx.vin.size(); i++) {
+
+    if (txConst.IsCoinBase()) {
+#ifdef ENABLE_WALLET
+        CWallet *pwallet = static_cast<CWallet*>(keystore);
+        if (!pwallet->GetWalletExtension().SignCoinbaseTransaction(mtx)) {
+            for (std::size_t i = 1; i < mtx.vin.size(); ++i) {
+                TxInErrorToJSON(mtx.vin[i], vErrors, "Cannot sign the coinbase.");
+            }
+        }
+#else
+      throw JSONRPCError(RPC_INVALID_PARAMETER, "Signing coinbase is not supported without a wallet");
+#endif
+    } else {
+      for (unsigned int i = 0; i < mtx.vin.size(); ++i) {
         CTxIn& txin = mtx.vin[i];
         const Coin& coin = view.AccessCoin(txin.prevout);
         if (coin.IsSpent()) {
@@ -907,7 +922,13 @@ UniValue SignTransaction(interfaces::Chain& chain, CMutableTransaction& mtx, con
         SignatureData sigdata = DataFromTransaction(mtx, i, coin.out);
         // Only sign SIGHASH_SINGLE if there's a corresponding output:
         if (!fHashSingle || (i < mtx.vout.size())) {
-            ProduceSignature(*keystore, MutableTransactionSignatureCreator(&mtx, i, amount, nHashType), prevPubKey, sigdata);
+            ProduceSignature(*keystore, MutableTransactionSignatureCreator(&mtx, i, amount, nHashType), prevPubKey, sigdata, &txConst);
+        }
+
+        // Votes don't need to combine the sigdata and the scriptSig cause the
+        // sigdata contains the vote already
+        if (mtx.GetType() != +TxType::VOTE) {
+            sigdata.MergeSignatureData(DataFromTransaction(mtx, i, coin.out));
         }
 
         UpdateInput(txin, sigdata);
@@ -926,7 +947,9 @@ UniValue SignTransaction(interfaces::Chain& chain, CMutableTransaction& mtx, con
                 TxInErrorToJSON(txin, vErrors, ScriptErrorString(serror));
             }
         }
+      }
     }
+
     bool fComplete = vErrors.empty();
 
     UniValue result(UniValue::VOBJ);
@@ -1075,6 +1098,45 @@ static UniValue sendrawtransaction(const JSONRPCRequest& request)
     }
 
     return txid.GetHex();
+}
+
+UniValue extractvotefromsignature(const JSONRPCRequest &request) {
+    if (request.fHelp || request.params.size() != 1) {
+        throw std::runtime_error(
+            "extractvotefromsignature\n"
+            "\nReturns JSON representation of decoded vote\n"
+            "\nArguments:\n"
+            "1. \"signature\"               (string).\n"
+            "Result:\n"
+            "{\n"
+            "  \"validator_address\": xxxx   (string) the validator address\n"
+            "  \"target_hash\": xxxx\n      (string) the target hash"
+            "  \"source_epoch\": xxxx       (numeric) the source epoch\n"
+            "  \"target_epoch\": xxxx       (numeric) the target epoch\n"
+            "}\n"
+            "\n"
+            + HelpExampleCli("extractvotefromsignature", "\"hexstring\"")
+            + HelpExampleRpc("extractvotefromsignature", "\"hexstring\""));
+    }
+    esperanza::Vote vote;
+    std::vector<unsigned char> vote_sig_out;
+
+    UniValue r(UniValue::VOBJ);
+    CScript script;
+    if (request.params[0].get_str().size() > 0) {
+        std::vector<unsigned char> data(ParseHexV(request.params[0].get_str(), "signature"));
+        script = CScript(data.begin(), data.end());
+    }
+
+    if (!CScript::ExtractVoteFromVoteSignature(script, vote, vote_sig_out)) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "script decode failed");
+    }
+
+    r.push_back(Pair("validator_address", vote.m_validator_address.GetHex()));
+    r.push_back(Pair("target_hash", vote.m_target_hash.GetHex()));
+    r.push_back(Pair("source_epoch", (uint64_t)vote.m_source_epoch));
+    r.push_back(Pair("target_epoch", (uint64_t)vote.m_target_epoch));
+    return r;
 }
 
 static UniValue testmempoolaccept(const JSONRPCRequest& request)
@@ -2052,6 +2114,7 @@ static const CRPCCommand commands[] =
     { "rawtransactions",    "combinerawtransaction",        &combinerawtransaction,     {"txs"} },
     { "hidden",             "signrawtransaction",           &signrawtransaction,        {"hexstring","prevtxs","privkeys","sighashtype"} },
     { "rawtransactions",    "signrawtransactionwithkey",    &signrawtransactionwithkey, {"hexstring","privkeys","prevtxs","sighashtype"} },
+    { "rawtransactions",    "extractvotefromsignature",     &extractvotefromsignature,  {"hexstring"} },
     { "rawtransactions",    "testmempoolaccept",            &testmempoolaccept,         {"rawtxs","allowhighfees"} },
     { "rawtransactions",    "decodepsbt",                   &decodepsbt,                {"psbt"} },
     { "rawtransactions",    "combinepsbt",                  &combinepsbt,               {"txs"} },

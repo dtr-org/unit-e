@@ -7,6 +7,7 @@
 import configparser
 from enum import Enum
 import logging
+import json
 import argparse
 import os
 import pdb
@@ -14,9 +15,11 @@ import shutil
 import sys
 import tempfile
 import time
+from decimal import Decimal
 
 from .authproxy import JSONRPCException
 from . import coverage
+from .regtest_mnemonics import regtest_mnemonics
 from .test_node import TestNode
 from .mininode import NetworkThread
 from .util import (
@@ -24,6 +27,7 @@ from .util import (
     PortSeed,
     assert_equal,
     check_json_precision,
+    cleanup_datadir,
     connect_nodes_bi,
     disconnect_nodes,
     get_datadir_path,
@@ -31,6 +35,13 @@ from .util import (
     p2p_port,
     sync_blocks,
     sync_mempools,
+    connect_nodes,
+    wait_until,
+)
+from .messages import (
+    FromHex,
+    CTransaction,
+    TxType,
 )
 
 
@@ -43,6 +54,10 @@ TEST_EXIT_PASSED = 0
 TEST_EXIT_FAILED = 1
 TEST_EXIT_SKIPPED = 77
 
+COINBASE_MATURITY = 100  # Should match the value from consensus.h
+STAKE_SPLIT_THRESHOLD = 1000  # Should match the value from blockchain_parameters.cpp
+PROPOSER_REWARD = Decimal('3.75')  # Will not decrease as tests don't generate enough blocks
+
 TMPDIR_PREFIX = "unite_func_test_"
 
 
@@ -52,6 +67,12 @@ class SkipTest(Exception):
     def __init__(self, message):
         self.message = message
 
+# This parameter simulates the scenario that the node "never" reaches finalization.
+# The purpose of it is to adapt Bitcoin tests to Unit-e which contradict with the finalization
+# so the existing tests will perform the check within one dynasty.
+# When this parameter is used, framework must be configured with `setup_clean_chain = True`
+# to prevent using the cache which was generated with the finalization enabled.
+DISABLE_FINALIZATION = '-esperanzaconfig={"epochLength": 99999}'
 
 class UnitETestMetaClass(type):
     """Metaclass for UnitETestFramework.
@@ -100,6 +121,16 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
         self.set_test_params()
 
         assert hasattr(self, "num_nodes"), "Test must set self.num_nodes in set_test_params()"
+
+        if hasattr(self, "customchainparams"):
+            if not hasattr(self, "extra_args"):
+                self.extra_args = []
+            for i in range(len(self.extra_args), self.num_nodes):
+                self.extra_args.append([])
+            for i in range(0, self.num_nodes):
+                if i < len(self.customchainparams):
+                    json_value = json.dumps(self.customchainparams[i])
+                    self.extra_args[i].append("-customchainparams=" + json_value)
 
     def main(self):
         """Main function. This should not be overridden by the subclass test scripts."""
@@ -250,6 +281,7 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
     def setup_chain(self):
         """Override this method to customize blockchain setup"""
         self.log.info("Initializing test directory " + self.options.tmpdir)
+        self.log.info("Debug file at " + self.options.tmpdir + "/node0/regtest/debug.log")
         if self.setup_clean_chain:
             self._initialize_chain_clean()
         else:
@@ -286,17 +318,24 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
                 n.submitblock(block)
                 chain_info = n.getblockchaininfo()
                 assert_equal(chain_info["blocks"], 200)
-                assert_equal(chain_info["initialblockdownload"], False)
+
+    def setup_stake_coins(self, *args, rescan=True, offset=0):
+        for i, node in enumerate(args):
+            node.mnemonics = regtest_mnemonics[i + 2]['mnemonics']
+            node.initial_stake = regtest_mnemonics[i + 2]['balance']
+            node.importmasterkey(node.mnemonics, "", rescan)
 
     def import_deterministic_coinbase_privkeys(self):
         for n in self.nodes:
+            wallets = n.listwallets()
+            w = n.get_wallet_rpc(wallets[0])
             try:
-                n.getwalletinfo()
+                w.getwalletinfo()
             except JSONRPCException as e:
                 assert str(e).startswith('Method not found')
                 continue
 
-            n.importprivkey(privkey=n.get_deterministic_priv_key().key, label='coinbase')
+            w.importprivkey(privkey=n.get_deterministic_priv_key().key, label='coinbase')
 
     def run_test(self):
         """Tests must override this method to define test logic"""
@@ -321,6 +360,7 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
         assert_equal(len(extra_args), num_nodes)
         assert_equal(len(binary), num_nodes)
         for i in range(num_nodes):
+            print("Starting node " + str(i) + " with args: " + ' '.join(str(e) for e in extra_args[i]))
             self.nodes.append(TestNode(
                 i,
                 get_datadir_path(self.options.tmpdir, i),
@@ -382,13 +422,43 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
             # Wait for nodes to stop
             node.wait_until_stopped()
 
-    def restart_node(self, i, extra_args=None):
+    def restart_node(self, i, extra_args=None, cleanup=False):
         """Stop and start a test node"""
         self.stop_node(i)
+        if cleanup:
+            cleanup_datadir(self.options.tmpdir, i)
+            initialize_datadir(self.options.tmpdir, i)
         self.start_node(i, extra_args)
 
     def wait_for_node_exit(self, i, timeout):
         self.nodes[i].process.wait(timeout)
+
+    def wait_for_transaction(self, txid, timeout=150, nodes=None):
+        if nodes is None:
+            nodes = self.nodes
+        timeout += time.perf_counter()
+
+        presence = dict.fromkeys(range(len(nodes)))
+
+        while time.perf_counter() < timeout:
+            all_have = True
+            for node in nodes:
+                try:
+                    if presence[node.index]:
+                        continue
+                    node.getrawtransaction(txid)
+                    presence[node.index] = True
+                except JSONRPCException:
+                    presence[node.index] = False
+                    all_have = False
+
+            if all_have:
+                return
+
+            time.sleep(0.1)
+
+        raise RuntimeError('Failed to wait for transaction %s. Presence: %s'
+                           % (txid, presence))
 
     def split_network(self):
         """
@@ -412,6 +482,84 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
         for group in node_groups:
             sync_blocks(group)
             sync_mempools(group)
+
+    @staticmethod
+    def wait_for_vote_and_disconnect(finalizer, node):
+        """
+        Wait until the finalizer votes on the node's tip
+        and disconnect the finalizer from the node.
+        """
+        def connected(addr):
+            for p in finalizer.getpeerinfo():
+                if p['addr'] == addr:
+                    return True
+            return False
+
+        def wait_for_new_vote(old_txs):
+            try:
+                wait_until(lambda: len(node.getrawmempool()) > len(old_txs), timeout=10)
+            except AssertionError as e:
+                msg = "{}\nERROR: finalizer did not vote for the tip={} during {} sec.".format(
+                    e, node.getblockcount(), 10)
+                raise AssertionError(msg)
+
+        ip_port = "127.0.0.1:" + str(p2p_port(node.index))
+        assert not connected(ip_port), 'finalizer must not be connected for the correctness of the test'
+
+        txs = node.getrawmempool()
+        connect_nodes(finalizer, node.index)
+        assert connected(ip_port)  # ensure that the right IP was used
+
+        sync_blocks([finalizer, node])
+        wait_for_new_vote(txs)
+        disconnect_nodes(finalizer, node.index)
+
+        new_txs = [tx for tx in node.getrawmempool() if tx not in txs]
+        assert_equal(len(new_txs), 1)
+        raw_vote = node.getrawtransaction(new_txs[0])
+        vote = FromHex(CTransaction(), raw_vote)
+        assert_equal(vote.get_type(), TxType.VOTE)
+        return raw_vote
+
+    def generate_sync(self, generator_node, nblocks=1, nodes=None):
+        """
+        Generates nblocks on a given node. Performing full sync after each block
+        """
+        if nodes is None:
+            nodes = self.nodes
+        generated_blocks = []
+        for _ in range(nblocks):
+            block = generator_node.generate(1)[0]
+            generated_blocks.append(block)
+            sync_blocks(nodes)
+
+            # VoteIfNeeded is called on a background thread.
+            # By syncing we ensure that all votes will be in the mempools at the
+            # end of this iteration
+            for node in nodes:
+                node.syncwithvalidationinterfacequeue()
+
+            sync_mempools(nodes)
+
+        return generated_blocks
+
+    @classmethod
+    def generate_epoch(cls, proposer, finalizer, count=1):
+        """
+        Generate `count` epochs and collect votes.
+        """
+        epoch_length = proposer.getfinalizationconfig()['epochLength']
+        assert epoch_length > 1
+        votes=[]
+        for _ in range(count):
+            proposer.generatetoaddress(epoch_length - 1, proposer.getnewaddress('', 'bech32'))
+            cls.wait_for_vote_and_disconnect(finalizer, proposer)
+            for tx in proposer.getrawmempool():
+                tx = FromHex(CTransaction(), proposer.getrawtransaction(tx))
+                if tx.get_type() == TxType.VOTE:
+                    votes.append(tx)
+            proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
+        return votes
 
     # Private helper methods. These should not be accessed by the subclass test scripts.
 
@@ -495,6 +643,14 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
             # block in the cache does not age too much (have an old tip age).
             # This is needed so that we are out of IBD when the test starts,
             # see the tip age check in IsInitialBlockDownload().
+            #
+            # We need to initialize also nodes' wallets with some genesis funds
+            # and we use the last 4 addresses in the genesis to do so.
+
+            for peer in range(4):
+                self.nodes[peer].importmasterkey(regtest_mnemonics[-(peer+1)]['mnemonics'])
+                self.nodes[peer].importprivkey(self.nodes[peer].get_deterministic_priv_key()[1])
+
             for i in range(8):
                 self.nodes[0].generatetoaddress(25 if i != 7 else 24, self.nodes[i % 4].get_deterministic_priv_key().address)
             sync_blocks(self.nodes)
@@ -510,9 +666,11 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
                 return os.path.join(get_datadir_path(self.options.cachedir, n), "regtest", *paths)
 
             for i in range(MAX_NODES):
+                # UNIT-E TODO [0.18.0]: Which one should we use?
                 os.rmdir(cache_path(i, 'wallets'))  # Remove empty wallets dir
+                # shutil.rmtree(cache_path(i, 'wallets'))  # Remove cache generators' wallets dir
                 for entry in os.listdir(cache_path(i)):
-                    if entry not in ['chainstate', 'blocks']:
+                    if entry not in ['chainstate', 'blocks', 'snapshots', 'finalization', 'votes']:
                         os.remove(cache_path(i, entry))
 
         for i in range(self.num_nodes):
@@ -556,6 +714,9 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
         config = configparser.ConfigParser()
         config.read_file(open(self.options.configfile))
 
+        # UNIT-E TODO [0.18.0]: They just got back to the version from 2014 year:
+        # https://github.com/bitcoin/bitcoin/blob/0.18/test/functional/test_framework/test_framework.py#L559
+        # return config["components"].getboolean("ENABLE_UTILS")
         return config["components"].getboolean("ENABLE_CLI")
 
     def is_wallet_compiled(self):
@@ -571,3 +732,10 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
         config.read_file(open(self.options.configfile))
 
         return config["components"].getboolean("ENABLE_ZMQ")
+
+    def is_usbdevice_compiled(self):
+        """Checks whether the zmq module was compiled."""
+        config = configparser.ConfigParser()
+        config.read_file(open(self.options.configfile))
+
+        return config["components"].getboolean("ENABLE_USBDEVICE")

@@ -85,7 +85,13 @@ d. Announce 49 headers that don't connect.
 e. Announce one more that doesn't connect.
    Expect: disconnect.
 """
-from test_framework.blocktools import create_block, create_coinbase
+from test_framework.blocktools import (
+    create_block,
+    create_coinbase,
+    sign_coinbase,
+    get_tip_snapshot_meta,
+    update_snapshot_with_tx,
+)
 from test_framework.messages import CInv
 from test_framework.mininode import (
     CBlockHeader,
@@ -100,11 +106,12 @@ from test_framework.mininode import (
     msg_inv,
     msg_sendheaders,
 )
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import (UnitETestFramework, DISABLE_FINALIZATION)
 from test_framework.util import (
     assert_equal,
     sync_blocks,
     wait_until,
+    get_unspent_coins,
 )
 
 DIRECT_FETCH_RESPONSE_TIME = 0.05
@@ -146,10 +153,20 @@ class BaseNode(P2PInterface):
         self.send_message(getblocks_message)
 
     def wait_for_getdata(self, hash_list, timeout=60):
-        if hash_list == []:
-            return
+        hash_set = set(hash_list)
 
-        test_function = lambda: "getdata" in self.last_message and [x.hash for x in self.last_message["getdata"].inv] == hash_list
+        def test_function():
+            getdata = self.last_message.get("getdata", None)
+            if getdata is not None:
+                for inv in getdata.inv:
+                    hash_set.discard(inv.hash)
+
+            getgraphene = self.last_message.get("getgraphene", None)
+            if getgraphene is not None:
+                hash_set.discard(getgraphene.request.requested_block_hash)
+
+            return hash_set == set()
+
         wait_until(test_function, timeout=timeout, lock=mininode_lock)
 
     def wait_for_block_announcement(self, block_hash, timeout=60):
@@ -207,6 +224,15 @@ class SendHeadersTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 2
+        self.extra_args = [[DISABLE_FINALIZATION, '-stakesplitthreshold=1000000000']] * 2
+
+    def create_coinbase(self, height, snapshot_hash, coin=None):
+        if coin is None:
+            coin = get_unspent_coins(self.nodes[0], 1)[0]
+        return sign_coinbase(self.nodes[0], create_coinbase(height, coin, snapshot_hash))
+
+    def skip_test_if_missing_module(self):
+        self.skip_if_no_wallet()
 
     def mine_blocks(self, count):
         """Mine count blocks and return the new tip."""
@@ -248,6 +274,8 @@ class SendHeadersTest(UnitETestFramework):
         inv_node.sync_with_ping()
         test_node.sync_with_ping()
 
+        self.setup_stake_coins(*self.nodes)
+
         self.test_null_locators(test_node, inv_node)
         self.test_nonnull_locators(test_node, inv_node)
 
@@ -264,7 +292,8 @@ class SendHeadersTest(UnitETestFramework):
         test_node.check_last_headers_announcement(headers=[tip_hash])
 
         self.log.info("Verify getheaders with null locator and invalid hashstop does not return headers.")
-        block = create_block(int(tip["hash"], 16), create_coinbase(tip["height"] + 1), tip["mediantime"] + 1)
+        snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
+        block = create_block(int(tip["hash"], 16), self.create_coinbase(tip["height"] + 1, snapshot_hash), tip["mediantime"] + 1)
         block.solve()
         test_node.send_header_for_blocks([block])
         test_node.clear_block_announcements()
@@ -304,7 +333,8 @@ class SendHeadersTest(UnitETestFramework):
                 height = self.nodes[0].getblockcount()
                 last_time = self.nodes[0].getblock(self.nodes[0].getbestblockhash())['time']
                 block_time = last_time + 1
-                new_block = create_block(tip, create_coinbase(height + 1), block_time)
+                snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
+                new_block = create_block(tip, self.create_coinbase(height + 1, snapshot_hash), block_time)
                 new_block.solve()
                 test_node.send_header_for_blocks([new_block])
                 test_node.wait_for_getdata([new_block.sha256])
@@ -331,6 +361,7 @@ class SendHeadersTest(UnitETestFramework):
 
         height = self.nodes[0].getblockcount() + 1
         block_time += 10  # Advance far enough ahead
+        snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         for i in range(10):
             self.log.debug("Part 2.{}: starting...".format(i))
             # Mine i blocks, and alternate announcing either via
@@ -340,12 +371,20 @@ class SendHeadersTest(UnitETestFramework):
             for j in range(2):
                 self.log.debug("Part 2.{}.{}: starting...".format(i, j))
                 blocks = []
+
+                coins = get_unspent_coins(self.nodes[0], i+1)
+
                 for b in range(i + 1):
-                    blocks.append(create_block(tip, create_coinbase(height), block_time))
+                    coinbase = self.create_coinbase(height, snapshot_meta.hash, coins[b])
+                    blocks.append(create_block(tip, coinbase, block_time))
                     blocks[-1].solve()
                     tip = blocks[-1].sha256
+
+                    snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta, height, coinbase)
+
                     block_time += 1
                     height += 1
+
                 if j == 0:
                     # Announce via inv
                     test_node.send_block_inv(tip)
@@ -373,6 +412,7 @@ class SendHeadersTest(UnitETestFramework):
                 assert "inv" not in inv_node.last_message
                 assert "headers" not in inv_node.last_message
                 tip = self.mine_blocks(1)
+                snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
                 inv_node.check_last_inv_announcement(inv=[tip])
                 test_node.check_last_headers_announcement(headers=[tip])
                 height += 1
@@ -455,10 +495,14 @@ class SendHeadersTest(UnitETestFramework):
 
         # Create 2 blocks.  Send the blocks, then send the headers.
         blocks = []
+        snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
+        coins = get_unspent_coins(self.nodes[0], 2)
         for b in range(2):
-            blocks.append(create_block(tip, create_coinbase(height), block_time))
+            coinbase = self.create_coinbase(height, snapshot_meta.hash, coins[b])
+            blocks.append(create_block(tip, coinbase, block_time))
             blocks[-1].solve()
             tip = blocks[-1].sha256
+            snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta, height, coinbase)
             block_time += 1
             height += 1
             inv_node.send_message(msg_block(blocks[-1]))
@@ -473,10 +517,14 @@ class SendHeadersTest(UnitETestFramework):
 
         # This time, direct fetch should work
         blocks = []
+        snapshots = [get_tip_snapshot_meta(self.nodes[0])]
+        coins = get_unspent_coins(self.nodes[0], 3)
         for b in range(3):
-            blocks.append(create_block(tip, create_coinbase(height), block_time))
+            coinbase = self.create_coinbase(height, snapshots[-1].hash, coins[b])
+            blocks.append(create_block(tip, coinbase, block_time))
             blocks[-1].solve()
             tip = blocks[-1].sha256
+            snapshots.append(update_snapshot_with_tx(self.nodes[0], snapshots[-1], height, coinbase))
             block_time += 1
             height += 1
 
@@ -490,14 +538,18 @@ class SendHeadersTest(UnitETestFramework):
 
         # Now announce a header that forks the last two blocks
         tip = blocks[0].sha256
+        snapshot_meta = snapshots[1]
         height -= 2
         blocks = []
 
         # Create extra blocks for later
+        coins = get_unspent_coins(self.nodes[0], 20)
         for b in range(20):
-            blocks.append(create_block(tip, create_coinbase(height), block_time))
+            coinbase = self.create_coinbase(height, snapshot_meta.hash, coins[b])
+            blocks.append(create_block(tip, coinbase, block_time))
             blocks[-1].solve()
             tip = blocks[-1].sha256
+            snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta, height, coinbase)
             block_time += 1
             height += 1
 
@@ -532,19 +584,24 @@ class SendHeadersTest(UnitETestFramework):
 
         # Now deliver all those blocks we announced.
         [test_node.send_message(msg_block(x)) for x in blocks]
+        test_node.sync_with_ping()
 
         self.log.info("Part 5: Testing handling of unconnecting headers")
         # First we test that receipt of an unconnecting header doesn't prevent
         # chain sync.
+        snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         for i in range(10):
             self.log.debug("Part 5.{}: starting...".format(i))
             test_node.last_message.pop("getdata", None)
             blocks = []
             # Create two more blocks.
+            coins = get_unspent_coins(self.nodes[0], 2)
             for j in range(2):
-                blocks.append(create_block(tip, create_coinbase(height), block_time))
+                coinbase = self.create_coinbase(height, snapshot_meta.hash, coins[j])
+                blocks.append(create_block(tip, coinbase, block_time))
                 blocks[-1].solve()
                 tip = blocks[-1].sha256
+                snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta, height, coinbase)
                 block_time += 1
                 height += 1
             # Send the header of the second block -> this won't connect.
@@ -562,10 +619,14 @@ class SendHeadersTest(UnitETestFramework):
         # Now we test that if we repeatedly don't send connecting headers, we
         # don't go into an infinite loop trying to get them to connect.
         MAX_UNCONNECTING_HEADERS = 10
+        snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
+        coins = get_unspent_coins(self.nodes[0], MAX_UNCONNECTING_HEADERS + 1)
         for j in range(MAX_UNCONNECTING_HEADERS + 1):
-            blocks.append(create_block(tip, create_coinbase(height), block_time))
+            coinbase = self.create_coinbase(height, snapshot_meta.hash, coins[j])
+            blocks.append(create_block(tip, coinbase, block_time))
             blocks[-1].solve()
             tip = blocks[-1].sha256
+            snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta, height, coinbase)
             block_time += 1
             height += 1
 

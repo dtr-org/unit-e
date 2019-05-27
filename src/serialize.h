@@ -20,6 +20,7 @@
 #include <string.h>
 #include <utility>
 #include <vector>
+#include <boost/optional.hpp>
 
 #include <prevector.h>
 #include <span.h>
@@ -862,6 +863,51 @@ template<typename Stream, typename T>
 void Unserialize(Stream& is, std::shared_ptr<const T>& p)
 {
     p = std::make_shared<const T>(deserialize, is);
+}
+
+
+
+/**
+ * boost::optional
+ */
+template<typename Stream, typename T>
+void Serialize(Stream &os, const boost::optional<T> &v) {
+    bool has_value = static_cast<bool>(v);
+    Serialize(os, has_value);
+    if (has_value) {
+        Serialize(os, v.get());
+    }
+}
+
+template<typename Stream, typename T>
+void Unserialize(Stream &is, boost::optional<T> &v) {
+    bool has_value = false;
+    Unserialize(is, has_value);
+    if (has_value) {
+        v.reset(T());
+        Unserialize(is, v.get());
+    } else {
+        v.reset();
+    }
+}
+
+
+
+/**
+ * std::array
+ */
+template<typename Stream, typename T, size_t N>
+void Serialize(Stream &os, const std::array<T, N> &v) {
+    for (auto const &i : v) {
+        Serialize(os, i);
+    }
+}
+
+template<typename Stream, typename T, size_t N>
+void Unserialize(Stream &is, std::array<T, N> &v) {
+    for (auto &i : v) {
+        Unserialize(is, i);
+    }
 }
 
 

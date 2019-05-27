@@ -8,7 +8,6 @@
 #include <chainparams.h>
 #include <hash.h>
 #include <random.h>
-#include <pow.h>
 #include <shutdown.h>
 #include <uint256.h>
 #include <util/system.h>
@@ -19,7 +18,7 @@
 #include <boost/thread.hpp>
 
 static const char DB_UNIT = 'C';
-static const char DB_COINS = 'c';
+static const char DB_UNITS = 'c';
 static const char DB_BLOCK_FILES = 'f';
 static const char DB_BLOCK_INDEX = 'b';
 
@@ -28,6 +27,10 @@ static const char DB_HEAD_BLOCKS = 'H';
 static const char DB_FLAG = 'F';
 static const char DB_REINDEX_FLAG = 'R';
 static const char DB_LAST_BLOCK = 'l';
+
+// use full names to void collision with the Bitcoin naming
+static const std::string DB_SNAPSHOT_HASH_DATA = "SNAPSHOT_HASH_DATA";
+static const std::string DB_SNAPSHOT_INDEX = "SNAPSHOT_INDEX";
 
 namespace {
 
@@ -80,7 +83,7 @@ std::vector<uint256> CCoinsViewDB::GetHeadBlocks() const {
     return vhashHeadBlocks;
 }
 
-bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) {
+bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, const snapshot::SnapshotHash &snapshotHash) {
     CDBBatch batch(db);
     size_t count = 0;
     size_t changed = 0;
@@ -134,6 +137,7 @@ bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) {
     // In the last batch, mark the database as consistent with hashBlock again.
     batch.Erase(DB_HEAD_BLOCKS);
     batch.Write(DB_BEST_BLOCK, hashBlock);
+    batch.Write(DB_SNAPSHOT_HASH_DATA, snapshotHash.GetData());
 
     LogPrint(BCLog::COINDB, "Writing final batch of %.2f MiB\n", batch.SizeEstimate() * (1.0 / 1048576.0));
     bool ret = db.WriteBatch(batch);
@@ -170,7 +174,7 @@ bool CBlockTreeDB::ReadLastBlockFile(int &nFile) {
 
 CCoinsViewCursor *CCoinsViewDB::Cursor() const
 {
-    CCoinsViewDBCursor *i = new CCoinsViewDBCursor(const_cast<CDBWrapper&>(db).NewIterator(), GetBestBlock());
+    CCoinsViewDBCursor *i = new CCoinsViewDBCursor(const_cast<CDBWrapper&>(db).NewIterator(), GetBestBlock(), GetSnapshotHash());
     /* It seems that there are no "const iterators" for LevelDB.  Since we
        only need read operations on it, use a const-cast to get around
        that restriction.  */
@@ -264,18 +268,21 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
                 pindexNew->pprev          = insertBlockIndex(diskindex.hashPrev);
                 pindexNew->nHeight        = diskindex.nHeight;
                 pindexNew->nFile          = diskindex.nFile;
+                pindexNew->stake_modifier = diskindex.stake_modifier;
+                pindexNew->stake_amount   = diskindex.stake_amount;
                 pindexNew->nDataPos       = diskindex.nDataPos;
                 pindexNew->nUndoPos       = diskindex.nUndoPos;
                 pindexNew->nVersion       = diskindex.nVersion;
                 pindexNew->hashMerkleRoot = diskindex.hashMerkleRoot;
+                pindexNew->hash_witness_merkle_root = diskindex.hash_witness_merkle_root;
+                pindexNew->hash_finalizer_commits_merkle_root = diskindex.hash_finalizer_commits_merkle_root;
                 pindexNew->nTime          = diskindex.nTime;
                 pindexNew->nBits          = diskindex.nBits;
-                pindexNew->nNonce         = diskindex.nNonce;
                 pindexNew->nStatus        = diskindex.nStatus;
                 pindexNew->nTx            = diskindex.nTx;
-
-                if (!CheckProofOfWork(pindexNew->GetBlockHash(), pindexNew->nBits, consensusParams))
-                    return error("%s: CheckProofOfWork failed: %s", __func__, pindexNew->ToString());
+                pindexNew->commits        = std::move(diskindex.commits);
+                pindexNew->last_justified_epoch = diskindex.last_justified_epoch;
+                pindexNew->forking_before_active_finalization = diskindex.forking_before_active_finalization;
 
                 pcursor->Next();
             } else {
@@ -289,125 +296,37 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
     return true;
 }
 
-namespace {
-
-//! Legacy class to deserialize pre-pertxout database entries without reindex.
-class CCoins
-{
-public:
-    //! whether transaction is a coinbase
-    bool fCoinBase;
-
-    //! unspent transaction outputs; spent outputs are .IsNull(); spent outputs at the end of the array are dropped
-    std::vector<CTxOut> vout;
-
-    //! at which height this transaction was included in the active block chain
-    int nHeight;
-
-    //! empty constructor
-    CCoins() : fCoinBase(false), vout(0), nHeight(0) { }
-
-    template<typename Stream>
-    void Unserialize(Stream &s) {
-        unsigned int nCode = 0;
-        // version
-        unsigned int nVersionDummy;
-        ::Unserialize(s, VARINT(nVersionDummy));
-        // header code
-        ::Unserialize(s, VARINT(nCode));
-        fCoinBase = nCode & 1;
-        std::vector<bool> vAvail(2, false);
-        vAvail[0] = (nCode & 2) != 0;
-        vAvail[1] = (nCode & 4) != 0;
-        unsigned int nMaskCode = (nCode / 8) + ((nCode & 6) != 0 ? 0 : 1);
-        // spentness bitmask
-        while (nMaskCode > 0) {
-            unsigned char chAvail = 0;
-            ::Unserialize(s, chAvail);
-            for (unsigned int p = 0; p < 8; p++) {
-                bool f = (chAvail & (1 << p)) != 0;
-                vAvail.push_back(f);
-            }
-            if (chAvail != 0)
-                nMaskCode--;
-        }
-        // txouts themself
-        vout.assign(vAvail.size(), CTxOut());
-        for (unsigned int i = 0; i < vAvail.size(); i++) {
-            if (vAvail[i])
-                ::Unserialize(s, CTxOutCompressor(vout[i]));
-        }
-        // coinbase height
-        ::Unserialize(s, VARINT(nHeight, VarIntMode::NONNEGATIVE_SIGNED));
+snapshot::SnapshotHash CCoinsViewDB::GetSnapshotHash() const {
+    std::vector<uint8_t>data;
+    if (db.Read(DB_SNAPSHOT_HASH_DATA, data)) {
+        return snapshot::SnapshotHash(data);
     }
-};
-
+    return snapshot::SnapshotHash();
 }
 
-/** Upgrade the database from older formats.
- *
- * Currently implemented: from the per-tx utxo model (0.8..0.14.x) to per-txout.
- */
-bool CCoinsViewDB::Upgrade() {
-    std::unique_ptr<CDBIterator> pcursor(db.NewIterator());
-    pcursor->Seek(std::make_pair(DB_COINS, uint256()));
-    if (!pcursor->Valid()) {
-        return true;
+bool CCoinsViewDB::SetSnapshotIndex(const snapshot::SnapshotIndex &snapshotIndex) {
+    return db.Write(DB_SNAPSHOT_INDEX, snapshotIndex);
+}
+
+bool CCoinsViewDB::GetSnapshotIndex(snapshot::SnapshotIndex &snapshotIndexOut) {
+    return db.Read(DB_SNAPSHOT_INDEX, snapshotIndexOut);
+}
+
+void CCoinsViewDB::ClearCoins() {
+    size_t total = 0;
+    std::unique_ptr<CCoinsViewCursor> cursor(Cursor());
+    while (cursor->Valid()) {
+        COutPoint key;
+        if (cursor->GetKey(key)) {
+            CoinEntry entry(&key);
+            db.Erase(entry);
+            ++total;
+        }
+        cursor->Next();
     }
 
-    int64_t count = 0;
-    LogPrintf("Upgrading utxo-set database...\n");
-    LogPrintf("[0%%]..."); /* Continued */
-    uiInterface.ShowProgress(_("Upgrading UTXO database"), 0, true);
-    size_t batch_size = 1 << 24;
-    CDBBatch batch(db);
-    int reportDone = 0;
-    std::pair<unsigned char, uint256> key;
-    std::pair<unsigned char, uint256> prev_key = {DB_COINS, uint256()};
-    while (pcursor->Valid()) {
-        boost::this_thread::interruption_point();
-        if (ShutdownRequested()) {
-            break;
-        }
-        if (pcursor->GetKey(key) && key.first == DB_COINS) {
-            if (count++ % 256 == 0) {
-                uint32_t high = 0x100 * *key.second.begin() + *(key.second.begin() + 1);
-                int percentageDone = (int)(high * 100.0 / 65536.0 + 0.5);
-                uiInterface.ShowProgress(_("Upgrading UTXO database"), percentageDone, true);
-                if (reportDone < percentageDone/10) {
-                    // report max. every 10% step
-                    LogPrintf("[%d%%]...", percentageDone); /* Continued */
-                    reportDone = percentageDone/10;
-                }
-            }
-            CCoins old_coins;
-            if (!pcursor->GetValue(old_coins)) {
-                return error("%s: cannot parse CCoins record", __func__);
-            }
-            COutPoint outpoint(key.second, 0);
-            for (size_t i = 0; i < old_coins.vout.size(); ++i) {
-                if (!old_coins.vout[i].IsNull() && !old_coins.vout[i].scriptPubKey.IsUnspendable()) {
-                    Coin newcoin(std::move(old_coins.vout[i]), old_coins.nHeight, old_coins.fCoinBase);
-                    outpoint.n = i;
-                    CoinEntry entry(&outpoint);
-                    batch.Write(entry, newcoin);
-                }
-            }
-            batch.Erase(key);
-            if (batch.SizeEstimate() > batch_size) {
-                db.WriteBatch(batch);
-                batch.Clear();
-                db.CompactRange(prev_key, key);
-                prev_key = key;
-            }
-            pcursor->Next();
-        } else {
-            break;
-        }
-    }
-    db.WriteBatch(batch);
-    db.CompactRange({DB_COINS, uint256()}, key);
-    uiInterface.ShowProgress("", 100, false);
-    LogPrintf("[%s].\n", ShutdownRequested() ? "CANCELLED" : "DONE");
-    return !ShutdownRequested();
+    std::unique_ptr<CCoinsViewCursor> empty_cursor(Cursor());
+    assert(!empty_cursor->Valid() && "chainstate must have 0 coins");
+
+    LogPrint(BCLog::COINDB, "%s: deleted %i keys in the DB\n", __func__, total);
 }

@@ -1,18 +1,13 @@
 packages:=boost openssl libevent zeromq
 
-qt_native_packages = native_protobuf
-qt_packages = qrencode protobuf zlib
-
-qt_linux_packages:=qt expat dbus libxcb xcb_proto libXau xproto freetype fontconfig libX11 xextproto libXext xtrans
-
-rapidcheck_packages = rapidcheck
-
-qt_darwin_packages=qt
-qt_mingw32_packages=qt
-
 wallet_packages=bdb
 
 upnp_packages=miniupnpc
+usb_packages=hidapi
+
+ifneq (,$(findstring linux,$(host)))
+usb_packages += libusb
+endif
 
 darwin_native_packages = native_biplist native_ds_store native_mac_alias
 

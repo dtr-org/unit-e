@@ -13,9 +13,17 @@ is testing and *how* it's being tested
 # libraries then local imports).
 from collections import defaultdict
 
-# Avoid wildcard * imports
-from test_framework.blocktools import (create_block, create_coinbase)
-from test_framework.messages import CInv
+# Avoid wildcard * imports if possible
+from test_framework.blocktools import (
+    create_block,
+    create_coinbase,
+    get_tip_snapshot_meta,
+    update_snapshot_with_tx,
+    sign_coinbase,
+)
+from test_framework.messages import (
+    CInv
+)
 from test_framework.mininode import (
     P2PInterface,
     mininode_lock,
@@ -136,6 +144,8 @@ class ExampleTest(UnitETestFramework):
     def run_test(self):
         """Main test logic"""
 
+        self.setup_stake_coins(*self.nodes)
+
         # Create P2P connections will wait for a verack to make sure the connection is fully up
         self.nodes[0].add_p2p_connection(BaseNode())
 
@@ -166,11 +176,17 @@ class ExampleTest(UnitETestFramework):
 
         height = self.nodes[0].getblockcount()
 
-        for i in range(10):
+        snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
+        stakes = self.nodes[0].listunspent()
+        for stake in stakes:
             # Use the mininode and blocktools functionality to manually build a block
             # Calling the generate() rpc is easier, but this allows us to exactly
             # control the blocks and transactions.
-            block = create_block(self.tip, create_coinbase(height+1), self.block_time)
+            coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, stake, snapshot_meta.hash))
+            block = create_block(self.tip, coinbase, self.block_time)
+            # Wait until the active chain picks up the previous block
+            wait_until(lambda: self.nodes[0].getblockcount() == height, timeout=5)
+            snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta, height + 1, coinbase)
             block.solve()
             block_message = msg_block(block)
             # Send message is used to send a P2P message to the node over our P2PInterface
@@ -180,8 +196,8 @@ class ExampleTest(UnitETestFramework):
             self.block_time += 1
             height += 1
 
-        self.log.info("Wait for node1 to reach current tip (height 11) using RPC")
-        self.nodes[1].waitforblockheight(11)
+        self.log.info("Wait for node1 to reach current tip (height %d) using RPC" % height)
+        self.nodes[1].waitforblockheight(height)
 
         self.log.info("Connect node2 and node1")
         connect_nodes(self.nodes[1], 2)
@@ -192,6 +208,7 @@ class ExampleTest(UnitETestFramework):
         self.nodes[2].add_p2p_connection(BaseNode())
 
         self.log.info("Wait for node2 reach current tip. Test that it has propagated all the blocks to us")
+        self.nodes[2].waitforblockheight(height)
 
         getdata_request = msg_getdata()
         for block in blocks:

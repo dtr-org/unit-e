@@ -9,6 +9,7 @@
 #include <net.h>
 #include <validationinterface.h>
 #include <consensus/params.h>
+#include <netmessagemaker.h>
 #include <sync.h>
 
 extern CCriticalSection cs_main;
@@ -61,9 +62,11 @@ public:
     * Send queued protocol messages to be sent to a give node.
     *
     * @param[in]   pto             The node which we are sending messages to.
+    * @param[in]   node_index      The node index starting from 0 that is being called
+    * @param[in]   total_nodes     The number of all nodes that will be called
     * @return                      True if there is more work to be done
     */
-    bool SendMessages(CNode* pto) override EXCLUSIVE_LOCKS_REQUIRED(pto->cs_sendProcessing);
+    bool SendMessages(CNode* pto, size_t node_index, size_t total_nodes) override;
 
     /** Consider evicting an outbound peer based on the amount of time they've been behind our tip */
     void ConsiderEviction(CNode *pto, int64_t time_in_seconds) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
@@ -88,5 +91,41 @@ struct CNodeStateStats {
 
 /** Get statistics from node state */
 bool GetNodeStateStats(NodeId nodeid, CNodeStateStats &stats);
+
+/** Increase a node's misbehavior score. */
+void Misbehaving(NodeId nodeid, int howmuch, const std::string& message="");
+
+void UpdateBlockAvailability(NodeId nodeid, const uint256 &hash);
+
+template <typename... Args>
+void PushMessage(CNode &to, const std::string &command, Args&&... args) {
+  const CNetMsgMaker msg_maker(to.GetSendVersion());
+  g_connman->PushMessage(&to, msg_maker.Make(command, std::forward<Args>(args)...));
+}
+
+// Requires cs_main.
+// Returns a bool indicating whether we requested this block.
+// Also used if a block was /not/ received and timed out or started with another peer
+bool MarkBlockAsReceived(const uint256& hash);
+
+extern CCriticalSection g_cs_orphans;
+
+struct COrphanTx {
+  CTransactionRef tx;
+  NodeId fromPeer;
+  int64_t nTimeExpire;
+  size_t list_pos;
+};
+
+extern std::map<uint256, COrphanTx> mapOrphanTransactions GUARDED_BY(g_cs_orphans);
+
+/**
+ * Sources of received blocks, saved to be able to send them reject
+ * messages or ban them when processing happens afterwards. Protected by
+ * cs_main.
+ * Set mapBlockSource[hash].second to false if the node should not be
+ * punished if the block is invalid.
+ */
+extern std::map<uint256, std::pair<NodeId, bool>> mapBlockSource;
 
 #endif // UNITE_NET_PROCESSING_H

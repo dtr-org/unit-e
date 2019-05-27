@@ -32,12 +32,12 @@ def byte_to_base58(b, version):
 # TODO: def base58_decode
 
 def keyhash_to_p2pkh(hash, main = False):
-    assert (len(hash) == 20)
+    assert len(hash) == 20
     version = 0 if main else 111
     return byte_to_base58(hash, version)
 
 def scripthash_to_p2sh(hash, main = False):
-    assert (len(hash) == 20)
+    assert len(hash) == 20
     version = 5 if main else 196
     return byte_to_base58(hash, version)
 
@@ -55,12 +55,12 @@ def key_to_p2sh_p2wpkh(key, main = False):
     return script_to_p2sh(p2shscript, main)
 
 def program_to_witness(version, program, main = False):
-    if (type(program) is str):
+    if type(program) is str:
         program = hex_str_to_bytes(program)
     assert 0 <= version <= 16
     assert 2 <= len(program) <= 40
     assert version > 0 or len(program) in [20, 32]
-    return segwit_addr.encode("bc" if main else "bcrt", version, program)
+    return segwit_addr.encode("ue" if main else "uert", version, program)
 
 def script_to_p2wsh(script, main = False):
     script = check_script(script)
@@ -76,15 +76,15 @@ def script_to_p2sh_p2wsh(script, main = False):
     return script_to_p2sh(p2shscript, main)
 
 def check_key(key):
-    if (type(key) is str):
+    if type(key) is str:
         key = hex_str_to_bytes(key) # Assuming this is hex string
-    if (type(key) is bytes and (len(key) == 33 or len(key) == 65)):
+    if type(key) is bytes and (len(key) == 33 or len(key) == 65):
         return key
-    assert(False)
+    assert False
 
 def check_script(script):
-    if (type(script) is str):
+    if type(script) is str:
         script = hex_str_to_bytes(script) # Assuming this is hex string
-    if (type(script) is bytes or type(script) is CScript):
+    if type(script) is bytes or type(script) is CScript:
         return script
-    assert(False)
+    assert False

@@ -35,10 +35,8 @@ CAmount GetDustThreshold(const CTxOut& txout, const CFeeRate& dustRelayFeeIn)
         return 0;
 
     size_t nSize = GetSerializeSize(txout);
-    int witnessversion = 0;
-    std::vector<unsigned char> witnessprogram;
 
-    if (txout.scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram)) {
+    if (txout.scriptPubKey.IsWitnessProgram()) {
         // sum the sizes of the parts of a transaction input
         // with 75% segwit discount applied to the script size.
         nSize += (32 + 4 + 1 + (107 / WITNESS_SCALE_FACTOR) + 4);
@@ -79,6 +77,23 @@ bool IsStandard(const CScript& scriptPubKey, txnouttype& whichType)
 
 bool IsStandardTx(const CTransaction& tx, std::string& reason)
 {
+    // unit-e has a notion of "regular" transactions which are partitioned into
+    // "standard" and "non-standard" transactions (in contrast to bitcoin where
+    // every transaction is a "regular" transaction). Beyond "regular transactions
+    // unit-e features a wealth of other transaction types ("non-regular") such as
+    // finalization transactions. Also coinbase transactions are distinguished
+    // using the transaction type (See TxType and CTransaction::GetType).
+    //
+    // The notion of "standard" or "non-standard" does not apply to non-regular
+    // transactions, yet there is a bit of code which relies on the notion of
+    // "is standard". Thus we extend that definition and declare all non-regular
+    // transactions to be standard, such that policy actions such as "do not
+    // relay non-standard transactions" will never apply to non-regular transactions
+    // (all of which should always be relayed).
+    if (!tx.IsRegular()) {
+        return true;
+    }
+
     if (tx.nVersion > CTransaction::MAX_STANDARD_VERSION || tx.nVersion < 1) {
         reason = "version";
         return false;
@@ -216,15 +231,14 @@ bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
             prevScript = CScript(stack.back().begin(), stack.back().end());
         }
 
-        int witnessversion = 0;
-        std::vector<unsigned char> witnessprogram;
+        WitnessProgram witnessProgram;
 
         // Non-witness program must not be associated with any witness
-        if (!prevScript.IsWitnessProgram(witnessversion, witnessprogram))
+        if (!prevScript.ExtractWitnessProgram(witnessProgram))
             return false;
 
         // Check P2WSH standard limits
-        if (witnessversion == 0 && witnessprogram.size() == WITNESS_V0_SCRIPTHASH_SIZE) {
+        if (witnessProgram.IsPayToScriptHash()) {
             if (tx.vin[i].scriptWitness.stack.back().size() > MAX_STANDARD_P2WSH_SCRIPT_SIZE)
                 return false;
             size_t sizeWitnessStack = tx.vin[i].scriptWitness.stack.size() - 1;

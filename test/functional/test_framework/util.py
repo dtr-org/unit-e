@@ -14,8 +14,11 @@ import logging
 import os
 import random
 import re
+import shutil
 from subprocess import CalledProcessError
 import time
+import types
+import math
 
 from . import coverage
 from .authproxy import AuthServiceProxy, JSONRPCException
@@ -38,6 +41,10 @@ def assert_equal(thing1, thing2, *args):
     if thing1 != thing2 or any(thing1 != arg for arg in args):
         raise AssertionError("not(%s)" % " == ".join(str(arg) for arg in (thing1, thing2) + args))
 
+def assert_not_equal(thing, *args):
+    if any(thing == arg for arg in args):
+        raise AssertionError("expected not equal(%s)" % ", ".join(str(arg) for arg in (thing,) + args))
+
 def assert_greater_than(thing1, thing2):
     if thing1 <= thing2:
         raise AssertionError("%s <= %s" % (str(thing1), str(thing2)))
@@ -45,6 +52,23 @@ def assert_greater_than(thing1, thing2):
 def assert_greater_than_or_equal(thing1, thing2):
     if thing1 < thing2:
         raise AssertionError("%s < %s" % (str(thing1), str(thing2)))
+
+def assert_less_than(thing1, thing2):
+    if thing1 >= thing2:
+        raise AssertionError("%s >= %s" % (str(thing1), str(thing2)))
+
+def assert_less_than_or_equal(thing1, thing2):
+    if thing1 > thing2:
+        raise AssertionError("%s > %s" % (str(thing1), str(thing2)))
+
+def assert_in(thing, sequence):
+    if thing not in sequence:
+        raise AssertionError("%s not in %s" % (str(thing), str(sequence)))
+
+def assert_contents_equal(thing1, thing2, key=lambda x: x):
+    if len(thing1) != len(thing2):
+        raise AssertionError("Sequences have different lengths: {} and {}".format(thing1, thing2))
+    assert_equal(sorted(thing1, key=key), sorted(thing2, key=key))
 
 def assert_raises(exc, fun, *args, **kwds):
     assert_raises_message(exc, None, fun, *args, **kwds)
@@ -103,6 +127,113 @@ def assert_raises_rpc_error(code, message, fun, *args, **kwds):
         kwds**: named arguments for the function.
     """
     assert try_rpc(code, message, fun, *args, **kwds), "No exception raised"
+
+def assert_matches(actual, expected, strict=True, path=()):
+    """
+    Checks that a given value matches a given pattern.
+
+    :param actual: The value to check.
+    :param expected:
+        When given a dict invokes assert_matches recursively for every item.
+        Each key present in the dict for comparison (the expected value) must
+        be present in the given dict. In strict mode all keys in the given value
+        must have a definition in the expected kind.
+        When given a list invokes assert_matches for every item.
+        When given a string the value must equal that string.
+        When given an int the value must equal that int.
+        When given a float the value must equal that float.
+        When given a bool the value must equal that bool.
+        When given a Decimal the value must equal that Decimal.
+        When given a function the value must satisfy that predicate.
+        When given a type (all other cases) the value must be of that type.
+    :param strict:
+        In strict mode a dictionary must have exactly the same keys
+        (otherwise at least the same keys) and lists must have the same length.
+    """
+
+    try:
+        if type(expected) == dict:
+            if type(actual) != dict:
+                raise AssertionError("Structure does not match, expected dictionary but got %s" % type(actual))
+            actual_keys = set(actual.keys())
+            expected_keys = set(expected.keys())
+            if strict:
+                if actual_keys != expected_keys:
+                    raise AssertionError("Structure does not match, expected keys %s but got %s" % (expected_keys, actual_keys))
+            elif not expected_keys <= actual_keys:
+                raise AssertionError("Structure does not match, expected %s to be a subset of %s" % (actual_keys, expected_keys))
+            for key, value in expected.items():
+                assert_matches(actual[key], value, strict=strict, path=path+(key,))
+        elif type(expected) == list:
+            if type(actual) != list:
+                raise AssertionError("Structure does not match, expected a list but got %s" % type(actual))
+            if strict:
+                if len(actual) != len(expected):
+                    raise AssertionError("Structure does not match, lists have different lengths, expected %s but got %s" % (len(expected), len(actual)))
+            ix = 0
+            for actual_item, expected_item in zip(actual, expected):
+                assert_matches(actual_item, expected_item, strict=strict, path=path+(ix,))
+                ix += 1
+        elif isinstance(expected, (str, int, float, bool, Decimal)):
+            assert_equal(actual, expected)
+        elif isinstance(expected, types.FunctionType):
+            if not expected(actual, path):
+                if expected.message:
+                    raise AssertionError("Structure does not match: %s (%s)" % (actual, expected.message))
+                raise AssertionError("Structure does not match: %s" % actual)
+        else:
+            assert_equal(type(actual), expected)
+    except AssertionError:
+        print("Pattern match error at %s" % (path,))
+        raise
+
+class Matcher:
+    """
+    Matchers allow you to match for certain values in assert_matches:
+
+    assert_matches(some_value_you_want_to_check, {
+        'foo': Matcher.match(lambda v: re.fullmatch(r'qu{1,2}x', v)),
+        'bar': Matcher.many(str, min=3, max=10),
+    });
+    """
+
+    @staticmethod
+    def match(func):
+        """A matcher that checks whether a value satisfies a given predicate."""
+        def check(value, path=()):
+            return func(value)
+        check.message = inspect.getsource(func).strip()
+        return check
+
+    @classmethod
+    def hexstr(cls, length):
+        """Matches that a value is a hexadecimal string of the given length."""
+        return cls.match(lambda v: len(v) == length and re.fullmatch(r'[a-fA-Z0-9]+', v))
+
+    @classmethod
+    def eq(cls, value):
+        """Matches that a value equals the given reference value."""
+        return cls.match(lambda v: v == value)
+
+    @classmethod
+    def many(cls, expected, min=None, max=None):
+        """
+        Matches that a given value conforms to the given kind, optionally
+        minimum and/or maximum number of items.
+
+        :param expected: A kind as expected by assert_matches
+        :param min: (optional) minimum number of items in the list (incl.)
+        :param max: (optional) maximum number of items in the list (incl.)
+        """
+        def check(values, path=()):
+            if min:
+                assert_greater_than_or_equal(len(values), min)
+            if max:
+                assert_less_than_or_equal(len(values), max)
+            for value in values:
+                assert_matches(value, expected, path=path)
+            return True
+        return cls.match(check)
 
 def try_rpc(code, message, fun, *args, **kwds):
     """Tries to run an rpc command.
@@ -168,6 +299,18 @@ def assert_array_result(object_array, to_match, expected, should_not_find=False)
         raise AssertionError("No objects matched %s" % (str(to_match)))
     if num_matched > 0 and should_not_find:
         raise AssertionError("Objects were found %s" % (str(to_match)))
+
+
+def assert_finalizationstate(node, expected):
+    state = node.getfinalizationstate()
+    errors = []
+    for key in expected:
+        a = state[key]
+        b = expected[key]
+        if a != b:
+            errors.append("%s: not(%s == %s)" % (str(key), str(a), str(b)))
+    if len(errors) > 0:
+        raise AssertionError('\n\t\t\t\t'.join(errors))
 
 # Utility functions
 ###################
@@ -267,7 +410,7 @@ def get_rpc_proxy(url, node_number, timeout=None, coveragedir=None):
     return coverage.AuthServiceProxyWrapper(proxy, coverage_logfile)
 
 def p2p_port(n):
-    assert(n <= MAX_NODES)
+    assert n <= MAX_NODES
     return PORT_MIN + n + (MAX_NODES * PortSeed.n) % (PORT_RANGE - 1 - MAX_NODES)
 
 def rpc_port(n):
@@ -305,6 +448,10 @@ def initialize_datadir(dirname, n):
         os.makedirs(os.path.join(datadir, 'stderr'), exist_ok=True)
         os.makedirs(os.path.join(datadir, 'stdout'), exist_ok=True)
     return datadir
+
+def cleanup_datadir(dirname, n):
+    datadir = get_datadir_path(dirname, n)
+    shutil.rmtree(datadir)
 
 def get_datadir_path(dirname, n):
     return os.path.join(dirname, "node" + str(n))
@@ -375,13 +522,14 @@ def connect_nodes_bi(nodes, a, b):
     connect_nodes(nodes[a], b)
     connect_nodes(nodes[b], a)
 
-def sync_blocks(rpc_connections, *, wait=1, timeout=60):
+def sync_blocks(rpc_connections, *, wait=1, timeout=60, height=None):
     """
     Wait until everybody has the same tip.
 
-    sync_blocks needs to be called with an rpc_connections set that has least
-    one node already synced to the latest, stable tip, otherwise there's a
-    chance it might return before all nodes are stably synced.
+    if height is not specified, then sync_blocks needs to be called with an
+    rpc_connections set that has least one node already synced to the latest,
+    stable tip, otherwise there's a chance it might return before all nodes are
+    stably synced.
     """
     stop_time = time.time() + timeout
     while time.time() <= stop_time:
@@ -391,7 +539,7 @@ def sync_blocks(rpc_connections, *, wait=1, timeout=60):
         time.sleep(wait)
     raise AssertionError("Block sync timed out:{}".format("".join("\n  {!r}".format(b) for b in best_hash)))
 
-def sync_mempools(rpc_connections, *, wait=1, timeout=60, flush_scheduler=True):
+def sync_mempools(rpc_connections, *, wait=1, timeout=150, flush_scheduler=True):
     """
     Wait until everybody has the same transactions in their memory
     pools
@@ -404,8 +552,21 @@ def sync_mempools(rpc_connections, *, wait=1, timeout=60, flush_scheduler=True):
                 for r in rpc_connections:
                     r.syncwithvalidationinterfacequeue()
             return
+
         time.sleep(wait)
     raise AssertionError("Mempool sync timed out:{}".format("".join("\n  {!r}".format(m) for m in pool)))
+
+def get_unspent_coins(node, n_coins, lock=False):
+    """
+    Wrapper for listing coins to use for staking.
+    """
+    unspent_outputs = node.listunspent()
+    assert len(unspent_outputs) >= n_coins
+    # return from the from to avoid problems on reorg
+    if lock:
+        node.lockunspent(False, [{'txid': tx['txid'], 'vout': tx['vout']} for tx in unspent_outputs[:n_coins]])
+    return unspent_outputs[:n_coins]
+
 
 # Transaction/Block functions
 #############################
@@ -425,7 +586,7 @@ def gather_inputs(from_node, amount_needed, confirmations_required=1):
     """
     Return a random set of unspent txouts that are enough to pay amount_needed
     """
-    assert(confirmations_required >= 0)
+    assert confirmations_required >= 0
     utxo = from_node.listunspent(confirmations_required)
     random.shuffle(utxo)
     inputs = []
@@ -483,8 +644,8 @@ def create_confirmed_utxos(fee, node, count):
         to_generate -= 25
     utxos = node.listunspent()
     iterations = count - len(utxos)
-    addr1 = node.getnewaddress()
-    addr2 = node.getnewaddress()
+    addr1 = node.getnewaddress("", "bech32")
+    addr2 = node.getnewaddress("", "bech32")
     if iterations <= 0:
         return utxos
     for i in range(iterations):
@@ -503,7 +664,7 @@ def create_confirmed_utxos(fee, node, count):
         node.generate(1)
 
     utxos = node.listunspent()
-    assert(len(utxos) >= count)
+    assert len(utxos) >= count
     return utxos
 
 # Create large OP_RETURN txouts that can be appended to a transaction
@@ -552,9 +713,10 @@ def mine_large_block(node, utxos=None):
     num = 14
     txouts = gen_return_txouts()
     utxos = utxos if utxos is not None else []
-    if len(utxos) < num:
-        utxos.clear()
-        utxos.extend(node.listunspent())
+
+    # We must pass enough transactions
+    assert len(utxos) >= num
+
     fee = 100 * node.getnetworkinfo()["relayfee"]
     create_lots_of_big_transactions(node, txouts, utxos, num, fee=fee)
     node.generate(1)
@@ -569,3 +731,60 @@ def find_vout_for_address(node, txid, addr):
         if any([addr == a for a in tx["vout"][i]["scriptPubKey"]["addresses"]]):
             return i
     raise RuntimeError("Vout not found for address: txid=%s, addr=%s" % (txid, addr))
+
+def base58_to_bytes(string):
+    char_map = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+    decimal = 0
+    for char in string:
+        decimal = 58 * decimal + char_map.index(char)
+
+    return decimal.to_bytes(math.ceil(math.log2(decimal)/8), byteorder='big')
+
+
+def base58check_to_bytes(string):
+    return base58_to_bytes(string)[1:-4]
+
+
+def bytes_to_base58(bytes):
+    char_map = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+
+    i = int.from_bytes(bytes, byteorder='big')
+    if i == 0:
+        return char_map[0]
+
+    string = ""
+    while i > 0:
+        i, idx = divmod(i, 58)
+        string = char_map[idx] + string
+
+    return string
+
+
+def make_vote_tx(finalizer, finalizer_address, target_hash, source_epoch, target_epoch, input_tx_id):
+    """
+    Make and sign a vote transaction.
+
+    Args:
+        finalizer (AuthServiceProxy): the node which signs vote and vote transaction.
+        finalizer_address (string): the finalizer's address in legacy Base58Check format.
+        target_hash (string): the target hash.
+        source_epoch (int): the source epoch.
+        target_epoch (int): the target epoch
+        input_tx_id (string): the hash of the previous commit transaction. Used as an input to the generated vote.
+
+    Returns:
+        Raw vote transaction as a hex string.
+    """
+    finalizer_address = bytes_to_hex_str(base58check_to_bytes(finalizer_address)[::-1])
+    vote = {
+        'validator_address': finalizer_address,
+        'target_hash': target_hash,
+        'target_epoch': target_epoch,
+        'source_epoch': source_epoch
+    }
+    vtx = finalizer.createvotetransaction(vote, input_tx_id)
+    vtx = finalizer.signrawtransactionwithwallet(vtx)
+    return vtx['hex']
+
+def generate_block(node, count=1):
+    return node.generatetoaddress(count, node.getnewaddress('', 'bech32'))

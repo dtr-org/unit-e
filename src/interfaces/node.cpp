@@ -61,7 +61,7 @@ public:
     bool readConfigFiles(std::string& error) override { return gArgs.ReadConfigFiles(error, true); }
     bool softSetArg(const std::string& arg, const std::string& value) override { return gArgs.SoftSetArg(arg, value); }
     bool softSetBoolArg(const std::string& arg, bool value) override { return gArgs.SoftSetBoolArg(arg, value); }
-    void selectParams(const std::string& network) override { SelectParams(network); }
+    void selectParams(const std::string& network) override { SelectParams(blockchain::Behavior::MakeGlobal(&gArgs), network); }
     uint64_t getAssumedBlockchainSize() override { return Params().AssumedBlockchainSize(); }
     uint64_t getAssumedChainStateSize() override { return Params().AssumedChainStateSize(); }
     std::string getNetwork() override { return Params().NetworkIDString(); }

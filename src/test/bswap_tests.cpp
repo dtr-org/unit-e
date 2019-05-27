@@ -1,4 +1,5 @@
 // Copyright (c) 2016-2018 The Bitcoin Core developers
+// Copyright (c) 2019 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,7 +8,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(bswap_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(bswap_tests, ReducedTestingSetup)
 
 BOOST_AUTO_TEST_CASE(bswap_tests)
 {
@@ -18,6 +19,7 @@ BOOST_AUTO_TEST_CASE(bswap_tests)
 	uint16_t e1 = 0x3412;
 	uint32_t e2 = 0xbc9a7856;
 	uint64_t e3 = 0xbc9a78563412f0de;
+	// UNIT-E TODO [0.18.0]: These types aren't found
 	BOOST_CHECK(bswap_16(u1) == e1);
 	BOOST_CHECK(bswap_32(u2) == e2);
 	BOOST_CHECK(bswap_64(u3) == e3);

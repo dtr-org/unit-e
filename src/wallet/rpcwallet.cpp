@@ -5,10 +5,13 @@
 
 #include <amount.h>
 #include <chain.h>
+#include <chainparams.h>
 #include <consensus/validation.h>
 #include <core_io.h>
+#include <esperanza/walletextension.h>
 #include <httpserver.h>
 #include <init.h>
+#include <injector.h>
 #include <interfaces/chain.h>
 #include <validation.h>
 #include <key_io.h>
@@ -93,6 +96,10 @@ void EnsureWalletIsUnlocked(CWallet * const pwallet)
     if (pwallet->IsLocked()) {
         throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Please enter the wallet passphrase with walletpassphrase first.");
     }
+
+    if (pwallet->GetWalletExtension().GetEncryptionState() == +esperanza::EncryptionState::UNLOCKED_FOR_STAKING_ONLY) {
+        throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Wallet is unlocked for staking only.");
+    }
 }
 
 static void WalletTxToJSON(interfaces::Chain& chain, interfaces::Chain::Lock& locked_chain, const CWalletTx& wtx, UniValue& entry)
@@ -133,8 +140,9 @@ static void WalletTxToJSON(interfaces::Chain& chain, interfaces::Chain::Lock& lo
     }
     entry.pushKV("bip125-replaceable", rbfStatus);
 
-    for (const std::pair<const std::string, std::string>& item : wtx.mapValue)
+    for (const std::pair<const std::string, std::string>& item : wtx.mapValue) {
         entry.pushKV(item.first, item.second);
+    }
 }
 
 static std::string LabelFromValue(const UniValue& value)
@@ -1915,7 +1923,7 @@ static UniValue walletpassphrase(const JSONRPCRequest& request)
         return NullUniValue;
     }
 
-    if (request.fHelp || request.params.size() != 2) {
+    if (request.fHelp || request.params.size() < 2 || request.params.size() > 3) {
         throw std::runtime_error(
             RPCHelpMan{"walletpassphrase",
                 "\nStores the wallet decryption key in memory for 'timeout' seconds.\n"
@@ -1926,6 +1934,8 @@ static UniValue walletpassphrase(const JSONRPCRequest& request)
                 {
                     {"passphrase", RPCArg::Type::STR, RPCArg::Optional::NO, "The wallet passphrase"},
                     {"timeout", RPCArg::Type::NUM, RPCArg::Optional::NO, "The time to keep the decryption key in seconds; capped at 100000000 (~3 years)."},
+                    {"staking_only", RPCArg::Type::BOOL, /* default */ "false", "Unlock the wallet for staking, but not for other operations. Set <timeout> to 0\n"
+                                                   "                             to keep it unlocked indefinitely.\n"
                 },
                 RPCResults{},
                 RPCExamples{
@@ -1965,15 +1975,29 @@ static UniValue walletpassphrase(const JSONRPCRequest& request)
         nSleepTime = MAX_SLEEP_TIME;
     }
 
+    bool staking_only = false;
+    if (!request.params[2].isNull()) {
+        staking_only = request.params[2].get_bool();
+    }
+
     if (strWalletPass.empty()) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "passphrase can not be empty");
     }
 
-    if (!pwallet->Unlock(strWalletPass)) {
-        throw JSONRPCError(RPC_WALLET_PASSPHRASE_INCORRECT, "Error: The wallet passphrase entered was incorrect.");
+    if (!pwallet->GetWalletExtension().Unlock(strWalletPass, staking_only)) {
+            throw JSONRPCError(RPC_WALLET_PASSPHRASE_INCORRECT, "Error: The wallet passphrase entered was incorrect.");
     }
 
     pwallet->TopUpKeyPool();
+
+    // If the wallet is unlocked for staking, allow unlimited timeout
+    if (staking_only && nSleepTime == 0) {
+        pwallet->nRelockTime = 0;
+
+        // Clear previous unlock timer for the wallet
+        RPCRunLater(strprintf("lockwallet(%s)", pwallet->GetName()), [](){}, 0);
+        return NullUniValue;
+    }
 
     pwallet->nRelockTime = GetTime() + nSleepTime;
 
@@ -2401,11 +2425,13 @@ static UniValue getwalletinfo(const JSONRPCRequest& request)
             "  \"balance\": xxxxxxx,                (numeric) the total confirmed balance of the wallet in " + CURRENCY_UNIT + "\n"
             "  \"unconfirmed_balance\": xxx,        (numeric) the total unconfirmed balance of the wallet in " + CURRENCY_UNIT + "\n"
             "  \"immature_balance\": xxxxxx,        (numeric) the total immature balance of the wallet in " + CURRENCY_UNIT + "\n"
+            "  \"remote_staking_balance\": xxx,     (numeric) the total balance that is being staked on remote nodes in " + CURRENCY_UNIT + "\n"
             "  \"txcount\": xxxxxxx,                (numeric) the total number of transactions in the wallet\n"
             "  \"keypoololdest\": xxxxxx,           (numeric) the timestamp (seconds since Unix epoch) of the oldest pre-generated key in the key pool\n"
             "  \"keypoolsize\": xxxx,               (numeric) how many new keys are pre-generated (only counts external keys)\n"
             "  \"keypoolsize_hd_internal\": xxxx,   (numeric) how many new keys are pre-generated for internal use (used for change outputs, only appears if the wallet is using this feature, otherwise external keys are used)\n"
             "  \"unlocked_until\": ttt,             (numeric) the timestamp in seconds since epoch (midnight Jan 1 1970 GMT) that the wallet is unlocked for transfers, or 0 if the wallet is locked\n"
+            "  \"encryption_state\": xxxxx,         (string) the wallet's encryption status (UNENCRYPTED, LOCKED, UNLOCKED, UNLOCKED_FOR_STAKING_ONLY)\n"
             "  \"paytxfee\": x.xxxx,                (numeric) the transaction fee configuration, set in " + CURRENCY_UNIT + "/kB\n"
             "  \"hdseedid\": \"<hash160>\"            (string, optional) the Hash160 of the HD seed (only present when HD is enabled)\n"
             "  \"private_keys_enabled\": true|false (boolean) false if privatekeys are disabled for this wallet (enforced watch-only wallet)\n"
@@ -2432,6 +2458,7 @@ static UniValue getwalletinfo(const JSONRPCRequest& request)
     obj.pushKV("balance",       ValueFromAmount(pwallet->GetBalance()));
     obj.pushKV("unconfirmed_balance", ValueFromAmount(pwallet->GetUnconfirmedBalance()));
     obj.pushKV("immature_balance",    ValueFromAmount(pwallet->GetImmatureBalance()));
+    obj.pushKV("remote_staking_balance", ValueFromAmount(pwallet->GetWalletExtension().GetRemoteStakingBalance()));
     obj.pushKV("txcount",       (int)pwallet->mapWallet.size());
     obj.pushKV("keypoololdest", pwallet->GetOldestKeyPoolTime());
     obj.pushKV("keypoolsize", (int64_t)kpExternalSize);
@@ -2439,7 +2466,10 @@ static UniValue getwalletinfo(const JSONRPCRequest& request)
     if (pwallet->CanSupportFeature(FEATURE_HD_SPLIT)) {
         obj.pushKV("keypoolsize_hd_internal",   (int64_t)(pwallet->GetKeyPoolSize() - kpExternalSize));
     }
-    if (pwallet->IsCrypted()) {
+
+    auto state = pwallet->GetWalletExtension().GetEncryptionState();
+    obj.pushKV("encryption_state", state._to_string());
+    if (state != +esperanza::EncryptionState::UNENCRYPTED) {
         obj.pushKV("unlocked_until", pwallet->nRelockTime);
     }
     obj.pushKV("paytxfee", ValueFromAmount(pwallet->m_pay_tx_fee.GetFeePerK()));
@@ -2560,6 +2590,8 @@ static UniValue loadwallet(const JSONRPCRequest& request)
     std::shared_ptr<CWallet> const wallet = LoadWallet(*g_rpc_interfaces->chain, location, error, warning);
     if (!wallet) throw JSONRPCError(RPC_WALLET_ERROR, error);
 
+    wallet->postInitProcess(GetScheduler());
+
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("name", wallet->GetName());
     obj.pushKV("warning", warning);
@@ -2612,13 +2644,14 @@ static UniValue createwallet(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_WALLET_ERROR, "Wallet file verification failed: " + error);
     }
 
-    std::shared_ptr<CWallet> const wallet = CWallet::CreateWalletFromFile(*g_rpc_interfaces->chain, location, flags);
+    esperanza::WalletExtensionDeps dependencies(GetInjector());
+    std::shared_ptr<CWallet> const wallet = CWallet::CreateWalletFromFile(dependencies, *g_rpc_interfaces->chain, location, flags);
     if (!wallet) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Wallet creation failed.");
     }
     AddWallet(wallet);
 
-    wallet->postInitProcess();
+    wallet->postInitProcess(GetScheduler());
 
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("name", wallet->GetName());
@@ -3211,7 +3244,7 @@ static UniValue bumpfee(const JSONRPCRequest& request)
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
-    if (request.fHelp || request.params.size() < 1 || request.params.size() > 2) {
+    if (request.fHelp || request.params.size() < 1 || request.params.size() > 3) {
         throw std::runtime_error(
             RPCHelpMan{"bumpfee",
                 "\nBumps the fee of an opt-in-RBF transaction T, replacing it with a new transaction B.\n"
@@ -3247,6 +3280,7 @@ static UniValue bumpfee(const JSONRPCRequest& request)
             "         \"CONSERVATIVE\""},
                         },
                         "options"},
+                    {"test_fee", RPCArg::Type::BOOL, /* default */ "false", "Only return the fee it would cost to send, txn is discarded.\n"},
                 },
                 RPCResult{
             "{\n"
@@ -3263,7 +3297,7 @@ static UniValue bumpfee(const JSONRPCRequest& request)
             }.ToString());
     }
 
-    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ});
+    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ, UniValue::VBOOL}, true);
     uint256 hash(ParseHashV(request.params[0], "txid"));
 
     // optional parameters
@@ -3302,6 +3336,12 @@ static UniValue bumpfee(const JSONRPCRequest& request)
         }
     }
 
+    bool test_fee = false;
+    if (!request.params[2].isNull()) {
+        test_fee = request.params[2].get_bool();
+    }
+
+
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
     pwallet->BlockUntilSyncedToCurrentChain();
@@ -3336,17 +3376,20 @@ static UniValue bumpfee(const JSONRPCRequest& request)
         }
     }
 
-    // sign bumped transaction
-    if (!feebumper::SignTransaction(pwallet, mtx)) {
-        throw JSONRPCError(RPC_WALLET_ERROR, "Can't sign transaction.");
-    }
-    // commit the bumped transaction
-    uint256 txid;
-    if (feebumper::CommitTransaction(pwallet, hash, std::move(mtx), errors, txid) != feebumper::Result::OK) {
-        throw JSONRPCError(RPC_WALLET_ERROR, errors[0]);
-    }
     UniValue result(UniValue::VOBJ);
-    result.pushKV("txid", txid.GetHex());
+
+    if (!test_fee) {
+        // sign bumped transaction
+        if (!feebumper::SignTransaction(pwallet, mtx)) {
+            throw JSONRPCError(RPC_WALLET_ERROR, "Can't sign transaction.");
+        }
+        // commit the bumped transaction
+        uint256 txid;
+        if (feebumper::CommitTransaction(pwallet, hash, std::move(mtx), errors, txid) != feebumper::Result::OK) {
+            throw JSONRPCError(RPC_WALLET_ERROR, errors[0]);
+        }
+        result.pushKV("txid", txid.GetHex());
+    }
     result.pushKV("origfee", ValueFromAmount(old_fee));
     result.pushKV("fee", ValueFromAmount(new_fee));
     UniValue result_errors(UniValue::VARR);
@@ -3356,6 +3399,54 @@ static UniValue bumpfee(const JSONRPCRequest& request)
     result.pushKV("errors", result_errors);
 
     return result;
+}
+
+UniValue generateBlocks(CWallet * const pwallet, std::shared_ptr<CReserveScript> coinbaseScript, int nGenerate, uint64_t nMaxTries, bool keepScript)
+{
+    int nHeightEnd = 0;
+    int nHeight = 0;
+
+    {   // Don't keep cs_main locked
+        LOCK(cs_main);
+        nHeight = chainActive.Height();
+        nHeightEnd = nHeight+nGenerate;
+    }
+    unsigned int nExtraNonce = 0;
+    UniValue blockHashes(UniValue::VARR);
+
+    // To pick up to date coins for staking we need to make sure that the wallet is synced to the current chain.
+    if (pwallet) {
+        pwallet->BlockUntilSyncedToCurrentChain();
+    }
+    while (nHeight < nHeightEnd)
+    {
+        std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(
+              coinbaseScript->reserveScript, pwallet
+        ));
+        if (!pblocktemplate.get())
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Couldn't create new block");
+        CBlock *pblock = &pblocktemplate->block;
+        {
+            LOCK(cs_main);
+            IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
+        }
+        std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
+        if (!ProcessNewBlock(Params(), shared_pblock, /* fForceProcessing= */ true, nullptr))
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "ProcessNewBlock, block not accepted");
+
+        ++nHeight;
+        blockHashes.push_back(pblock->GetHash().GetHex());
+
+        //mark script as important because it was used at least for one coinbase output if the script came from the wallet
+        if (keepScript)
+        {
+            coinbaseScript->KeepScript();
+        }
+
+        if (pwallet)
+            pwallet->BlockUntilSyncedToCurrentChain();
+    }
+    return blockHashes;
 }
 
 UniValue generate(const JSONRPCRequest& request)
@@ -3372,6 +3463,7 @@ UniValue generate(const JSONRPCRequest& request)
         throw std::runtime_error(
             RPCHelpMan{"generate",
                 "\nMine up to nblocks blocks immediately (before the RPC call returns) to an address in the wallet.\n",
+                "\nNote: this function can only be used on the regtest network.\n"
                 {
                     {"nblocks", RPCArg::Type::NUM, RPCArg::Optional::NO, "How many blocks are generated immediately."},
                     {"maxtries", RPCArg::Type::NUM, /* default */ "1000000", "How many iterations to try."},
@@ -3390,6 +3482,10 @@ UniValue generate(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_METHOD_DEPRECATED, "The wallet generate rpc method is deprecated and will be fully removed in v0.19. "
             "To use generate in v0.18, restart unit-e with -deprecatedrpc=generate.\n"
             "Clients should transition to using the node rpc method generatetoaddress\n");
+    }
+
+    if (!Params().MineBlocksOnDemand()) {
+        throw JSONRPCError(RPC_METHOD_NOT_FOUND, "This method can only be used on regtest");
     }
 
     int num_generate = request.params[0].get_int();
@@ -3411,7 +3507,56 @@ UniValue generate(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INTERNAL_ERROR, "No coinbase script available");
     }
 
-    return generateBlocks(coinbase_script, num_generate, max_tries, true);
+    return generateBlocks(pwallet, coinbase_script, num_generate, max_tries, true);
+}
+
+UniValue generatetoaddress(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet * const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() < 2 || request.params.size() > 3)
+        throw std::runtime_error(
+            RPCHelpMan{"generatetoaddress",
+                       "\nMine blocks immediately to a specified address (before the RPC call returns)\n"
+                       "\nNote: this function can only be used on the regtest network.\n",
+                       {
+                               {"nblocks", RPCArg::Type::NUM, RPCArg::Optional::NO, "how many blocks are generated immediately."},
+                               {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "the address to send the newly generated unite to."},
+                               {"maxtries", RPCArg::Type::NUM, /* default */ "1000000", "how many iterations to try."},
+                       },
+                       RPCResult{
+                               "[ blockhashes ]     (array) hashes of blocks generated\n"
+                       },
+                       RPCExamples{
+                               "\nGenerate 11 blocks to myaddress\n" +
+                               HelpExampleCli("generatetoaddress", "11 \"myaddress\"")
+                       },
+                   }.ToString());
+
+    if (!Params().MineBlocksOnDemand()) {
+        throw JSONRPCError(RPC_METHOD_NOT_FOUND, "This method can only be used on regtest");
+    }
+
+    int nGenerate = request.params[0].get_int();
+    uint64_t nMaxTries = 1000000;
+    if (!request.params[2].isNull()) {
+        nMaxTries = request.params[2].get_int();
+    }
+
+    CTxDestination destination = DecodeDestination(request.params[1].get_str());
+    if (!IsValidDestination(destination)) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Error: Invalid address");
+    }
+
+    std::shared_ptr<CReserveScript> coinbaseScript = std::make_shared<CReserveScript>();
+    coinbaseScript->reserveScript = GetScriptForDestination(destination);
+
+    return generateBlocks(pwallet, coinbaseScript, nGenerate, nMaxTries, false);
 }
 
 UniValue rescanblockchain(const JSONRPCRequest& request)
@@ -3615,6 +3760,9 @@ static UniValue AddressBookDataToJSON(const CAddressBookData& data, const bool v
         ret.pushKV("name", data.name);
     }
     ret.pushKV("purpose", data.purpose);
+    if (data.timestamp) {
+        ret.pushKV("timestamp", data.timestamp);
+    }
     return ret;
 }
 
@@ -3669,6 +3817,7 @@ UniValue getaddressinfo(const JSONRPCRequest& request)
             "      { (json object of label data)\n"
             "        \"name\": \"labelname\" (string) The label\n"
             "        \"purpose\": \"string\" (string) Purpose of address (\"send\" for sending address, \"receive\" for receiving address)\n"
+            "        \"timestamp\": timestamp  (number, optional) The creation/modification time of the address if available, in seconds since epoch (Jan 1 1970 GMT)\n"
             "      },...\n"
             "    ]\n"
             "}\n"
@@ -4146,7 +4295,7 @@ UniValue importmulti(const JSONRPCRequest& request);
 // clang-format off
 static const CRPCCommand commands[] =
 { //  category              name                                actor (function)                argNames
-    //  --------------------- ------------------------          -----------------------         ----------
+  //  --------------------- ------------------------            -----------------------         ----------
     { "generating",         "generate",                         &generate,                      {"nblocks","maxtries"} },
     { "hidden",             "resendwallettransactions",         &resendwallettransactions,      {} },
     { "rawtransactions",    "fundrawtransaction",               &fundrawtransaction,            {"hexstring","options","iswitness"} },
@@ -4203,6 +4352,8 @@ static const CRPCCommand commands[] =
     { "wallet",             "walletpassphrase",                 &walletpassphrase,              {"passphrase","timeout"} },
     { "wallet",             "walletpassphrasechange",           &walletpassphrasechange,        {"oldpassphrase","newpassphrase"} },
     { "wallet",             "walletprocesspsbt",                &walletprocesspsbt,             {"psbt","sign","sighashtype","bip32derivs"} },
+
+    { "generating",         "generatetoaddress",                &generatetoaddress,             {"nblocks","address","maxtries"} },
 };
 // clang-format on
 

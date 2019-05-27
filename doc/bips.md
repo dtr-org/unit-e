@@ -1,25 +1,70 @@
-BIPs that are implemented by unit-e (up-to-date up to **v0.18.0**):
+# BIPs
+
+The unit-e code is based on the [Bitcoin Core
+code](https://github.com/bitcoin/bitcoin). It inherits a part of its
+implementation of BIPs. Not all BIPs apply literally to the unit-e code base so
+the list should not be seen as a reference. The unit-e source code is the
+ultimate reference of how BIPs apply to unit-e.
+
+Unit-e specific features are defined as [UIPs](uips.md).
+
+Some BIPs have been changed explicitly. The following is an informational list
+of these changes, and the list of all inherited upstream BIPs:
+
+## Removed BIPs
+
+* [BIP30](https://github.com/bitcoin/bips/blob/master/bip-0030.mediawiki) - Check
+  for duplicated txids. This is now impossible (since
+  [BIP34](https://github.com/bitcoin/bips/blob/master/bip-0030.mediawiki) is in
+  force) ([a8afc6c](https://github.com/dtr-org/unit-e/commit/a8afc6c))
+* [BIP22](https://github.com/bitcoin/bips/blob/master/bip-0022.mediawiki) and
+  [BIP23](https://github.com/bitcoin/bips/blob/master/bip-0023.mediawiki). In a
+  Proof-of-Stake setting we do not have mining pools and therefore no use for
+  supporting blocktemplates.
+  ([1dfe8695](https://github.com/dtr-org/unit-e/commit/1dfe86954be1ea0d1d42dcf9d2f9606a0ac40ab9))
+
+## BIPs enabled by default
+
+These BIPs contain activation mechanisms as they have been introduced to Bitcoin
+as soft forks. In unit-e they are enabled by default so the activation
+mechanisms have been removed.
+
+* [BIP16](https://github.com/bitcoin/bips/blob/master/bip-0016.mediawiki) – P2SH
+  ([#523](https://github.com/dtr-org/unit-e/pull/523))
+* [BIP34](https://github.com/bitcoin/bips/blob/master/bip-0034.mediawiki) –
+  Height in Coinbase ([#522](https://github.com/dtr-org/unit-e/pull/522))
+* [BIP65](https://github.com/bitcoin/bips/blob/master/bip-0065.mediawiki) – CLTV
+  ([#521](https://github.com/dtr-org/unit-e/pull/521))
+* [BIP66](https://github.com/bitcoin/bips/blob/master/bip-0066.mediawiki) –
+  DERSIG ([#503](https://github.com/dtr-org/unit-e/pull/503))
+* [BIP141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki),
+  [BIP143](https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki),
+  [BIP147](https://github.com/bitcoin/bips/blob/master/bip-0147.mediawiki) -
+  Segregated Witness ([#746](https://github.com/dtr-org/unit-e/pull/746))
+
+## BIPs inherited from upstream
+
+These BIPs are implemented in unit-e, inheriting them from the Bitcoin Core code
+base on which unit-e is based. All version and release references refer to
+Bitcoin Core upstream releases.
 
 * [`BIP 9`](https://github.com/bitcoin/bips/blob/master/bip-0009.mediawiki): The changes allowing multiple soft-forks to be deployed in parallel have been implemented since **v0.12.1**  ([PR #7575](https://github.com/bitcoin/bitcoin/pull/7575))
 * [`BIP 11`](https://github.com/bitcoin/bips/blob/master/bip-0011.mediawiki): Multisig outputs are standard since **v0.6.0** ([PR #669](https://github.com/bitcoin/bitcoin/pull/669)).
 * [`BIP 13`](https://github.com/bitcoin/bips/blob/master/bip-0013.mediawiki): The address format for P2SH addresses has been implemented since **v0.6.0** ([PR #669](https://github.com/bitcoin/bitcoin/pull/669)).
 * [`BIP 14`](https://github.com/bitcoin/bips/blob/master/bip-0014.mediawiki): The subversion string is being used as User Agent since **v0.6.0** ([PR #669](https://github.com/bitcoin/bitcoin/pull/669)).
 * [`BIP 16`](https://github.com/bitcoin/bips/blob/master/bip-0016.mediawiki): The pay-to-script-hash evaluation rules have been implemented since **v0.6.0**, and took effect on *April 1st 2012* ([PR #748](https://github.com/bitcoin/bitcoin/pull/748)).
-* [`BIP 21`](https://github.com/bitcoin/bips/blob/master/bip-0021.mediawiki): The URI format for Unit-e payments has been implemented since **v0.6.0** ([PR #176](https://github.com/bitcoin/bitcoin/pull/176)).
-* [`BIP 22`](https://github.com/bitcoin/bips/blob/master/bip-0022.mediawiki): The 'getblocktemplate' (GBT) RPC protocol for mining has been implemented since **v0.7.0** ([PR #936](https://github.com/bitcoin/bitcoin/pull/936)).
-* [`BIP 23`](https://github.com/bitcoin/bips/blob/master/bip-0023.mediawiki): Some extensions to GBT have been implemented since **v0.10.0rc1**, including longpolling and block proposals ([PR #1816](https://github.com/bitcoin/bitcoin/pull/1816)).
-* [`BIP 30`](https://github.com/bitcoin/bips/blob/master/bip-0030.mediawiki): The evaluation rules to forbid creating new transactions with the same txid as previous not-fully-spent transactions were implemented since **v0.6.0**, and the rule took effect on *March 15th 2012* ([PR #915](https://github.com/bitcoin/bitcoin/pull/915)).
+* [`BIP 21`](https://github.com/bitcoin/bips/blob/master/bip-0021.mediawiki): The URI format for Bitcoin payments has been implemented since **v0.6.0** ([PR #176](https://github.com/bitcoin/bitcoin/pull/176)).
 * [`BIP 31`](https://github.com/bitcoin/bips/blob/master/bip-0031.mediawiki): The 'pong' protocol message (and the protocol version bump to 60001) has been implemented since **v0.6.1** ([PR #1081](https://github.com/bitcoin/bitcoin/pull/1081)).
 * [`BIP 32`](https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki): Hierarchical Deterministic Wallets has been implemented since **v0.13.0** ([PR #8035](https://github.com/bitcoin/bitcoin/pull/8035)).
 * [`BIP 34`](https://github.com/bitcoin/bips/blob/master/bip-0034.mediawiki): The rule that requires blocks to contain their height (number) in the coinbase input, and the introduction of version 2 blocks has been implemented since **v0.7.0**. The rule took effect for version 2 blocks as of *block 224413* (March 5th 2013), and version 1 blocks are no longer allowed since *block 227931* (March 25th 2013) ([PR #1526](https://github.com/bitcoin/bitcoin/pull/1526)).
 * [`BIP 35`](https://github.com/bitcoin/bips/blob/master/bip-0035.mediawiki): The 'mempool' protocol message (and the protocol version bump to 60002) has been implemented since **v0.7.0** ([PR #1641](https://github.com/bitcoin/bitcoin/pull/1641)).
-* [`BIP 37`](https://github.com/bitcoin/bips/blob/master/bip-0037.mediawiki): The bloom filtering for transaction relaying, partial Merkle trees for blocks, and the protocol version bump to 70001 (enabling low-bandwidth SPV clients) has been implemented since **v0.8.0** ([PR #1795](https://github.com/bitcoin/bitcoin/pull/1795)).
+* [`BIP 37`](https://github.com/bitcoin/bips/blob/master/bip-0037.mediawiki): The bloom filtering for transaction relaying, partial merkle trees for blocks, and the protocol version bump to 70001 (enabling low-bandwidth SPV clients) has been implemented since **v0.8.0** ([PR #1795](https://github.com/bitcoin/bitcoin/pull/1795)).
 * [`BIP 42`](https://github.com/bitcoin/bips/blob/master/bip-0042.mediawiki): The bug that would have caused the subsidy schedule to resume after block 13440000 was fixed in **v0.9.2** ([PR #3842](https://github.com/bitcoin/bitcoin/pull/3842)).
 * [`BIP 61`](https://github.com/bitcoin/bips/blob/master/bip-0061.mediawiki): The 'reject' protocol message (and the protocol version bump to 70002) was added in **v0.9.0** ([PR #3185](https://github.com/bitcoin/bitcoin/pull/3185)). Starting **v0.17.0**, whether to send reject messages can be configured with the `-enablebip61` option, and support is deprecated as of **v0.18.0**.
 * [`BIP 65`](https://github.com/bitcoin/bips/blob/master/bip-0065.mediawiki): The CHECKLOCKTIMEVERIFY softfork was merged in **v0.12.0** ([PR #6351](https://github.com/bitcoin/bitcoin/pull/6351)), and backported to **v0.11.2** and **v0.10.4**. Mempool-only CLTV was added in [PR #6124](https://github.com/bitcoin/bitcoin/pull/6124).
 * [`BIP 66`](https://github.com/bitcoin/bips/blob/master/bip-0066.mediawiki): The strict DER rules and associated version 3 blocks have been implemented since **v0.10.0** ([PR #5713](https://github.com/bitcoin/bitcoin/pull/5713)).
 * [`BIP 68`](https://github.com/bitcoin/bips/blob/master/bip-0068.mediawiki): Sequence locks have been implemented as of **v0.12.1**  ([PR #7184](https://github.com/bitcoin/bitcoin/pull/7184)), and have been activated since *block 419328*.
-* [`BIP 70`](https://github.com/bitcoin/bips/blob/master/bip-0070.mediawiki) [`71`](https://github.com/bitcoin/bips/blob/master/bip-0071.mediawiki) [`72`](https://github.com/bitcoin/bips/blob/master/bip-0072.mediawiki): Payment Protocol support has been available in unit-e GUI since **v0.9.0** ([PR #5216](https://github.com/bitcoin/bitcoin/pull/5216)). Support can be optionally disabled at build time since **v0.18.0** ([PR 14451](https://github.com/bitcoin/bitcoin/pull/14451)).
+* [`BIP 70`](https://github.com/bitcoin/bips/blob/master/bip-0070.mediawiki) [`71`](https://github.com/bitcoin/bips/blob/master/bip-0071.mediawiki) [`72`](https://github.com/bitcoin/bips/blob/master/bip-0072.mediawiki): Payment Protocol support has been available in Bitcoin Core GUI since **v0.9.0** ([PR #5216](https://github.com/bitcoin/bitcoin/pull/5216)). Support can be optionally disabled at build time since **v0.18.0** ([PR 14451](https://github.com/bitcoin/bitcoin/pull/14451)).
 * [`BIP 90`](https://github.com/bitcoin/bips/blob/master/bip-0090.mediawiki): Trigger mechanism for activation of BIPs 34, 65, and 66 has been simplified to block height checks since **v0.14.0** ([PR #8391](https://github.com/bitcoin/bitcoin/pull/8391)).
 * [`BIP 111`](https://github.com/bitcoin/bips/blob/master/bip-0111.mediawiki): `NODE_BLOOM` service bit added, and enforced for all peer versions as of **v0.13.0** ([PR #6579](https://github.com/bitcoin/bitcoin/pull/6579) and [PR #6641](https://github.com/bitcoin/bitcoin/pull/6641)).
 * [`BIP 112`](https://github.com/bitcoin/bips/blob/master/bip-0112.mediawiki): The CHECKSEQUENCEVERIFY opcode has been implemented since **v0.12.1** ([PR #7524](https://github.com/bitcoin/bitcoin/pull/7524)) and has been activated since *block 419328*.
@@ -35,5 +80,5 @@ BIPs that are implemented by unit-e (up-to-date up to **v0.18.0**):
 * [`BIP 152`](https://github.com/bitcoin/bips/blob/master/bip-0152.mediawiki): Compact block transfer and related optimizations are used as of **v0.13.0** ([PR 8068](https://github.com/bitcoin/bitcoin/pull/8068)).
 * [`BIP 159`](https://github.com/bitcoin/bips/blob/master/bip-0159.mediawiki): The NODE_NETWORK_LIMITED service bit is signalled as of **v0.16.0** ([PR 11740](https://github.com/bitcoin/bitcoin/pull/11740)), and such nodes are connected to as of **v0.17.0** ([PR 10387](https://github.com/bitcoin/bitcoin/pull/10387)).
 * [`BIP 173`](https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki): Bech32 addresses for native Segregated Witness outputs are supported as of **v0.16.0** ([PR 11167](https://github.com/bitcoin/bitcoin/pull/11167)).
-* [`BIP 174`](https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki): RPCs to operate on Partially Signed Unit-e Transactions (PSBT) are present as of **v0.17.0** ([PR 13557](https://github.com/bitcoin/bitcoin/pull/13557)).
+* [`BIP 174`](https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki): RPCs to operate on Partially Signed Bitcoin Transactions (PSBT) are present as of **v0.17.0** ([PR 13557](https://github.com/bitcoin/bitcoin/pull/13557)).
 * [`BIP 176`](https://github.com/bitcoin/bips/blob/master/bip-0176.mediawiki): Bits Denomination [QT only] is supported as of **v0.16.0** ([PR 12035](https://github.com/bitcoin/bitcoin/pull/12035)).

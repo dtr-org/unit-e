@@ -81,6 +81,8 @@ void CScheduler::serviceQueue()
                 reverse_lock<boost::unique_lock<boost::mutex> > rlock(lock);
                 f();
             }
+        } catch (const task_unscheduled& ) {
+            // Do nothing
         } catch (...) {
             --nThreadsServicingQueue;
             throw;

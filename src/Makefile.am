@@ -30,7 +30,6 @@ LIBUNITE_CONSENSUS=libunite_consensus.a
 LIBUNITE_CLI=libunite_cli.a
 LIBUNITE_UTIL=libunite_util.a
 LIBUNITE_CRYPTO_BASE=crypto/libunite_crypto_base.a
-LIBUNITEQT=qt/libuniteqt.a
 LIBSECP256K1=secp256k1/libsecp256k1.la
 
 if ENABLE_ZMQ
@@ -42,6 +41,9 @@ endif
 if ENABLE_WALLET
 LIBUNITE_WALLET=libunite_wallet.a
 LIBUNITE_WALLET_TOOL=libunite_wallet_tool.a
+endif
+if ENABLE_USBDEVICE
+LIBUNITE_USBDEVICE=libunite_usbdevice.a
 endif
 
 LIBUNITE_CRYPTO= $(LIBUNITE_CRYPTO_BASE)
@@ -70,6 +72,7 @@ EXTRA_LIBRARIES += \
   $(LIBUNITE_CONSENSUS) \
   $(LIBUNITE_SERVER) \
   $(LIBUNITE_CLI) \
+  $(LIBUNITE_USBDEVICE) \
   $(LIBUNITE_WALLET) \
   $(LIBUNITE_WALLET_TOOL) \
   $(LIBUNITE_ZMQ)
@@ -97,6 +100,10 @@ if BUILD_UNITE_WALLET
 endif
 endif
 
+if BUILD_BITCOIN_UTILS
+  bin_PROGRAMS += bitcoin-cli bitcoin-tx
+endif
+
 .PHONY: FORCE check-symbols check-security
 # unit-e #
 UNITE_CORE_H = \
@@ -106,6 +113,16 @@ UNITE_CORE_H = \
   banman.h \
   base58.h \
   bech32.h \
+  better-enums/enum.h \
+  better-enums/enum_set.h \
+  blockchain/blockchain_behavior.h \
+  blockchain/blockchain_custom_parameters.h \
+  blockchain/blockchain_genesis.h \
+  blockchain/blockchain_interfaces.h \
+  blockchain/blockchain_rpc.h \
+  blockchain/blockchain_parameters.h \
+  blockchain/blockchain_types.h \
+  blockdb.h \
   bloom.h \
   blockencodings.h \
   blockfilter.h \
@@ -113,7 +130,6 @@ UNITE_CORE_H = \
   chainparams.h \
   chainparamsbase.h \
   chainparamsseeds.h \
-  checkpoints.h \
   checkqueue.h \
   clientversion.h \
   coins.h \
@@ -125,21 +141,59 @@ UNITE_CORE_H = \
   compressor.h \
   consensus/consensus.h \
   consensus/tx_verify.h \
+  consensus/ltor.h \
   core_io.h \
   core_memusage.h \
   cuckoocache.h \
+  dependency.h \
+  dependency_injector.h \
+  esperanza/admincommand.h \
+  esperanza/adminparams.h \
+  esperanza/adminstate.h \
+  esperanza/checkpoint.h \
+  esperanza/checks.h \
+  esperanza/finalizationstate.h \
+  esperanza/finalizationstate_data.h \
+  esperanza/init.h \
+  esperanza/script.h \
+  esperanza/validator.h \
+  esperanza/validatorstate.h \
+  esperanza/vote.h \
+  esperanza/walletextension.h \
+  esperanza/walletextension_deps.h \
+  esperanza/walletstate.h \
+  extkey.h \
+  finalization/params.h \
+  finalization/state_db.h \
+  finalization/state_processor.h \
+  finalization/state_repository.h \
+  finalization/vote_recorder.h \
   fs.h \
   httprpc.h \
   httpserver.h \
+  iblt.h \
+  iblt_params.h \
+  iblt_params.table \
   index/base.h \
   index/txindex.h \
   indirectmap.h \
   init.h \
+  injector.h \
+  injector_config.h \
   interfaces/chain.h \
   interfaces/handler.h \
   interfaces/node.h \
   interfaces/wallet.h \
   key.h \
+  key/mnemonic/mnemonic.h \
+  key/mnemonic/chinese_simplified.h \
+  key/mnemonic/chinese_traditional.h \
+  key/mnemonic/english.h \
+  key/mnemonic/french.h \
+  key/mnemonic/japanese.h \
+  key/mnemonic/spanish.h \
+  key/mnemonic/italian.h \
+  key/mnemonic/korean.h \
   key_io.h \
   keystore.h \
   dbwrapper.h \
@@ -157,21 +211,45 @@ UNITE_CORE_H = \
   noui.h \
   optional.h \
   outputtype.h \
+  p2p/embargoman.h \
+  p2p/embargoman_init.h \
+  p2p/finalizer_commits_handler.h \
+  p2p/finalizer_commits_handler_impl.h \
+  p2p/finalizer_commits_types.h \
+  p2p/graphene.h \
+  p2p/graphene_common.h \
+  p2p/graphene_hasher.h \
+  p2p/graphene_messages.h \
+  p2p/graphene_receiver.h \
+  p2p/graphene_sender.h \
   policy/feerate.h \
   policy/fees.h \
   policy/policy.h \
   policy/rbf.h \
-  pow.h \
+  proposer/block_builder.h \
+  proposer/eligible_coin.h \
+  proposer/multiwallet.h \
+  proposer/proposer.h \
+  proposer/proposer_logic.h \
+  proposer/proposer_rpc.h \
+  proposer/proposer_state.h \
+  proposer/proposer_status.h \
+  proposer/sync.h \
+  proposer/waiter.h \
   protocol.h \
   psbt.h \
+  settings.h \
   random.h \
   reverse_iterator.h \
   reverselock.h \
   rpc/blockchain.h \
-  rpc/client.h \
+  rpc/parameter_conversion.h \
+  rpc/finalization.h \
   rpc/mining.h \
+  rpc/proposing.h \
   rpc/protocol.h \
   rpc/server.h \
+  rpc/staking.h \
   rpc/rawtransaction.h \
   rpc/register.h \
   rpc/util.h \
@@ -182,6 +260,32 @@ UNITE_CORE_H = \
   script/sign.h \
   script/standard.h \
   shutdown.h \
+  snapshot/chainstate_iterator.h \
+  snapshot/creator.h \
+  snapshot/indexer.h \
+  snapshot/initialization.h \
+  snapshot/iterator.h \
+  snapshot/messages.h \
+  snapshot/p2p_processing.h \
+  snapshot/params.h \
+  snapshot/rpc_processing.h \
+  snapshot/snapshot_index.h \
+  snapshot/snapshot_validation.h \
+  snapshot/state.h \
+  staking/active_chain.h \
+  staking/block_index_map.h \
+  staking/block_validation_info.h \
+  staking/block_validator.h \
+  staking/coin.h \
+  staking/legacy_validation_interface.h \
+  staking/network.h \
+  staking/proof_of_stake.h \
+  staking/stake_validator.h \
+  staking/staking_rpc.h \
+  staking/stakingwallet.h \
+  staking/transactionpicker.h \
+  staking/validation_error.h \
+  staking/validation_result.h \
   streams.h \
   support/allocators/secure.h \
   support/allocators/zeroafterfree.h \
@@ -189,21 +293,30 @@ UNITE_CORE_H = \
   support/events.h \
   support/lockedpool.h \
   sync.h \
+  sync_status.h \
   threadsafety.h \
   threadinterrupt.h \
   timedata.h \
   torcontrol.h \
+  trit.h \
   txdb.h \
   txmempool.h \
+  txpool.h \
+  ufp64.h \
   ui_interface.h \
   undo.h \
+  unilib/uninorms.h \
+  unilib/utf8.h \
   util/bip32.h \
   util/bytevectorhash.h \
+  util/scope_stopwatch.h \
   util/system.h \
   util/memory.h \
   util/moneystr.h \
   util/time.h \
+  util/typetags.h \
   validation.h \
+  validation_flags.h \
   validationinterface.h \
   versionbits.h \
   versionbitsinfo.h \
@@ -214,7 +327,12 @@ UNITE_CORE_H = \
   wallet/feebumper.h \
   wallet/fees.h \
   wallet/psbtwallet.h \
+  wallet/rpcaddressbook.h \
+  wallet/rpcadmin.h \
+  wallet/rpcmnemonic.h \
+  wallet/rpcvalidator.h \
   wallet/rpcwallet.h \
+  wallet/rpcwalletext.h \
   wallet/wallet.h \
   wallet/walletdb.h \
   wallet/wallettool.h \
@@ -234,7 +352,7 @@ obj/build.h: FORCE
 	  "$(abs_top_srcdir)"
 libunite_util_a-clientversion.$(OBJEXT): obj/build.h
 
-# server: shared between unit-e and unite-qt
+# server
 libunite_server_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
 libunite_server_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_server_a_SOURCES = \
@@ -242,45 +360,93 @@ libunite_server_a_SOURCES = \
   addrman.cpp \
   banman.cpp \
   bloom.cpp \
+  blockchain/blockchain_rpc.cpp \
+  blockdb.cpp \
   blockencodings.cpp \
   blockfilter.cpp \
   chain.cpp \
-  checkpoints.cpp \
   consensus/tx_verify.cpp \
+  dbwrapper.cpp \
+  esperanza/admincommand.cpp \
+  esperanza/adminstate.cpp \
+  esperanza/checkpoint.cpp \
+  esperanza/checks.cpp \
+  esperanza/finalizationstate.cpp \
+  esperanza/finalizationstate_data.cpp \
+  esperanza/script.cpp \
+  esperanza/validator.cpp \
+  finalization/state_db.cpp \
+  finalization/state_processor.cpp \
+  finalization/state_repository.cpp \
+  finalization/vote_recorder.cpp \
   httprpc.cpp \
   httpserver.cpp \
+  iblt_params.cpp \
   index/base.cpp \
   index/txindex.cpp \
   interfaces/chain.cpp \
   interfaces/handler.cpp \
   interfaces/node.cpp \
   init.cpp \
-  dbwrapper.cpp \
+  injector.cpp \
   merkleblock.cpp \
-  miner.cpp \
   net.cpp \
   net_processing.cpp \
   node/transaction.cpp \
   noui.cpp \
   outputtype.cpp \
+  p2p/embargoman.cpp \
+  p2p/embargoman_init.cpp \
+  p2p/finalizer_commits_handler.cpp \
+  p2p/finalizer_commits_handler_impl.cpp \
+  p2p/finalizer_commits_types.cpp \
+  p2p/graphene.cpp \
+  p2p/graphene_hasher.cpp \
+  p2p/graphene_receiver.cpp \
+  p2p/graphene_sender.cpp \
   policy/fees.cpp \
   policy/policy.cpp \
   policy/rbf.cpp \
-  pow.cpp \
   rest.cpp \
   rpc/blockchain.cpp \
+  rpc/finalization.cpp \
   rpc/mining.cpp \
   rpc/misc.cpp \
   rpc/net.cpp \
   rpc/rawtransaction.cpp \
   rpc/server.cpp \
+  rpc/staking.cpp \
   rpc/util.cpp \
   script/sigcache.cpp \
   shutdown.cpp \
+  snapshot/chainstate_iterator.cpp \
+  snapshot/creator.cpp \
+  snapshot/indexer.cpp \
+  snapshot/initialization.cpp \
+  snapshot/iterator.cpp \
+  snapshot/messages.cpp \
+  snapshot/p2p_processing.cpp \
+  snapshot/rpc_processing.cpp \
+  snapshot/snapshot_index.cpp \
+  snapshot/snapshot_validation.cpp \
+  snapshot/state.cpp \
+  staking/active_chain.cpp \
+  staking/block_index_map.cpp \
+  staking/block_validation_info.cpp \
+  staking/block_validator.cpp \
+  staking/coin.cpp \
+  staking/legacy_validation_interface.cpp \
+  staking/network.cpp \
+  staking/stake_validator.cpp \
+  staking/staking_rpc.cpp \
+  staking/validation_error.cpp \
+  staking/validation_result.cpp \
   timedata.cpp \
   torcontrol.cpp \
+  trit.cpp \
   txdb.cpp \
   txmempool.cpp \
+  txpool.cpp \
   ui_interface.cpp \
   validation.cpp \
   validationinterface.cpp \
@@ -302,12 +468,28 @@ libunite_zmq_a_SOURCES = \
 endif
 
 
-# wallet: shared between unit-e and unite-qt, but only linked
-# when wallet enabled
+# wallet: only linked when wallet enabled
 libunite_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_wallet_a_SOURCES = \
+  esperanza/init.cpp \
+  esperanza/walletextension.cpp \
+  esperanza/walletextension_deps.cpp \
   interfaces/wallet.cpp \
+  key/mnemonic/mnemonic.cpp \
+  miner.cpp \
+  proposer/block_builder.cpp \
+  proposer/eligible_coin.cpp \
+  proposer/multiwallet.cpp \
+  proposer/proposer.cpp \
+  proposer/proposer_logic.cpp \
+  proposer/proposer_rpc.cpp \
+  proposer/sync.cpp \
+  proposer/waiter.cpp \
+  staking/transactionpicker.cpp \
+  rpc/proposing.cpp \
+  unilib/uninorms.cpp \
+  unilib/utf8.cpp \
   wallet/coincontrol.cpp \
   wallet/crypter.cpp \
   wallet/db.cpp \
@@ -315,8 +497,13 @@ libunite_wallet_a_SOURCES = \
   wallet/fees.cpp \
   wallet/init.cpp \
   wallet/psbtwallet.cpp \
+  wallet/rpcadmin.cpp \
   wallet/rpcdump.cpp \
+  wallet/rpcmnemonic.cpp \
+  wallet/rpcvalidator.cpp \
   wallet/rpcwallet.cpp \
+  wallet/rpcwalletext.cpp \
+  wallet/rpcaddressbook.cpp \
   wallet/wallet.cpp \
   wallet/walletdb.cpp \
   wallet/walletutil.cpp \
@@ -328,6 +515,29 @@ libunite_wallet_tool_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_wallet_tool_a_SOURCES = \
   wallet/wallettool.cpp \
   $(UNITE_CORE_H)
+
+if ENABLE_USBDEVICE
+libunite_usbdevice_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES) -DHAVE_HIDAPI
+libunite_usbdevice_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libunite_usbdevice_a_CFLAGS = $(AM_CFLAGS) $(PIE_FLAGS) -DHAVE_HIDAPI
+libunite_usbdevice_a_SOURCES = \
+  extkey.cpp \
+  usbdevice/debugdevice.cpp \
+  usbdevice/debugdevice.h \
+  usbdevice/ledgerapdu.cpp \
+  usbdevice/ledgerapdu.h \
+  usbdevice/ledgerdevice.cpp \
+  usbdevice/ledgerdevice.h \
+  usbdevice/ledger/btchipApdu.h \
+  usbdevice/ledger/dongleCommHidHidapi.c \
+  usbdevice/ledger/dongleCommHidHidapi.h \
+  usbdevice/ledger/ledgerLayer.c \
+  usbdevice/ledger/ledgerLayer.h \
+  usbdevice/rpcusbdevice.cpp \
+  usbdevice/rpcusbdevice.h \
+  usbdevice/usbdevice.cpp \
+  usbdevice/usbdevice.h
+endif
 
 # crypto primitives library
 crypto_libunite_crypto_base_a_CPPFLAGS = $(AM_CPPFLAGS)
@@ -382,10 +592,13 @@ libunite_consensus_a_SOURCES = \
   amount.h \
   arith_uint256.cpp \
   arith_uint256.h \
+  consensus/ltor.h \
+  consensus/ltor.cpp \
   consensus/merkle.cpp \
   consensus/merkle.h \
   consensus/params.h \
   consensus/validation.h \
+  esperanza/vote.cpp \
   hash.cpp \
   hash.h \
   prevector.h \
@@ -393,6 +606,7 @@ libunite_consensus_a_SOURCES = \
   primitives/block.h \
   primitives/transaction.cpp \
   primitives/transaction.h \
+  primitives/txtype.h \
   pubkey.cpp \
   pubkey.h \
   script/uniteconsensus.cpp \
@@ -411,17 +625,24 @@ libunite_consensus_a_SOURCES = \
   util/strencodings.h \
   version.h
 
-# common: shared between unit-e, and unite-qt and non-server tools
+# common: shared between unit-e and non-server tools
 libunite_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_common_a_SOURCES = \
   base58.cpp \
   bech32.cpp \
+  blockchain/blockchain_behavior.cpp \
+  blockchain/blockchain_custom_parameters.cpp \
+  blockchain/blockchain_genesis.cpp \
+  blockchain/blockchain_parameters.cpp \
+  blockchain/testnet_funds.cpp \
+  blockchain/regtest_funds.cpp \
   chainparams.cpp \
   coins.cpp \
   compressor.cpp \
   core_read.cpp \
   core_write.cpp \
+  finalization/params.cpp \
   key.cpp \
   key_io.cpp \
   keystore.cpp \
@@ -435,6 +656,11 @@ libunite_common_a_SOURCES = \
   script/ismine.cpp \
   script/sign.cpp \
   script/standard.cpp \
+  snapshot/messages.cpp \
+  snapshot/iterator.cpp \
+  snapshot/indexer.cpp \
+  staking/proof_of_stake.cpp \
+  ufp64.cpp \
   versionbitsinfo.cpp \
   warnings.cpp \
   $(UNITE_CORE_H)
@@ -454,7 +680,10 @@ libunite_util_a_SOURCES = \
   fs.cpp \
   logging.cpp \
   random.cpp \
+  rpc/parameter_conversion.cpp \
   rpc/protocol.cpp \
+  rpc/util.cpp \
+  settings.cpp \
   support/cleanse.cpp \
   sync.cpp \
   threadinterrupt.cpp \
@@ -471,7 +700,7 @@ libunite_util_a_SOURCES += compat/glibc_compat.cpp
 AM_LDFLAGS += $(COMPAT_LDFLAGS)
 endif
 
-# cli: shared between unit-e-cli and unite-qt
+# cli #
 libunite_cli_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_cli_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_cli_a_SOURCES = \
@@ -493,8 +722,8 @@ endif
 
 unit_e_LDADD = \
   $(LIBUNITE_SERVER) \
+  $(LIBUNITE_USBDEVICE) \
   $(LIBUNITE_WALLET) \
-  $(LIBUNITE_SERVER) \
   $(LIBUNITE_COMMON) \
   $(LIBUNIVALUE) \
   $(LIBUNITE_UTIL) \
@@ -506,7 +735,8 @@ unit_e_LDADD = \
   $(LIBMEMENV) \
   $(LIBSECP256K1)
 
-unit_e_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
+unit_e_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) \
+  $(HIDAPI_LIBS) $(USB_LIBS)
 
 # unit-e-cli binary #
 unit_e_cli_SOURCES = unit-e-cli.cpp
@@ -524,7 +754,8 @@ unit_e_cli_LDADD = \
   $(LIBUNITE_UTIL) \
   $(LIBUNITE_CRYPTO)
 
-unit_e_cli_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS)
+unit_e_cli_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS) \
+  $(HIDAPI_LIBS) $(USB_LIBS)
 #
 
 # unit-e-tx binary #
@@ -572,6 +803,9 @@ unite_wallet_LDADD = \
   $(LIBSECP256K1)
 
 unite_wallet_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS)
+
+unit_e_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) \
+  $(HIDAPI_LIBS) $(USB_LIBS)
 #
 
 # uniteconsensus library #
@@ -663,12 +897,4 @@ endif
 
 if ENABLE_BENCH
 include Makefile.bench.include
-endif
-
-if ENABLE_QT
-include Makefile.qt.include
-endif
-
-if ENABLE_QT_TESTS
-include Makefile.qttest.include
 endif

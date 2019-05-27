@@ -15,6 +15,7 @@
 #include <hash.h>
 #include <limitedmap.h>
 #include <netaddress.h>
+#include <p2p/embargoman.h>
 #include <policy/feerate.h>
 #include <protocol.h>
 #include <random.h>
@@ -22,6 +23,7 @@
 #include <sync.h>
 #include <uint256.h>
 #include <threadinterrupt.h>
+#include <snapshot/messages.h>
 
 #include <atomic>
 #include <deque>
@@ -29,6 +31,7 @@
 #include <thread>
 #include <memory>
 #include <condition_variable>
+#include <chrono>
 
 #ifndef WIN32
 #include <arpa/inet.h>
@@ -267,7 +270,7 @@ public:
     bool RemoveAddedNode(const std::string& node);
     std::vector<AddedNodeInfo> GetAddedNodeInfo();
 
-    size_t GetNodeCount(NumConnections num);
+    size_t GetNodeCount(NumConnections num = CConnman::CONNECTIONS_ALL);
     void GetNodeStats(std::vector<CNodeStats>& vstats);
     bool DisconnectNode(const std::string& node);
     bool DisconnectNode(const CSubNet& subnet);
@@ -316,6 +319,7 @@ public:
     */
     int64_t PoissonNextSendInbound(int64_t now, int average_interval_seconds);
 
+    std::unique_ptr<p2p::EmbargoMan> embargoman;
 private:
     struct ListenSocket {
         SOCKET socket;
@@ -476,7 +480,7 @@ class NetEventsInterface
 {
 public:
     virtual bool ProcessMessages(CNode* pnode, std::atomic<bool>& interrupt) = 0;
-    virtual bool SendMessages(CNode* pnode) = 0;
+    virtual bool SendMessages(CNode* pnode, size_t node_index, size_t total_nodes) = 0;
     virtual void InitializeNode(CNode* pnode) = 0;
     virtual void FinalizeNode(NodeId id, bool& update_connection_time) = 0;
 
@@ -748,6 +752,19 @@ public:
     int64_t nextSendTimeFeeFilter{0};
 
     std::set<uint256> orphan_work_set;
+
+    //! keeps track whether discovery request was sent
+    bool m_snapshot_discovery_sent;
+
+    //! node's best snapshot
+    snapshot::SnapshotHeader m_best_snapshot;
+
+    //! is used to track timeouts
+    std::chrono::steady_clock::time_point m_requested_snapshot_at;
+
+    //! keeps track whether the request for the parent block of the candidate
+    //! snapshot was sent.
+    bool sentGetParentBlockForSnapshot;
 
     CNode(NodeId id, ServiceFlags nLocalServicesIn, int nMyStartingHeightIn, SOCKET hSocketIn, const CAddress &addrIn, uint64_t nKeyedNetGroupIn, uint64_t nLocalHostNonceIn, const CAddress &addrBindIn, const std::string &addrNameIn = "", bool fInboundIn = false);
     ~CNode();

@@ -15,7 +15,13 @@ import sys
 FALSE_POSITIVES = [
     ("src/dbwrapper.cpp", "vsnprintf(p, limit - p, format, backup_ap)"),
     ("src/index/base.cpp", "FatalError(const char* fmt, const Args&... args)"),
+    ("src/logging.h", "LogPrint(const BCLog::LogFlags category, const char *const fmt, const Args&... args)"),
+    ("src/logging.h", "LogPrint(BCLog::NONE, fmt, args...)"),
+    ("src/logging.h", "LogPrintf(const char *const fmt, const Args&... args)"),
+    ("src/logging.cpp", "strprintf(\"[%%%ds] \", ComputeLogCategoryMaxLength())"),
+    ("src/logging.cpp", "strprintf(fmt, GetLogCategoryLabel(category))"),
     ("src/netbase.cpp", "LogConnectFailure(bool manual_connection, const char* fmt, const Args&... args)"),
+    ("src/wallet/rpcwalletext.cpp", "strprintf(STAKEAT_HELP, HelpRequiringPassphrase(pwallet), CURRENCY_UNIT, CURRENCY_UNIT, HelpExampleCli(\"stakeat\", STAKEAT_CLI_PARAMS))"),
     ("src/util/system.cpp", "strprintf(_(COPYRIGHT_HOLDERS), _(COPYRIGHT_HOLDERS_SUBSTITUTION))"),
     ("src/util/system.cpp", "strprintf(COPYRIGHT_HOLDERS, COPYRIGHT_HOLDERS_SUBSTITUTION)"),
     ("src/wallet/wallet.h",  "WalletLogPrintf(std::string fmt, Params... parameters)"),

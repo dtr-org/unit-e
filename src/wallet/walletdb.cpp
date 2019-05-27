@@ -7,6 +7,7 @@
 
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
+#include <esperanza/validatorstate.h>
 #include <fs.h>
 #include <key_io.h>
 #include <protocol.h>
@@ -45,6 +46,16 @@ bool WalletBatch::WritePurpose(const std::string& strAddress, const std::string&
 bool WalletBatch::ErasePurpose(const std::string& strAddress)
 {
     return EraseIC(std::make_pair(std::string("purpose"), strAddress));
+}
+
+bool WalletBatch::WriteTimestamp(const std::string& address, int64_t timestamp)
+{
+    return WriteIC(std::make_pair(std::string("timestamp"), address), timestamp);
+}
+
+bool WalletBatch::EraseTimestamp(const std::string& address)
+{
+  return EraseIC(std::make_pair(std::string("timestamp"), address));
 }
 
 bool WalletBatch::WriteTx(const CWalletTx& wtx)
@@ -192,6 +203,12 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
             std::string strAddress;
             ssKey >> strAddress;
             ssValue >> pwallet->mapAddressBook[DecodeDestination(strAddress)].purpose;
+        }
+        else if (strType == "timestamp")
+        {
+            std::string strAddress;
+            ssKey >> strAddress;
+            ssValue >> pwallet->mapAddressBook[DecodeDestination(strAddress)].timestamp;
         }
         else if (strType == "tx")
         {
@@ -345,7 +362,7 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
             CKeyMetadata keyMeta;
             ssValue >> keyMeta;
             wss.nKeyMeta++;
-            pwallet->LoadKeyMetadata(vchPubKey.GetID(), keyMeta);
+            pwallet->LoadKeyMetadata(vchPubKey, keyMeta);
         }
         else if (strType == "watchmeta")
         {
@@ -781,4 +798,12 @@ bool WalletBatch::ReadVersion(int& nVersion)
 bool WalletBatch::WriteVersion(int nVersion)
 {
     return m_batch.WriteVersion(nVersion);
+}
+
+bool WalletBatch::WriteValidatorState(const esperanza::ValidatorState &state) {
+    return WriteIC(std::string("validator-state"), state);
+}
+
+bool WalletBatch::ReadValidatorState(esperanza::ValidatorState &state) {
+    return m_batch.Read(std::string("validator-state"), state);
 }

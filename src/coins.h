@@ -7,12 +7,15 @@
 #define UNITE_COINS_H
 
 #include <primitives/transaction.h>
+#include <consensus/consensus.h>
 #include <compressor.h>
 #include <core_memusage.h>
 #include <crypto/siphash.h>
 #include <memusage.h>
 #include <serialize.h>
 #include <uint256.h>
+#include <snapshot/messages.h>
+#include <snapshot/indexer.h>
 
 #include <assert.h>
 #include <stdint.h>
@@ -23,7 +26,8 @@
  * A UTXO entry.
  *
  * Serialized format:
- * - VARINT((coinbase ? 1 : 0) | (height << 1))
+ * - uint8_t for TxType
+ * - uint32_t for Height
  * - the non-spent CTxOut (via CTxOutCompressor)
  */
 class Coin
@@ -32,43 +36,71 @@ public:
     //! unspent transaction output
     CTxOut out;
 
-    //! whether containing transaction was a coinbase
-    unsigned int fCoinBase : 1;
+    TxType tx_type;
 
     //! at which height this containing transaction was included in the active block chain
-    uint32_t nHeight : 31;
+    uint32_t nHeight;
 
     //! construct a Coin from a CTxOut and height/coinbase information.
-    Coin(CTxOut&& outIn, int nHeightIn, bool fCoinBaseIn) : out(std::move(outIn)), fCoinBase(fCoinBaseIn), nHeight(nHeightIn) {}
-    Coin(const CTxOut& outIn, int nHeightIn, bool fCoinBaseIn) : out(outIn), fCoinBase(fCoinBaseIn),nHeight(nHeightIn) {}
+    Coin(CTxOut&& outIn, int nHeightIn, TxType tx_type) : out(std::move(outIn)), tx_type(tx_type), nHeight(nHeightIn) {}
+    Coin(const CTxOut& outIn, int nHeightIn, TxType tx_type) : out(outIn), tx_type(tx_type), nHeight(nHeightIn) {}
 
     void Clear() {
         out.SetNull();
-        fCoinBase = false;
+        tx_type = TxType::REGULAR;
         nHeight = 0;
     }
 
     //! empty constructor
-    Coin() : fCoinBase(false), nHeight(0) { }
+    Coin() : tx_type(TxType::REGULAR), nHeight(0) { }
 
     bool IsCoinBase() const {
-        return fCoinBase;
+        return tx_type == +TxType::COINBASE;
+    }
+
+    //! \brief checks if this transaction is a coinbase and the reward is still immature
+    //!
+    //! Coinbase rewards have to mature in order to be spendable, i.e. they have to be
+    //! COINBASE_MATURITY blocks deep in the blockchain (that is: COINBASE_MATURITY
+    //! blocks have to be included in the chain afterwards).
+    //!
+    //! \param prevout_index The output index.
+    //! \param spend_height The height at which the TxOut is tried to be spent.
+    bool IsImmatureCoinBaseReward(const uint32_t prevout_index, const int spend_height) const {
+        if (!IsCoinBase() || prevout_index > 0) {
+            // Only the first output of a coinbase (containing rewards and fees
+            // can be considered immature
+            return false;
+        }
+        if (nHeight <= COINBASE_MATURITY) {
+            // the first COINBASE_MATURITY blocks are not immature.
+            // the less-than-or-equal comparison is correct as the
+            // genesis block is at height=0 and the 100 blocks afterwards
+            // need to be declared mature too (at height=100 there are
+            // 100+1 block).
+            return false;
+        }
+        // otherwise it depends: Are there less then COINBASE_MATURITY blocks
+        // in between the coinbase and the block in which that coinbases'
+        // txout is tried to be spent? If so, it's immature.
+        return spend_height - nHeight < COINBASE_MATURITY;
     }
 
     template<typename Stream>
     void Serialize(Stream &s) const {
         assert(!IsSpent());
-        uint32_t code = nHeight * 2 + fCoinBase;
-        ::Serialize(s, VARINT(code));
+        uint8_t type = +tx_type;
+        ::Serialize(s, type);
+        ::Serialize(s, nHeight);
         ::Serialize(s, CTxOutCompressor(REF(out)));
     }
 
     template<typename Stream>
     void Unserialize(Stream &s) {
-        uint32_t code = 0;
-        ::Unserialize(s, VARINT(code));
-        nHeight = code >> 1;
-        fCoinBase = code & 1;
+        uint8_t type = 0;
+        ::Unserialize(s, type);
+        tx_type = TxType::_from_integral(type);
+        ::Unserialize(s, nHeight);
         ::Unserialize(s, CTxOutCompressor(out));
     }
 
@@ -125,7 +157,7 @@ typedef std::unordered_map<COutPoint, CCoinsCacheEntry, SaltedOutpointHasher> CC
 class CCoinsViewCursor
 {
 public:
-    CCoinsViewCursor(const uint256 &hashBlockIn): hashBlock(hashBlockIn) {}
+    CCoinsViewCursor(const uint256 &hashBlockIn, const snapshot::SnapshotHash &snapshotHash): hashBlock(hashBlockIn), snapshotHash(snapshotHash) {}
     virtual ~CCoinsViewCursor() {}
 
     virtual bool GetKey(COutPoint &key) const = 0;
@@ -137,8 +169,12 @@ public:
 
     //! Get best block at the time this cursor was created
     const uint256 &GetBestBlock() const { return hashBlock; }
+
+    //! Get snapshot hash at the time this cursor as created
+    const snapshot::SnapshotHash &GetSnapshotHash() const { return snapshotHash; }
 private:
     uint256 hashBlock;
+    snapshot::SnapshotHash snapshotHash;
 };
 
 /** Abstract view on the open txout dataset. */
@@ -157,18 +193,24 @@ public:
     //! Retrieve the block hash whose state this CCoinsView currently represents
     virtual uint256 GetBestBlock() const;
 
+    //! Retrieve the snapshot hash whose state this CCoinsView currently represents
+    virtual snapshot::SnapshotHash GetSnapshotHash() const;
+
     //! Retrieve the range of blocks that may have been only partially written.
     //! If the database is in a consistent state, the result is the empty vector.
     //! Otherwise, a two-element vector is returned consisting of the new and
     //! the old block hash, in that order.
     virtual std::vector<uint256> GetHeadBlocks() const;
 
-    //! Do a bulk modification (multiple Coin changes + BestBlock change).
+    //! Do a bulk modification (multiple Coin changes + BestBlock + snapshotHash change).
     //! The passed mapCoins can be modified.
-    virtual bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock);
+    virtual bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, const snapshot::SnapshotHash &snapshotHash);
 
     //! Get a cursor to iterate over the whole state
     virtual CCoinsViewCursor *Cursor() const;
+
+    //! Removes all coins from the DB. Is invoked only once before applying the snapshot
+    virtual void ClearCoins();
 
     //! As we use CCoinsViews polymorphically, have a virtual destructor
     virtual ~CCoinsView() {}
@@ -189,16 +231,27 @@ public:
     bool GetCoin(const COutPoint &outpoint, Coin &coin) const override;
     bool HaveCoin(const COutPoint &outpoint) const override;
     uint256 GetBestBlock() const override;
+    snapshot::SnapshotHash GetSnapshotHash() const override;
     std::vector<uint256> GetHeadBlocks() const override;
     void SetBackend(CCoinsView &viewIn);
-    bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) override;
+    bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, const snapshot::SnapshotHash &snapshotHash) override;
+    void ClearCoins() override;
     CCoinsViewCursor *Cursor() const override;
     size_t EstimateSize() const override;
 };
 
+class AccessibleCoinsView
+{
+public:
+    virtual const Coin& AccessCoin(const COutPoint &output) const = 0;
+
+    virtual bool HaveInputs(const CTransaction& tx) const = 0;
+
+    ~AccessibleCoinsView() = default;
+};
 
 /** CCoinsView that adds a memory cache for transactions to another CCoinsView */
-class CCoinsViewCache : public CCoinsViewBacked
+class CCoinsViewCache : public CCoinsViewBacked, public AccessibleCoinsView
 {
 protected:
     /**
@@ -206,6 +259,7 @@ protected:
      * declared as "const".
      */
     mutable uint256 hashBlock;
+    mutable snapshot::SnapshotHash snapshotHash;
     mutable CCoinsMap cacheCoins;
 
     /* Cached dynamic memory usage for the inner Coin objects. */
@@ -223,8 +277,9 @@ public:
     bool GetCoin(const COutPoint &outpoint, Coin &coin) const override;
     bool HaveCoin(const COutPoint &outpoint) const override;
     uint256 GetBestBlock() const override;
+    snapshot::SnapshotHash GetSnapshotHash() const override;
     void SetBestBlock(const uint256 &hashBlock);
-    bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) override;
+    bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, const snapshot::SnapshotHash &snapshotHash) override;
     CCoinsViewCursor* Cursor() const override {
         throw std::logic_error("CCoinsViewCache cursor iteration not supported.");
     }
@@ -246,7 +301,7 @@ public:
      * on! To be safe, best to not hold the returned reference through any other
      * calls to this cache.
      */
-    const Coin& AccessCoin(const COutPoint &output) const;
+    const Coin& AccessCoin(const COutPoint &output) const override;
 
     /**
      * Add a coin. Set potential_overwrite to true if a non-pruned version may
@@ -267,6 +322,13 @@ public:
      * If false is returned, the state of this cache (and its backing view) will be undefined.
      */
     bool Flush();
+
+    //! ApplySnapshot adds all UTXOs from the snapshot to the cache and then invokes Flush().
+    //! If false is returned, the state of this cache (and its backing view) will be undefined.
+    bool ApplySnapshot(std::unique_ptr<snapshot::Indexer> &&indexer);
+
+    //! Removes coins from the cache and from the base DB
+    void ClearCoins() override;
 
     /**
      * Removes the UTXO with the given outpoint from the cache, if it is
@@ -291,7 +353,7 @@ public:
     CAmount GetValueIn(const CTransaction& tx) const;
 
     //! Check whether all prevouts of the transaction are present in the UTXO set represented by this view
-    bool HaveInputs(const CTransaction& tx) const;
+    bool HaveInputs(const CTransaction& tx) const override;
 
 private:
     CCoinsMap::iterator FetchCoin(const COutPoint &outpoint) const;

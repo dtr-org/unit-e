@@ -15,6 +15,7 @@ class WalletRBFTest(UnitETestFramework):
         self.skip_if_no_wallet()
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0])
         self.nodes[0].generate(101)
 
         # sending a transaction without fee estimations must be possible by default on regtest

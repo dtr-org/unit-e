@@ -7,6 +7,7 @@
 #include <config/unite-config.h>
 #endif
 
+#include <blockchain/blockchain_behavior.h>
 #include <chainparams.h>
 #include <clientversion.h>
 #include <compat.h>
@@ -32,13 +33,13 @@ const std::function<std::string(const char*)> G_TRANSLATION_FUN = nullptr;
  *
  * \section intro_sec Introduction
  *
- * This is the developer documentation of the reference client for an experimental new digital currency called Unit-e,
+ * This is the developer documentation of the reference client for an experimental new digital currency called Unit-e (https://unit-e.io/),
  * which enables instant payments to anyone, anywhere in the world. Unit-e uses peer-to-peer technology to operate
  * with no central authority: managing transactions and issuing money are carried out collectively by the network.
  *
  * The software is a community-driven open source project, released under the MIT license.
  *
- * See https://github.com/bitcoin/bitcoin and https://bitcoincore.org/ for further information about the project.
+ * See https://github.com/unite/unite and https://bitcoincore.org/ for further information about the project.
  *
  * \section Navigation
  * Use the buttons <code>Namespaces</code>, <code>Classes</code> or <code>Files</code> at the top of the page to start navigating the code.
@@ -106,7 +107,7 @@ static bool AppInit(int argc, char* argv[])
         }
         // Check for -testnet or -regtest parameter (Params() calls are only valid after this clause)
         try {
-            SelectParams(gArgs.GetChainName());
+            SelectParams(blockchain::Behavior::MakeGlobal(&gArgs), gArgs.GetChainName());
         } catch (const std::exception& e) {
             fprintf(stderr, "Error: %s\n", e.what());
             return false;
@@ -150,13 +151,36 @@ static bool AppInit(int argc, char* argv[])
             fprintf(stdout, "Unit-e server starting\n");
 
             // Daemonize
+#ifdef __APPLE__
+            // daemon() is deprecated on macOS. glibc implements daemon() in terms of fork,
+            // the same is being done here.
+            switch (fork()) {
+                case -1:
+                    fprintf(stderr, "Error: fork() failed: %s\n", strerror(errno));
+                    return false;
+                case 0:
+                {
+                    // running as the daemonized child
+                    int devnull = open("/dev/null", O_RDWR);
+                    if (devnull) {
+                        // "close FDs" - redirect std in/out/err to/from /dev/null (like daemon() would)
+                        dup2(devnull, STDIN_FILENO);
+                        dup2(devnull, STDOUT_FILENO);
+                        dup2(devnull, STDERR_FILENO);
+                        close(devnull);
+                    }
+                    break;
+                }
+                default:
+                    // we're the parent
+                    exit(0);
+            }
+#else
             if (daemon(1, 0)) { // don't chdir (1), do close FDs (0)
                 fprintf(stderr, "Error: daemon() failed: %s\n", strerror(errno));
                 return false;
             }
-#if defined(MAC_OSX)
-#pragma GCC diagnostic pop
-#endif
+#endif // __APPLE__
 #else
             fprintf(stderr, "Error: -daemon is not supported on this operating system\n");
             return false;

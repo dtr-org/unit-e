@@ -10,6 +10,7 @@
 #include <dbwrapper.h>
 #include <chain.h>
 #include <primitives/block.h>
+#include <snapshot/snapshot_index.h>
 
 #include <map>
 #include <memory>
@@ -51,13 +52,16 @@ public:
     bool GetCoin(const COutPoint &outpoint, Coin &coin) const override;
     bool HaveCoin(const COutPoint &outpoint) const override;
     uint256 GetBestBlock() const override;
+    snapshot::SnapshotHash GetSnapshotHash() const override;
     std::vector<uint256> GetHeadBlocks() const override;
-    bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) override;
+    bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, const snapshot::SnapshotHash &snapshotHash) override;
     CCoinsViewCursor *Cursor() const override;
+    void ClearCoins() override;
 
-    //! Attempt to update from an older database format. Returns whether an error occurred.
-    bool Upgrade();
     size_t EstimateSize() const override;
+
+    bool SetSnapshotIndex(const snapshot::SnapshotIndex &snapshotIndex);
+    bool GetSnapshotIndex(snapshot::SnapshotIndex &snapshotIndexOut);
 };
 
 /** Specialization of CCoinsViewCursor to iterate over a CCoinsViewDB */
@@ -74,8 +78,8 @@ public:
     void Next() override;
 
 private:
-    CCoinsViewDBCursor(CDBIterator* pcursorIn, const uint256 &hashBlockIn):
-        CCoinsViewCursor(hashBlockIn), pcursor(pcursorIn) {}
+    CCoinsViewDBCursor(CDBIterator* pcursorIn, const uint256 &hashBlockIn, const snapshot::SnapshotHash &snapshotHash):
+        CCoinsViewCursor(hashBlockIn, snapshotHash), pcursor(pcursorIn) {}
     std::unique_ptr<CDBIterator> pcursor;
     std::pair<char, COutPoint> keyTmp;
 

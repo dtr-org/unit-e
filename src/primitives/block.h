@@ -1,11 +1,13 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2018-2019 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef UNITE_PRIMITIVES_BLOCK_H
 #define UNITE_PRIMITIVES_BLOCK_H
 
+#include <blockchain/blockchain_types.h>
 #include <primitives/transaction.h>
 #include <serialize.h>
 #include <uint256.h>
@@ -24,9 +26,10 @@ public:
     int32_t nVersion;
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;
-    uint32_t nTime;
-    uint32_t nBits;
-    uint32_t nNonce;
+    uint256 hash_witness_merkle_root;
+    uint256 hash_finalizer_commits_merkle_root;
+    blockchain::Time nTime;
+    blockchain::Difficulty nBits;
 
     CBlockHeader()
     {
@@ -40,9 +43,10 @@ public:
         READWRITE(this->nVersion);
         READWRITE(hashPrevBlock);
         READWRITE(hashMerkleRoot);
+        READWRITE(hash_witness_merkle_root);
+        READWRITE(hash_finalizer_commits_merkle_root);
         READWRITE(nTime);
         READWRITE(nBits);
-        READWRITE(nNonce);
     }
 
     void SetNull()
@@ -50,9 +54,10 @@ public:
         nVersion = 0;
         hashPrevBlock.SetNull();
         hashMerkleRoot.SetNull();
+        hash_witness_merkle_root.SetNull();
+        hash_finalizer_commits_merkle_root.SetNull();
         nTime = 0;
         nBits = 0;
-        nNonce = 0;
     }
 
     bool IsNull() const
@@ -75,6 +80,9 @@ public:
     // network and disk
     std::vector<CTransactionRef> vtx;
 
+    //! signature of the block for Proof-of-Stake
+    std::vector<uint8_t> signature;
+
     // memory only
     mutable bool fChecked;
 
@@ -89,31 +97,45 @@ public:
         *(static_cast<CBlockHeader*>(this)) = header;
     }
 
+    CBlock(const CBlock &block) = default;
+
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action) {
         READWRITEAS(CBlockHeader, *this);
         READWRITE(vtx);
+        READWRITE(signature);
     }
 
     void SetNull()
     {
         CBlockHeader::SetNull();
         vtx.clear();
+        signature.clear();
         fChecked = false;
     }
 
     CBlockHeader GetBlockHeader() const
     {
         CBlockHeader block;
-        block.nVersion       = nVersion;
-        block.hashPrevBlock  = hashPrevBlock;
+        block.nVersion = nVersion;
+        block.hashPrevBlock = hashPrevBlock;
         block.hashMerkleRoot = hashMerkleRoot;
-        block.nTime          = nTime;
-        block.nBits          = nBits;
-        block.nNonce         = nNonce;
+        block.hash_witness_merkle_root = hash_witness_merkle_root;
+        block.hash_finalizer_commits_merkle_root = hash_finalizer_commits_merkle_root;
+        block.nTime = nTime;
+        block.nBits = nBits;
         return block;
+    }
+
+    //! \brief (Re)computes the merkle trees of this block.
+    void ComputeMerkleTrees();
+
+    const CTxIn &GetStakingInput() const {
+        assert(!vtx.empty() && "GetStakingInput() invoked on an empty block");
+        assert(vtx[0]->vin.size() >= 2 && "GetStakingInput() invoked in a block that has no staking input");
+        return vtx[0]->vin[1];
     }
 
     std::string ToString() const;

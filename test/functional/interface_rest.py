@@ -14,7 +14,7 @@ from struct import pack, unpack
 import http.client
 import urllib.parse
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.util import (
     assert_equal,
     assert_greater_than,
@@ -42,8 +42,11 @@ def filter_output_indices_by_value(vouts, value):
 class RESTTest (UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
-        self.num_nodes = 2
-        self.extra_args = [["-rest"], []]
+        self.num_nodes = 3
+        self.extra_args = [["-rest"], [], []]
+
+    def skip_test_if_missing_module(self):
+        self.skip_if_no_wallet()
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -75,6 +78,9 @@ class RESTTest (UnitETestFramework):
             return json.loads(resp.read().decode('utf-8'), parse_float=Decimal)
 
     def run_test(self):
+
+        self.setup_stake_coins(*self.nodes)
+
         self.url = urllib.parse.urlparse(self.nodes[0].url)
         self.log.info("Mine blocks and send Unit-e to node 1")
 
@@ -86,10 +92,17 @@ class RESTTest (UnitETestFramework):
         self.nodes[1].generatetoaddress(100, not_related_address)
         self.sync_all()
 
-        assert_equal(self.nodes[0].getbalance(), 50)
+        assert_equal(self.nodes[0].getbalance(), self.nodes[0].initial_stake + PROPOSER_REWARD)
+
+        # Ensure only one spendable coin on node 0
+        stake = self.nodes[0].listunspent(query_options={'minimumAmount': 1000})
+        self.nodes[0].lockunspent(False, stake)
 
         txid = self.nodes[0].sendtoaddress(self.nodes[1].getnewaddress(), 0.1)
         self.sync_all()
+
+        # UNIT-E TODO [0.18.0]: This assert was deleted in 0.18
+        assert_equal(self.nodes[1].getbalance(), self.nodes[1].initial_stake + Decimal("0.1")) #balance now should be 0.1 on node 1 ( + the initial stake)
 
         self.log.info("Test the /tx URI")
 
@@ -183,7 +196,8 @@ class RESTTest (UnitETestFramework):
         json_obj = self.test_rest_request("/getutxos/checkmempool/{}-{}".format(*spent))
         assert_equal(len(json_obj['utxos']), 0)
 
-        self.nodes[0].generate(1)
+        self.sync_all()
+        self.nodes[2].generate(1)
         self.sync_all()
 
         json_obj = self.test_rest_request("/getutxos/{}-{}".format(*spending))
@@ -204,7 +218,8 @@ class RESTTest (UnitETestFramework):
         long_uri = '/'.join(['{}-{}'.format(txid, n_) for n_ in range(15)])
         self.test_rest_request("/getutxos/checkmempool/{}".format(long_uri), http_method='POST', status=200)
 
-        self.nodes[0].generate(1)  # generate block to not affect upcoming tests
+        self.sync_all()
+        self.nodes[2].generate(1)  # generate block to not affect upcoming tests
         self.sync_all()
 
         self.log.info("Test the /block, /blockhashbyheight and /headers URIs")
@@ -235,7 +250,7 @@ class RESTTest (UnitETestFramework):
         response_hex = self.test_rest_request("/block/{}".format(bb_hash), req_type=ReqType.HEX, ret_type=RetType.OBJ)
         assert_greater_than(int(response_hex.getheader('content-length')), BLOCK_HEADER_SIZE*2)
         response_hex_bytes = response_hex.read().strip(b'\n')
-        assert_equal(binascii.hexlify(response_bytes), response_hex_bytes)
+        assert_equal(binascii.hexlify(response_bytes)[0:BLOCK_HEADER_SIZE * 2], response_hex_bytes[0:BLOCK_HEADER_SIZE * 2])
 
         # Compare with hex block header
         response_header_hex = self.test_rest_request("/headers/1/{}".format(bb_hash), req_type=ReqType.HEX, ret_type=RetType.OBJ)
@@ -271,7 +286,7 @@ class RESTTest (UnitETestFramework):
 
         # Compare with normal RPC block response
         rpc_block_json = self.nodes[0].getblock(bb_hash)
-        for key in ['hash', 'confirmations', 'height', 'version', 'merkleroot', 'time', 'nonce', 'bits', 'difficulty', 'chainwork', 'previousblockhash']:
+        for key in ['hash', 'confirmations', 'height', 'version', 'merkleroot', 'time', 'bits', 'difficulty', 'chainwork', 'previousblockhash']:
             assert_equal(json_obj[0][key], rpc_block_json[key])
 
         # See if we can get 5 headers in one response
@@ -284,9 +299,9 @@ class RESTTest (UnitETestFramework):
 
         # Make 3 tx and mine them on node 1
         txs = []
-        txs.append(self.nodes[0].sendtoaddress(not_related_address, 11))
-        txs.append(self.nodes[0].sendtoaddress(not_related_address, 11))
-        txs.append(self.nodes[0].sendtoaddress(not_related_address, 11))
+        txs.append(self.nodes[0].sendtoaddress(not_related_address, 1.1))
+        txs.append(self.nodes[0].sendtoaddress(not_related_address, 1.1))
+        txs.append(self.nodes[0].sendtoaddress(not_related_address, 1.1))
         self.sync_all()
 
         # Check that there are exactly 3 transactions in the TX memory pool before generating the block

@@ -89,6 +89,7 @@ class WalletDumpTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.extra_args = [["-keypool=90", "-addresstype=legacy"]]
+        self.setup_clean_chain = True
         self.rpc_timeout = 120
 
     def skip_test_if_missing_module(self):

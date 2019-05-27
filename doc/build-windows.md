@@ -62,8 +62,7 @@ First, install the general dependencies:
     sudo apt install build-essential libtool autotools-dev automake pkg-config bsdmainutils curl git
 
 A host toolchain (`build-essential`) is necessary because some dependency
-packages (such as `protobuf`) need to build host utilities that are used in the
-build process.
+packages need to build host utilities that are used in the build process.
 
 See [dependencies.md](dependencies.md) for a complete overview.
 
@@ -89,7 +88,9 @@ This means you cannot use a directory that is located directly on the host Windo
 
 Acquire the source in the usual way:
 
-    git clone https://github.com/bitcoin/bitcoin.git
+    cd /usr/src
+    sudo git clone https://github.com/dtr-org/unit-e.git
+    sudo chmod -R a+rw unit-e
 
 Once the source code is ready the build steps are below:
 
@@ -117,7 +118,9 @@ This means you cannot use a directory that located directly on the host Windows 
 
 Acquire the source in the usual way:
 
-    git clone https://github.com/bitcoin/bitcoin.git
+    cd /usr/src
+    sudo git clone https://github.com/dtr-org/unit-e.git
+    sudo chmod -R a+rw unit-e
 
 Then build using:
 
@@ -139,13 +142,9 @@ Installation
 After building using the Windows subsystem it can be useful to copy the compiled
 executables to a directory on the Windows drive in the same directory structure
 as they appear in the release `.zip` archive. This can be done in the following
-way. This will install to `c:\workspace\unite`, for example:
+way. This will install to `c:\workspace\unit-e`, for example:
 
-    make install DESTDIR=/mnt/c/workspace/unite
-
-You can also create an installer using:
-
-    make deploy
+    make install DESTDIR=/mnt/c/workspace/unit-e
 
 Footnotes
 ---------

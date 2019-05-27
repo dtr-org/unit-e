@@ -60,13 +60,13 @@ def name_to_ipv6(addr):
                 if i == 0 or i == (len(addr)-1): # skip empty component at beginning or end
                     continue
                 x += 1 # :: skips to suffix
-                assert(x < 2)
+                assert x < 2
             else: # two bytes per component
                 val = int(comp, 16)
                 sub[x].append(val >> 8)
                 sub[x].append(val & 0xff)
         nullbytes = 16 - len(sub[0]) - len(sub[1])
-        assert((x == 0 and nullbytes == 0) or (x == 1 and nullbytes > 0))
+        assert (x == 0 and nullbytes == 0) or (x == 1 and nullbytes > 0)
         return bytearray(sub[0] + ([0] * nullbytes) + sub[1])
     elif addr.startswith('0x'): # IPv4-in-little-endian
         return pchIPv4 + bytearray(reversed(a2b_hex(addr[2:])))
@@ -127,9 +127,6 @@ def main():
     g.write(' * Each line contains a 16-byte IPv6 address and a port.\n')
     g.write(' * IPv4 as well as onion addresses are wrapped inside an IPv6 address accordingly.\n')
     g.write(' */\n')
-    with open(os.path.join(indir,'nodes_main.txt'), 'r', encoding="utf8") as f:
-        process_nodes(g, f, 'pnSeed6_main', 7182)
-    g.write('\n')
     with open(os.path.join(indir,'nodes_test.txt'), 'r', encoding="utf8") as f:
         process_nodes(g, f, 'pnSeed6_test', 17182)
     g.write('#endif // UNITE_CHAINPARAMSSEEDS_H\n')

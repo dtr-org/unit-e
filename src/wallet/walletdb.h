@@ -41,6 +41,10 @@ class CWalletTx;
 class uint160;
 class uint256;
 
+namespace esperanza {
+class ValidatorState;
+};
+
 /** Backend-agnostic database type. */
 using WalletDatabase = BerkeleyDatabase;
 
@@ -62,10 +66,16 @@ public:
     uint32_t nExternalChainCounter;
     uint32_t nInternalChainCounter;
     CKeyID seed_id; //!< seed hash160
+    KeyOriginInfo key_origin; //!< key origin info with path and fingerprint
+    bool has_key_origin = false; //!< whether the key_origin is useful
+    std::vector<CExtPubKey> account_pubkeys; //!< BIP44 account pubkey
+    bool is_hardware_device;
 
     static const int VERSION_HD_BASE        = 1;
     static const int VERSION_HD_CHAIN_SPLIT = 2;
-    static const int CURRENT_VERSION        = VERSION_HD_CHAIN_SPLIT;
+    // UNIT-E TODO [0.18.0]: Should we bump this version?
+    static const int VERSION_HD_HW_WALLET   = 3;
+    static const int CURRENT_VERSION        = VERSION_HD_HW_WALLET;
     int nVersion;
 
     CHDChain() { SetNull(); }
@@ -78,6 +88,12 @@ public:
         READWRITE(seed_id);
         if (this->nVersion >= VERSION_HD_CHAIN_SPLIT)
             READWRITE(nInternalChainCounter);
+        if (this->nVersion >= VERSION_HD_HW_WALLET) {
+            READWRITE(key_origin);
+            READWRITE(has_key_origin);
+            READWRITE(account_pubkeys);
+            READWRITE(is_hardware_device);
+        }
     }
 
     void SetNull()
@@ -86,6 +102,10 @@ public:
         nExternalChainCounter = 0;
         nInternalChainCounter = 0;
         seed_id.SetNull();
+        key_origin.clear();
+        has_key_origin = false;
+        account_pubkeys.clear();
+        is_hardware_device = false;
     }
 };
 
@@ -94,6 +114,7 @@ class CKeyMetadata
 public:
     static const int VERSION_BASIC=1;
     static const int VERSION_WITH_HDDATA=10;
+    static const int VERSION_WITH_MASTER_ID=11;
     static const int VERSION_WITH_KEY_ORIGIN = 12;
     static const int CURRENT_VERSION=VERSION_WITH_KEY_ORIGIN;
     int nVersion;
@@ -185,10 +206,13 @@ public:
     bool WritePurpose(const std::string& strAddress, const std::string& purpose);
     bool ErasePurpose(const std::string& strAddress);
 
+    bool WriteTimestamp(const std::string& address, int64_t timestamp);
+    bool EraseTimestamp(const std::string& address);
+
     bool WriteTx(const CWalletTx& wtx);
     bool EraseTx(uint256 hash);
 
-    bool WriteKeyMetadata(const CKeyMetadata& meta, const CPubKey& pubkey, const bool overwrite);
+    bool WriteKeyMetadata(const CKeyMetadata& meta, const CPubKey& pubkey, const bool overwrite = true);
     bool WriteKey(const CPubKey& vchPubKey, const CPrivKey& vchPrivKey, const CKeyMetadata &keyMeta);
     bool WriteCryptedKey(const CPubKey& vchPubKey, const std::vector<unsigned char>& vchCryptedSecret, const CKeyMetadata &keyMeta);
     bool WriteMasterKey(unsigned int nID, const CMasterKey& kMasterKey);
@@ -245,6 +269,12 @@ public:
     bool ReadVersion(int& nVersion);
     //! Write wallet version
     bool WriteVersion(int nVersion);
+
+    //! Write validator state
+    bool WriteValidatorState(const esperanza::ValidatorState &state);
+    //! Read validator state
+    bool ReadValidatorState(esperanza::ValidatorState &state);
+
 private:
     BerkeleyBatch m_batch;
     WalletDatabase& m_database;

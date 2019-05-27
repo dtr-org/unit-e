@@ -12,8 +12,8 @@
 // FIXME: Dedup with SetupDummyInputs in test/transaction_tests.cpp.
 //
 // Helper: create two dummy transactions, each with
-// two outputs.  The first has 11 and 50 UNIT outputs
-// paid to a TX_PUBKEY, the second 21 and 22 UNIT outputs
+// two outputs.  The first has 11 and 50 EEES outputs
+// paid to a TX_PUBKEY, the second 21 and 22 EEES outputs
 // paid to a TX_PUBKEYHASH.
 //
 static std::vector<CMutableTransaction>
@@ -31,16 +31,16 @@ SetupDummyInputs(CBasicKeyStore& keystoreRet, CCoinsViewCache& coinsRet)
 
     // Create some dummy input transactions
     dummyTransactions[0].vout.resize(2);
-    dummyTransactions[0].vout[0].nValue = 11 * UNIT;
+    dummyTransactions[0].vout[0].nValue = 11 * EEES;
     dummyTransactions[0].vout[0].scriptPubKey << ToByteVector(key[0].GetPubKey()) << OP_CHECKSIG;
-    dummyTransactions[0].vout[1].nValue = 50 * UNIT;
+    dummyTransactions[0].vout[1].nValue = 50 * EEES;
     dummyTransactions[0].vout[1].scriptPubKey << ToByteVector(key[1].GetPubKey()) << OP_CHECKSIG;
     AddCoins(coinsRet, CTransaction(dummyTransactions[0]), 0);
 
     dummyTransactions[1].vout.resize(2);
-    dummyTransactions[1].vout[0].nValue = 21 * UNIT;
+    dummyTransactions[1].vout[0].nValue = 21 * EEES;
     dummyTransactions[1].vout[0].scriptPubKey = GetScriptForDestination(key[2].GetPubKey().GetID());
-    dummyTransactions[1].vout[1].nValue = 22 * UNIT;
+    dummyTransactions[1].vout[1].nValue = 22 * EEES;
     dummyTransactions[1].vout[1].scriptPubKey = GetScriptForDestination(key[3].GetPubKey().GetID());
     AddCoins(coinsRet, CTransaction(dummyTransactions[1]), 0);
 
@@ -72,7 +72,7 @@ static void CCoinsCaching(benchmark::State& state)
     t1.vin[2].prevout.n = 1;
     t1.vin[2].scriptSig << std::vector<unsigned char>(65, 0) << std::vector<unsigned char>(33, 4);
     t1.vout.resize(2);
-    t1.vout[0].nValue = 90 * UNIT;
+    t1.vout[0].nValue = 90 * EEES;
     t1.vout[0].scriptPubKey << OP_1;
 
     // Benchmark.
@@ -81,7 +81,7 @@ static void CCoinsCaching(benchmark::State& state)
         bool success = AreInputsStandard(tx_1, coins);
         assert(success);
         CAmount value = coins.GetValueIn(tx_1);
-        assert(value == (50 + 21 + 22) * UNIT);
+        assert(value == (50 + 21 + 22) * EEES);
     }
 }
 

@@ -36,7 +36,7 @@ static void tag_free(void* mem) {
     free(mem);
 }
 
-BOOST_FIXTURE_TEST_SUITE(raii_event_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(raii_event_tests, ReducedTestingSetup)
 
 BOOST_AUTO_TEST_CASE(raii_event_creation)
 {

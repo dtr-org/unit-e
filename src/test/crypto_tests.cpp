@@ -20,7 +20,7 @@
 #include <openssl/aes.h>
 #include <openssl/evp.h>
 
-BOOST_FIXTURE_TEST_SUITE(crypto_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(crypto_tests, ReducedTestingSetup)
 
 template<typename Hasher, typename In, typename Out>
 static void TestVector(const Hasher &h, const In &in, const Out &out) {

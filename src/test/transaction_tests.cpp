@@ -91,7 +91,7 @@ std::string FormatScriptFlags(unsigned int flags)
     return ret.substr(0, ret.size() - 1);
 }
 
-BOOST_FIXTURE_TEST_SUITE(transaction_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(transaction_tests, ReducedTestingSetup)
 
 BOOST_AUTO_TEST_CASE(tx_valid)
 {
@@ -120,8 +120,8 @@ BOOST_AUTO_TEST_CASE(tx_valid)
             std::map<COutPoint, int64_t> mapprevOutValues;
             UniValue inputs = test[0].get_array();
             bool fValid = true;
-	    for (unsigned int inpIdx = 0; inpIdx < inputs.size(); inpIdx++) {
-	        const UniValue& input = inputs[inpIdx];
+            for (unsigned int inpIdx = 0; inpIdx < inputs.size(); inpIdx++) {
+                const UniValue& input = inputs[inpIdx];
                 if (!input.isArray())
                 {
                     fValid = false;
@@ -207,8 +207,8 @@ BOOST_AUTO_TEST_CASE(tx_invalid)
             std::map<COutPoint, int64_t> mapprevOutValues;
             UniValue inputs = test[0].get_array();
             bool fValid = true;
-	    for (unsigned int inpIdx = 0; inpIdx < inputs.size(); inpIdx++) {
-	        const UniValue& input = inputs[inpIdx];
+            for (unsigned int inpIdx = 0; inpIdx < inputs.size(); inpIdx++) {
+                const UniValue& input = inputs[inpIdx];
                 if (!input.isArray())
                 {
                     fValid = false;
@@ -344,7 +344,8 @@ BOOST_AUTO_TEST_CASE(test_Get)
     BOOST_CHECK_EQUAL(coins.GetValueIn(CTransaction(t1)), (50+21+22)*EEES);
 }
 
-static void CreateCreditAndSpend(const CKeyStore& keystore, const CScript& outscript, CTransactionRef& output, CMutableTransaction& input, bool success = true)
+static void CreateCreditAndSpend(const CKeyStore& keystore, const CScript& outscript, CTransactionRef& output,
+                                 CMutableTransaction& input, bool success = true, TxType inputType = TxType::REGULAR)
 {
     CMutableTransaction outputm;
     outputm.nVersion = 1;
@@ -364,6 +365,7 @@ static void CreateCreditAndSpend(const CKeyStore& keystore, const CScript& outsc
 
     CMutableTransaction inputm;
     inputm.nVersion = 1;
+    inputm.SetType(inputType);
     inputm.vin.resize(1);
     inputm.vin[0].prevout.hash = output->GetHash();
     inputm.vin[0].prevout.n = 0;
@@ -375,6 +377,7 @@ static void CreateCreditAndSpend(const CKeyStore& keystore, const CScript& outsc
     CDataStream ssin(SER_NETWORK, PROTOCOL_VERSION);
     ssin << inputm;
     ssin >> input;
+    assert(input.GetType() == inputType);
     assert(input.vin.size() == 1);
     assert(input.vin[0] == inputm.vin[0]);
     assert(input.vout.size() == 1);
@@ -473,7 +476,7 @@ BOOST_AUTO_TEST_CASE(test_big_witness_transaction)
     for(uint32_t i = 0; i < mtx.vin.size(); i++) {
         Coin coin;
         coin.nHeight = 1;
-        coin.fCoinBase = false;
+        coin.tx_type = TxType::REGULAR;
         coin.out.nValue = 1000;
         coin.out.scriptPubKey = scriptPubKey;
         coins.emplace_back(std::move(coin));
@@ -677,6 +680,69 @@ BOOST_AUTO_TEST_CASE(test_witness)
     CheckWithFlag(output1, input1, STANDARD_SCRIPT_VERIFY_FLAGS, true);
 }
 
+BOOST_AUTO_TEST_CASE(test_remote_staking)
+{
+    CBasicKeyStore keystore1, keystore2;
+    CKey spending_key, staking_key;
+    CPubKey spending_pubkey, staking_pubkey;
+    spending_key.MakeNewKey(true);
+    staking_key.MakeNewKey(true);
+    spending_pubkey = spending_key.GetPubKey();
+    staking_pubkey = staking_key.GetPubKey();
+    keystore1.AddKeyPubKey(spending_key, spending_pubkey);
+    keystore2.AddKeyPubKey(staking_key, staking_pubkey);
+    CScript remote_staking_script;
+    remote_staking_script << OP_1 << ToByteVector(staking_pubkey.GetID()) << ToByteVector(spending_pubkey.GetSha256());
+
+    CTransactionRef output1, output2;
+    CMutableTransaction input1, input2;
+
+    // A standard transaction has to be signed by the spending_key from keystore1
+    CreateCreditAndSpend(keystore2, remote_staking_script, output1, input1, false, TxType::REGULAR);
+    CreateCreditAndSpend(keystore1, remote_staking_script, output1, input1, true, TxType::REGULAR);
+    CheckWithFlag(output1, input1, SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH, true);
+
+    // A coinbase transaction has to be signed by the staking_key from keystore2
+    CreateCreditAndSpend(keystore1, remote_staking_script, output2, input2, false, TxType::COINBASE);
+    CreateCreditAndSpend(keystore2, remote_staking_script, output2, input2, true, TxType::COINBASE);
+    CheckWithFlag(output2, input2, SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH, true);
+}
+
+BOOST_AUTO_TEST_CASE(test_remote_staking_p2sh)
+{
+    CBasicKeyStore keystore1, keystore2;
+    CKey spending_key1, spending_key2, staking_key;
+    CPubKey staking_pubkey;
+    spending_key1.MakeNewKey(true);
+    spending_key2.MakeNewKey(true);
+    staking_key.MakeNewKey(true);
+    staking_pubkey = staking_key.GetPubKey();
+
+    CScript script_multi = GetScriptForMultisig(2, {spending_key1.GetPubKey(), spending_key2.GetPubKey()});
+    keystore1.AddKey(spending_key1);
+    keystore1.AddKey(spending_key2);
+    keystore1.AddCScript(script_multi);
+    keystore2.AddKeyPubKey(staking_key, staking_pubkey);
+
+    uint256 hash;
+    CSHA256().Write(&script_multi[0], script_multi.size()).Finalize(hash.begin());
+    CScript remote_staking_script;
+    remote_staking_script << OP_2 << ToByteVector(staking_pubkey.GetID()) << ToByteVector(hash);
+
+    CTransactionRef output1, output2;
+    CMutableTransaction input1, input2;
+
+    // A coinbase transaction has to be signed by the staking_key from keystore2
+    CreateCreditAndSpend(keystore1, remote_staking_script, output2, input2, false, TxType::COINBASE);
+    CreateCreditAndSpend(keystore2, remote_staking_script, output2, input2, true, TxType::COINBASE);
+    CheckWithFlag(output2, input2, SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH, true);
+
+    // A standard transaction has to be signed by the keys from keystore1
+    CreateCreditAndSpend(keystore2, remote_staking_script, output1, input1, false, TxType::REGULAR);
+    CreateCreditAndSpend(keystore1, remote_staking_script, output1, input1, true, TxType::REGULAR);
+    CheckWithFlag(output1, input1, SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH, true);
+}
+
 BOOST_AUTO_TEST_CASE(test_IsStandard)
 {
     LOCK(cs_main);
@@ -766,6 +832,17 @@ BOOST_AUTO_TEST_CASE(test_IsStandard)
     t.vout[0].scriptPubKey = CScript() << OP_RETURN;
     t.vout[1].scriptPubKey = CScript() << OP_RETURN;
     BOOST_CHECK(!IsStandardTx(CTransaction(t), reason));
+}
+
+BOOST_AUTO_TEST_CASE(mutabletransaction_set_type_mulitple_times)
+{
+  CMutableTransaction tx;
+
+  tx.SetType(TxType::VOTE);
+  BOOST_CHECK_EQUAL(tx.GetType(), +TxType::VOTE);
+
+  tx.SetType(TxType::LOGOUT);
+  BOOST_CHECK_EQUAL(tx.GetType(), +TxType::LOGOUT);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

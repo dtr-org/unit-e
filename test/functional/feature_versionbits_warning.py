@@ -10,7 +10,7 @@ soft-forks, and test that warning alerts are generated.
 import os
 import re
 
-from test_framework.blocktools import create_block, create_coinbase
+from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta, sign_coinbase
 from test_framework.messages import msg_block
 from test_framework.mininode import P2PInterface, mininode_lock
 from test_framework.test_framework import UnitETestFramework
@@ -35,7 +35,7 @@ class VersionBitsWarningTest(UnitETestFramework):
         # Open and close to create zero-length file
         with open(self.alert_filename, 'w', encoding='utf8'):
             pass
-        self.extra_args = [["-alertnotify=echo %s >> \"" + self.alert_filename + "\""]]
+        self.extra_args = [["-alertnotify=echo %s >> \"" + self.alert_filename + "\"", "-stakesplitthreshold=2500000000"]]
         self.setup_nodes()
 
     def send_blocks_with_version(self, peer, numblocks, version):
@@ -45,14 +45,22 @@ class VersionBitsWarningTest(UnitETestFramework):
         block_time = self.nodes[0].getblockheader(tip)["time"] + 1
         tip = int(tip, 16)
 
+        snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         for _ in range(numblocks):
-            block = create_block(tip, create_coinbase(height + 1), block_time)
+            stake = self.nodes[0].listunspent()[0]
+            coinbase = create_coinbase(height + 1, stake, snapshot_meta.hash)
+            coinbase = sign_coinbase(self.nodes[0], coinbase)
+            block = create_block(tip, coinbase, block_time)
             block.nVersion = version
             block.solve()
             peer.send_message(msg_block(block))
+            self.nodes[0].waitforblockheight(height+1, 10000)
             block_time += 1
             height += 1
             tip = block.sha256
+
+            snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
+
         peer.sync_with_ping()
 
     def versionbits_in_alert_file(self):
@@ -62,6 +70,8 @@ class VersionBitsWarningTest(UnitETestFramework):
 
     def run_test(self):
         node = self.nodes[0]
+        self.setup_stake_coins(node)
+
         node.add_p2p_connection(P2PInterface())
 
         node_deterministic_address = node.get_deterministic_priv_key().address
@@ -74,8 +84,7 @@ class VersionBitsWarningTest(UnitETestFramework):
         node.generatetoaddress(VB_PERIOD - VB_THRESHOLD + 1, node_deterministic_address)
 
         # Check that we're not getting any versionbit-related errors in get*info()
-        assert(not VB_PATTERN.match(node.getmininginfo()["warnings"]))
-        assert(not VB_PATTERN.match(node.getnetworkinfo()["warnings"]))
+        assert not VB_PATTERN.match(node.getnetworkinfo()["warnings"])
 
         # Build one period of blocks with VB_THRESHOLD blocks signaling some unknown bit
         self.send_blocks_with_version(node.p2p, VB_THRESHOLD, VB_UNKNOWN_VERSION)
@@ -95,8 +104,7 @@ class VersionBitsWarningTest(UnitETestFramework):
         # Generating one more block will be enough to generate an error.
         node.generatetoaddress(1, node_deterministic_address)
         # Check that get*info() shows the versionbits unknown rules warning
-        assert(WARN_UNKNOWN_RULES_ACTIVE in node.getmininginfo()["warnings"])
-        assert(WARN_UNKNOWN_RULES_ACTIVE in node.getnetworkinfo()["warnings"])
+        assert WARN_UNKNOWN_RULES_ACTIVE in node.getnetworkinfo()["warnings"]
         # Check that the alert file shows the versionbits unknown rules warning
         wait_until(lambda: self.versionbits_in_alert_file(), timeout=60)
 

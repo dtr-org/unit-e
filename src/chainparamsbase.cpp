@@ -10,8 +10,8 @@
 #include <util/memory.h>
 
 #include <assert.h>
+#include <memory>
 
-const std::string CBaseChainParams::MAIN = "main";
 const std::string CBaseChainParams::TESTNET = "test";
 const std::string CBaseChainParams::REGTEST = "regtest";
 
@@ -19,7 +19,7 @@ void SetupChainParamsBaseOptions()
 {
     gArgs.AddArg("-regtest", "Enter regression test mode, which uses a special chain in which blocks can be solved instantly. "
                                    "This is intended for regression testing tools and app development.", true, OptionsCategory::CHAINPARAMS);
-    gArgs.AddArg("-testnet", "Use the test chain", false, OptionsCategory::CHAINPARAMS);
+    gArgs.AddArg("-testnet", "Use the test chain (default: 1)", true, OptionsCategory::CHAINPARAMS);
     gArgs.AddArg("-vbparams=deployment:start:end", "Use given start/end times for specified version bits deployment (regtest-only)", true, OptionsCategory::CHAINPARAMS);
 }
 
@@ -33,10 +33,8 @@ const CBaseChainParams& BaseParams()
 
 std::unique_ptr<CBaseChainParams> CreateBaseChainParams(const std::string& chain)
 {
-    if (chain == CBaseChainParams::MAIN)
-        return MakeUnique<CBaseChainParams>("", 7181);
-    else if (chain == CBaseChainParams::TESTNET)
-        return MakeUnique<CBaseChainParams>("testnet3", 17181);
+    if (chain == CBaseChainParams::TESTNET)
+        return MakeUnique<CBaseChainParams>("testnet", 17181);
     else if (chain == CBaseChainParams::REGTEST)
         return MakeUnique<CBaseChainParams>("regtest", 17291);
     else

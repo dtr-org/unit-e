@@ -18,6 +18,9 @@ class ReindexTest(UnitETestFramework):
         self.setup_clean_chain = True
         self.num_nodes = 1
 
+    def skip_test_if_missing_module(self):
+        self.skip_if_no_wallet()
+
     def reindex(self, justchainstate=False):
         self.nodes[0].generatetoaddress(3, self.nodes[0].get_deterministic_priv_key().address)
         blockcount = self.nodes[0].getblockcount()
@@ -28,6 +31,7 @@ class ReindexTest(UnitETestFramework):
         self.log.info("Success")
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0])
         self.reindex(False)
         self.reindex(True)
         self.reindex(False)

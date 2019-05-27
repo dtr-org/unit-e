@@ -5,13 +5,22 @@
 #include <serialize.h>
 #include <streams.h>
 #include <hash.h>
+#include <test/esperanza/finalizationstate_utils.h>
 #include <test/test_unite.h>
 
 #include <stdint.h>
 
 #include <boost/test/unit_test.hpp>
+#include <boost/optional/optional_io.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(serialize_tests, BasicTestingSetup)
+namespace esperanza {
+static std::ostream &operator<<(std::ostream &os, const FinalizationState &f) {
+  os << f.ToString();
+  return os;
+}
+}
+
+BOOST_AUTO_TEST_SUITE(serialize_tests)
 
 class CSerializeMethodsTestSingle
 {
@@ -368,6 +377,54 @@ BOOST_AUTO_TEST_CASE(class_methods)
     CDataStream ss2(SER_DISK, PROTOCOL_VERSION, intval, boolval, stringval, charstrval, txval);
     ss2 >> methodtest3;
     BOOST_CHECK(methodtest3 == methodtest4);
+}
+
+BOOST_AUTO_TEST_CASE(boost_optional)
+{
+    boost::optional<int> i1 = 1, i2 = boost::none;
+    boost::optional<std::string> s1 = std::string("string"), s2 = boost::none;
+    boost::optional<std::vector<std::string>> v1 = std::vector<std::string>{},
+        v2 = std::vector<std::string>{ "abc", "qwer" }, v3 = boost::none;
+    CDataStream ss(SER_DISK, PROTOCOL_VERSION);
+    ss << i1 << i2;
+    ss << s1 << s2;
+    ss << v1 << v2 << v3;
+
+    boost::optional<int> i;
+    ss >> i;
+    BOOST_CHECK_EQUAL(i, i1);
+    ss >> i;
+    BOOST_CHECK_EQUAL(i, i2);
+
+    boost::optional<std::string> s;
+    ss >> s;
+    BOOST_CHECK_EQUAL(s, s1);
+    ss >> s;
+    BOOST_CHECK_EQUAL(s, s2);
+
+    boost::optional<std::vector<std::string>> v;
+    ss >> v;
+    BOOST_CHECK_EQUAL(v, v1); // empty vector
+    BOOST_CHECK(v != v3); // no value
+    ss >> v;
+    BOOST_CHECK_EQUAL(v, v2);
+    ss >> v;
+    BOOST_CHECK_EQUAL(v, v3);
+
+    BOOST_CHECK(ss.empty());
+}
+
+BOOST_AUTO_TEST_CASE(finalization_state) {
+  finalization::Params params;
+  for (size_t i = 0; i < 10; ++i) {
+    FinalizationStateSpy original(params);
+    original.shuffle();
+    CDataStream ss(SER_DISK, PROTOCOL_VERSION);
+    ss << original;
+    FinalizationStateSpy restored(params);
+    ss >> restored;
+    BOOST_CHECK_EQUAL(restored, original);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -41,6 +41,8 @@ JSON_TEST_FILES = \
   test/data/blockfilters.json \
   test/data/key_io_valid.json \
   test/data/key_io_invalid.json \
+  test/data/bip39_vectors_english.json \
+  test/data/bip39_vectors_japanese.json \
   test/data/script_tests.json \
   test/data/sighash.json \
   test/data/tx_invalid.json \
@@ -51,9 +53,19 @@ RAW_TEST_FILES =
 GENERATED_TEST_FILES = $(JSON_TEST_FILES:.json=.json.h) $(RAW_TEST_FILES:.raw=.raw.h)
 
 UNITE_TEST_SUITE = \
-  test/test_unite_main.cpp \
+  test/esperanza/finalization_utils.h \
+  test/esperanza/finalization_utils.cpp \
+  test/esperanza/finalizationstate_utils.h \
+  test/esperanza/finalizationstate_utils.cpp \
+  test/rpc_test_utils.h \
+  test/rpc_test_utils.cpp \
+  test/scriptnum10.h \
   test/test_unite.h \
-  test/test_unite.cpp
+  test/test_unite.cpp \
+  test/test_unite_block_fixture.h \
+  test/test_unite_block_fixture.cpp \
+  test/test_unite_main.cpp \
+  test/test_unite_mocks.h
 
 FUZZ_SUITE = \
   test/fuzz/fuzz.cpp \
@@ -66,11 +78,16 @@ UNITE_TESTS =\
   test/addrman_tests.cpp \
   test/amount_tests.cpp \
   test/allocator_tests.cpp \
+  test/base16_tests.cpp \
   test/base32_tests.cpp \
   test/base58_tests.cpp \
   test/base64_tests.cpp \
   test/bech32_tests.cpp \
+  test/better_enum_set_tests.cpp \
   test/bip32_tests.cpp \
+  test/blockchain/blockchain_behavior_tests.cpp \
+  test/blockchain/blockchain_custom_parameters_tests.cpp \
+  test/blockchain/blockchain_parameters_tests.cpp \
   test/blockchain_tests.cpp \
   test/blockencodings_tests.cpp \
   test/blockfilter_tests.cpp \
@@ -78,14 +95,35 @@ UNITE_TESTS =\
   test/bswap_tests.cpp \
   test/checkqueue_tests.cpp \
   test/coins_tests.cpp \
+  test/coins_view_db_tests.cpp \
   test/compress_tests.cpp \
   test/crypto_tests.cpp \
   test/cuckoocache_tests.cpp \
   test/denialofservice_tests.cpp \
   test/descriptor_tests.cpp \
   test/fs_tests.cpp \
+  test/dependency_injector_tests.cpp \
+  test/embargoman_tests.cpp \
+  test/esperanza/admincommand_tests.cpp \
+  test/esperanza/adminstate_tests.cpp \
+  test/esperanza/checks_tests.cpp \
+  test/esperanza/finalizationstate_tests.cpp \
+  test/esperanza/finalizationstate_deposit_tests.cpp \
+  test/esperanza/finalizationstate_vote_tests.cpp \
+  test/esperanza/finalizationstate_logout_tests.cpp \
+  test/esperanza/finalizationstate_withdraw_tests.cpp \
+  test/esperanza/finalizationstate_slash_tests.cpp \
+  test/finalization/params_tests.cpp \
+  test/finalization/state_db_tests.cpp \
+  test/finalization/state_processor_tests.cpp \
+  test/finalization/state_repository_tests.cpp \
+  test/finalization/vote_recorder_tests.cpp \
+  test/finalizer_commits_handler_tests.cpp \
   test/getarg_tests.cpp \
   test/hash_tests.cpp \
+  test/iblt_tests.cpp \
+  test/interpreter_tests.cpp \
+  test/ismine_tests.cpp \
   test/key_io_tests.cpp \
   test/key_tests.cpp \
   test/limitedmap_tests.cpp \
@@ -94,13 +132,13 @@ UNITE_TESTS =\
   test/mempool_tests.cpp \
   test/merkle_tests.cpp \
   test/merkleblock_tests.cpp \
-  test/miner_tests.cpp \
+  # test/miner_tests.cpp will be replaced with proposer_tests.cpp \
   test/multisig_tests.cpp \
   test/net_tests.cpp \
   test/netbase_tests.cpp \
   test/pmt_tests.cpp \
+  test/p2p/grapheneblock_tests.cpp \
   test/policyestimator_tests.cpp \
-  test/pow_tests.cpp \
   test/prevector_tests.cpp \
   test/raii_event_tests.cpp \
   test/random_tests.cpp \
@@ -113,20 +151,33 @@ UNITE_TESTS =\
   test/script_standard_tests.cpp \
   test/scriptnum_tests.cpp \
   test/serialize_tests.cpp \
+  test/settings_tests.cpp \
   test/sighash_tests.cpp \
   test/sigopcount_tests.cpp \
+  test/sign_tests.cpp \
   test/skiplist_tests.cpp \
+  test/snapshot/chainstate_iterator_tests.cpp \
+  test/snapshot/creator_tests.cpp \
+  test/snapshot/indexer_tests.cpp \
+  test/snapshot/iterator_tests.cpp \
+  test/snapshot/messages_tests.cpp \
+  test/snapshot/p2p_processing_tests.cpp \
+  test/snapshot/snapshot_index_tests.cpp \
+  test/snapshot/state_tests.cpp \
+  test/snapshot/validation_tests.cpp \
+  test/staking/coin_tests.cpp \
+  test/staking/proof_of_stake_tests.cpp \
   test/streams_tests.cpp \
   test/sync_tests.cpp \
   test/timedata_tests.cpp \
   test/torcontrol_tests.cpp \
   test/transaction_tests.cpp \
-  test/txindex_tests.cpp \
-  test/txvalidation_tests.cpp \
-  test/txvalidationcache_tests.cpp \
+  test/trit_tests.cpp \
+  test/tx_verify_tests.cpp \
+  test/ufp64_tests.cpp \
   test/uint256_tests.cpp \
   test/util_tests.cpp \
-  test/validation_block_tests.cpp \
+  test/validation_tests.cpp \
   test/versionbits_tests.cpp
 
 if ENABLE_PROPERTY_TESTS
@@ -140,8 +191,28 @@ endif
 
 if ENABLE_WALLET
 UNITE_TESTS += \
+  test/blockdiskstorage_tests.cpp \
+  test/counting_semaphore_tests.cpp \
+  test/esperanza/walletextension_tests.cpp \
+  test/injector_tests.cpp \
+  test/mnemonic_tests.cpp \
+  test/proposer/blockassembleradapter_tests.cpp \
+  test/proposer/block_builder_tests.cpp \
+  test/proposer/proposer_logic_tests.cpp \
+  test/proposer/proposer_tests.cpp \
+  test/rpc_util_tests.cpp \
+  test/staking/abstract_block_validator_tests.cpp \
+  test/staking/block_validator_tests.cpp \
+  test/staking/stake_validator_tests.cpp \
+  test/txindex_tests.cpp \
+  test/txvalidation_tests.cpp \
+  test/txvalidationcache_tests.cpp \
+  test/validation_block_tests.cpp \
+  wallet/test/accounting_tests.cpp \
   wallet/test/db_tests.cpp \
   wallet/test/psbt_wallet_tests.cpp \
+  wallet/test/rpcvalidator_tests.cpp \
+  wallet/test/rpcwalletext_tests.cpp \
   wallet/test/wallet_tests.cpp \
   wallet/test/wallet_crypto_tests.cpp \
   wallet/test/coinselector_tests.cpp \
@@ -154,11 +225,20 @@ UNITE_TEST_SUITE += \
   wallet/test/init_test_fixture.h
 endif
 
+if ENABLE_USBDEVICE
+UNITE_TESTS += \
+  test/extkey_tests.cpp \
+  test/ledger_apdu_tests.cpp
+endif
+
 test_test_unite_SOURCES = $(UNITE_TEST_SUITE) $(UNITE_TESTS) $(JSON_TEST_FILES) $(RAW_TEST_FILES)
 test_test_unite_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES) $(TESTDEFS) $(EVENT_CFLAGS)
 test_test_unite_LDADD =
 if ENABLE_WALLET
 test_test_unite_LDADD += $(LIBUNITE_WALLET)
+endif
+if ENABLE_USBDEVICE
+test_test_unite_LDADD += $(LIBUNITE_USBDEVICE) $(HIDAPI_LIBS)
 endif
 
 test_test_unite_LDADD += $(LIBUNITE_SERVER) $(LIBUNITE_CLI) $(LIBUNITE_COMMON) $(LIBUNITE_UTIL) $(LIBUNITE_CONSENSUS) $(LIBUNITE_CRYPTO) $(LIBUNIVALUE) \
@@ -575,8 +655,9 @@ if EMBEDDED_UNIVALUE
 endif
 
 %.cpp.test: %.cpp
-	@echo Running tests: `cat $< | grep -E "(BOOST_FIXTURE_TEST_SUITE\\(|BOOST_AUTO_TEST_SUITE\\()" | cut -d '(' -f 2 | cut -d ',' -f 1 | cut -d ')' -f 1` from $<
-	$(AM_V_at)$(TEST_BINARY) -l test_suite -t "`cat $< | grep -E "(BOOST_FIXTURE_TEST_SUITE\\(|BOOST_AUTO_TEST_SUITE\\()" | cut -d '(' -f 2 | cut -d ',' -f 1 | cut -d ')' -f 1`" > $<.log 2>&1 || (cat $<.log && false)
+	@for test_suite in `cat $< | grep -E "(BOOST_FIXTURE_TEST_SUITE\\(|BOOST_AUTO_TEST_SUITE\\()" | cut -d '(' -f 2 | cut -d ',' -f 1 | cut -d ')' -f 1`; do \
+	    $(TEST_BINARY) -l test_suite -t $$test_suite > $<"-"$$test_suite".log" 2>&1 && (echo "Success: $$test_suite from $<") || ((echo "Failure: $$test_suite from $<"); cat $<"-"$$test_suite".log" && false) \
+	done
 
 %.json.h: %.json
 	@$(MKDIR_P) $(@D)

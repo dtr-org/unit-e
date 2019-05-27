@@ -4,10 +4,10 @@ SOURCES_PATH ?= $(BASEDIR)/sources
 WORK_PATH = $(BASEDIR)/work
 BASE_CACHE ?= $(BASEDIR)/built
 SDK_PATH ?= $(BASEDIR)/SDKs
-NO_QT ?=
 RAPIDCHECK ?=
 NO_WALLET ?=
 NO_UPNP ?=
+NO_USB ?=
 FALLBACK_DOWNLOAD_PATH ?= https://bitcoincore.org/depends-sources
 
 BUILD = $(shell ./config.guess)
@@ -90,18 +90,14 @@ $(host_arch)_$(host_os)_id_string+=$(shell $(host_CXX) --version 2>/dev/null)
 $(host_arch)_$(host_os)_id_string+=$(shell $(host_RANLIB) --version 2>/dev/null)
 $(host_arch)_$(host_os)_id_string+=$(shell $(host_STRIP) --version 2>/dev/null)
 
-qt_packages_$(NO_QT) = $(qt_packages) $(qt_$(host_os)_packages) $(qt_$(host_arch)_$(host_os)_packages)
 wallet_packages_$(NO_WALLET) = $(wallet_packages)
 upnp_packages_$(NO_UPNP) = $(upnp_packages)
+usb_packages_$(NO_USB) = $(usb_packages)
 
 rapidcheck_packages_$(RAPIDCHECK) = $(rapidcheck_packages)
 
-packages += $($(host_arch)_$(host_os)_packages) $($(host_os)_packages) $(qt_packages_) $(wallet_packages_) $(upnp_packages_)
+packages += $($(host_arch)_$(host_os)_packages) $($(host_os)_packages) $(wallet_packages_) $(upnp_packages_) $(usb_packages_)
 native_packages += $($(host_arch)_$(host_os)_native_packages) $($(host_os)_native_packages)
-
-ifneq ($(qt_packages_),)
-native_packages += $(qt_native_packages)
-endif
 
 ifeq ($(rapidcheck_packages_),)
 packages += $(rapidcheck_packages)
@@ -142,7 +138,6 @@ $(host_prefix)/share/config.site : config.site.in $(host_prefix)/.stamp_$(final_
             -e 's|@CPPFLAGS@|$(strip $(host_CPPFLAGS) $(host_$(release_type)_CPPFLAGS))|' \
             -e 's|@LDFLAGS@|$(strip $(host_LDFLAGS) $(host_$(release_type)_LDFLAGS))|' \
             -e 's|@allow_host_packages@|$(ALLOW_HOST_PACKAGES)|' \
-            -e 's|@no_qt@|$(NO_QT)|' \
             -e 's|@no_wallet@|$(NO_WALLET)|' \
             -e 's|@no_upnp@|$(NO_UPNP)|' \
             -e 's|@debug@|$(DEBUG)|' \

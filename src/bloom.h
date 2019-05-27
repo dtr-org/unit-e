@@ -14,8 +14,8 @@ class CTransaction;
 class uint256;
 
 //! 20,000 items with fp rate < 0.1% or 10,000 items and <0.0001%
-static const unsigned int MAX_BLOOM_FILTER_SIZE = 36000; // bytes
-static const unsigned int MAX_HASH_FUNCS = 50;
+static const size_t MAX_BLOOM_FILTER_SIZE = 36000; // bytes
+static const size_t MAX_HASH_FUNCS = 50;
 
 /**
  * First two bits of nFlags control how much IsRelevantAndUpdate actually updates
@@ -28,6 +28,8 @@ enum bloomflags
     // Only adds outpoints to the filter if the output is a pay-to-pubkey/pay-to-multisig script
     BLOOM_UPDATE_P2PUBKEY_ONLY = 2,
     BLOOM_UPDATE_MASK = 3,
+    // Adds deposits, votes, slashes and logouts to allow verifying finalization
+    MATCH_EPSPERANZA_FINALIZATION = 8,
 };
 
 /**
@@ -44,12 +46,12 @@ enum bloomflags
 class CBloomFilter
 {
 private:
-    std::vector<unsigned char> vData;
+    std::vector<uint8_t> vData;
     bool isFull;
     bool isEmpty;
-    unsigned int nHashFuncs;
-    unsigned int nTweak;
-    unsigned char nFlags;
+    uint32_t nHashFuncs;
+    uint32_t nTweak;
+    uint8_t nFlags;
 
     unsigned int Hash(unsigned int nHashNum, const std::vector<unsigned char>& vDataToHash) const;
 
@@ -61,9 +63,9 @@ public:
      * This will apply if nFPRate is very low or nElements is unreasonably high.
      * nTweak is a constant which is added to the seed value passed to the hash function
      * It should generally always be a random value (and is largely only exposed for unit testing)
-     * nFlags should be one of the BLOOM_UPDATE_* enums (not _MASK)
+     * nFlags can be MATCH_ESPERANZA_TRANSACTIONS and one of the BLOOM_UPDATE_* enums (not _MASK)
      */
-    CBloomFilter(const unsigned int nElements, const double nFPRate, const unsigned int nTweak, unsigned char nFlagsIn);
+    CBloomFilter(size_t nElements, double nFPRate, uint32_t nTweak, uint8_t nFlagsIn, size_t max_filter_size_bytes = MAX_BLOOM_FILTER_SIZE, size_t max_hash_funcs = MAX_HASH_FUNCS);
     CBloomFilter() : isFull(true), isEmpty(false), nHashFuncs(0), nTweak(0), nFlags(0) {}
 
     ADD_SERIALIZE_METHODS;
@@ -74,6 +76,10 @@ public:
         READWRITE(nHashFuncs);
         READWRITE(nTweak);
         READWRITE(nFlags);
+
+        if (ser_action.ForRead()) {
+            UpdateEmptyFull();
+        }
     }
 
     void insert(const std::vector<unsigned char>& vKey);
@@ -85,7 +91,7 @@ public:
     bool contains(const uint256& hash) const;
 
     void clear();
-    void reset(const unsigned int nNewTweak);
+    void reset(const uint32_t nNewTweak);
 
     //! True if the size is <= MAX_BLOOM_FILTER_SIZE and the number of hash functions is <= MAX_HASH_FUNCS
     //! (catch a filter which was just deserialized which was too big)
@@ -96,6 +102,8 @@ public:
 
     //! Checks for empty and full filters to avoid wasting cpu
     void UpdateEmptyFull();
+
+    static size_t ComputeEntriesSize(size_t n_elements, double fpr);
 };
 
 /**

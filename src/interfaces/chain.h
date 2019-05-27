@@ -156,7 +156,7 @@ public:
     virtual bool verify() = 0;
 
     //! Load saved state.
-    virtual bool load() = 0;
+    virtual bool load(const esperanza::WalletExtensionDeps &dependencies) = 0;
 
     //! Start client execution and provide a scheduler.
     virtual void start(CScheduler& scheduler) = 0;

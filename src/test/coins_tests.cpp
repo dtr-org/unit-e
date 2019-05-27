@@ -26,7 +26,7 @@ namespace
 bool operator==(const Coin &a, const Coin &b) {
     // Empty Coin objects are always equal.
     if (a.IsSpent() && b.IsSpent()) return true;
-    return a.fCoinBase == b.fCoinBase &&
+    return a.tx_type == b.tx_type &&
            a.nHeight == b.nHeight &&
            a.out == b.out;
 }
@@ -53,7 +53,7 @@ public:
 
     uint256 GetBestBlock() const override { return hashBestBlock_; }
 
-    bool BatchWrite(CCoinsMap& mapCoins, const uint256& hashBlock) override
+    bool BatchWrite(CCoinsMap& mapCoins, const uint256& hashBlock, const snapshot::SnapshotHash &snapshotHash) override
     {
         for (CCoinsMap::iterator it = mapCoins.begin(); it != mapCoins.end(); ) {
             if (it->second.flags & CCoinsCacheEntry::DIRTY) {
@@ -69,6 +69,12 @@ public:
         if (!hashBlock.IsNull())
             hashBestBlock_ = hashBlock;
         return true;
+    }
+
+    bool clear_coins_called = false;
+
+    void ClearCoins() override {
+      clear_coins_called = true;
     }
 };
 
@@ -96,7 +102,7 @@ public:
 
 } // namespace
 
-BOOST_FIXTURE_TEST_SUITE(coins_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(coins_tests, ReducedTestingSetup)
 
 static const unsigned int NUM_SIMULATION_ITERATIONS = 40000;
 
@@ -302,6 +308,7 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
         // 19/20 txs add a new transaction
         if (randiter % 20 < 19) {
             CMutableTransaction tx;
+            tx.SetType(TxType::REGULAR);
             tx.vin.resize(1);
             tx.vout.resize(1);
             tx.vout[0].nValue = i; //Keep txs unique unless intended to duplicate
@@ -311,6 +318,7 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
 
             // 2/20 times create a new coinbase
             if (randiter % 20 < 2 || coinbase_coins.size() < 10) {
+                tx.SetType(TxType::COINBASE);
                 // 1/10 of those times create a duplicate coinbase
                 if (InsecureRandRange(10) == 0 && coinbase_coins.size()) {
                     auto utxod = FindRandomFrom(coinbase_coins);
@@ -375,7 +383,7 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
             // Update the expected result to know about the new output coins
             assert(tx.vout.size() == 1);
             const COutPoint outpoint(tx.GetHash(), 0);
-            result[outpoint] = Coin(tx.vout[0], height, CTransaction(tx).IsCoinBase());
+            result[outpoint] = Coin(tx.vout[0], height, tx.GetType());
 
             // Call UpdateCoins on the top cache
             CTxUndo undo;
@@ -479,28 +487,28 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
 BOOST_AUTO_TEST_CASE(ccoins_serialization)
 {
     // Good example
-    CDataStream ss1(ParseHex("97f23c835800816115944e077fe7c803cfa57f29b36bf87c1d35"), SER_DISK, CLIENT_VERSION);
+    CDataStream ss1(ParseHex("00de1c0300835800816115944e077fe7c803cfa57f29b36bf87c1d35"), SER_DISK, CLIENT_VERSION);
     Coin cc1;
     ss1 >> cc1;
-    BOOST_CHECK_EQUAL(cc1.fCoinBase, false);
+    BOOST_CHECK_EQUAL(cc1.tx_type, +TxType::REGULAR);
     BOOST_CHECK_EQUAL(cc1.nHeight, 203998U);
     BOOST_CHECK_EQUAL(cc1.out.nValue, CAmount{60000000000});
     BOOST_CHECK_EQUAL(HexStr(cc1.out.scriptPubKey), HexStr(GetScriptForDestination(CKeyID(uint160(ParseHex("816115944e077fe7c803cfa57f29b36bf87c1d35"))))));
 
     // Good example
-    CDataStream ss2(ParseHex("8ddf77bbd123008c988f1a4a4de2161e0f50aac7f17e7f9555caa4"), SER_DISK, CLIENT_VERSION);
+    CDataStream ss2(ParseHex("033bd80100bbd123008c988f1a4a4de2161e0f50aac7f17e7f9555caa4"), SER_DISK, CLIENT_VERSION);
     Coin cc2;
     ss2 >> cc2;
-    BOOST_CHECK_EQUAL(cc2.fCoinBase, true);
+    BOOST_CHECK_EQUAL(cc2.tx_type, +TxType::VOTE);
     BOOST_CHECK_EQUAL(cc2.nHeight, 120891U);
     BOOST_CHECK_EQUAL(cc2.out.nValue, 110397);
     BOOST_CHECK_EQUAL(HexStr(cc2.out.scriptPubKey), HexStr(GetScriptForDestination(CKeyID(uint160(ParseHex("8c988f1a4a4de2161e0f50aac7f17e7f9555caa4"))))));
 
     // Smallest possible example
-    CDataStream ss3(ParseHex("000006"), SER_DISK, CLIENT_VERSION);
+    CDataStream ss3(ParseHex("01000000000006"), SER_DISK, CLIENT_VERSION);
     Coin cc3;
     ss3 >> cc3;
-    BOOST_CHECK_EQUAL(cc3.fCoinBase, false);
+    BOOST_CHECK_EQUAL(cc3.tx_type, +TxType::COINBASE);
     BOOST_CHECK_EQUAL(cc3.nHeight, 0U);
     BOOST_CHECK_EQUAL(cc3.out.nValue, 0);
     BOOST_CHECK_EQUAL(cc3.out.scriptPubKey.size(), 0U);
@@ -526,6 +534,11 @@ BOOST_AUTO_TEST_CASE(ccoins_serialization)
         BOOST_CHECK_MESSAGE(false, "We should have thrown");
     } catch (const std::ios_base::failure&) {
     }
+
+    // Wrong tx_type
+    CDataStream ss6(ParseHex("093bd80100bbd123008c988f1a4a4de2161e0f50aac7f17e7f9555caa4"), SER_DISK, CLIENT_VERSION);
+    Coin cc6;
+    BOOST_CHECK_THROW(ss6 >> cc6, std::runtime_error);
 }
 
 const static COutPoint OUTPOINT;
@@ -591,7 +604,7 @@ void WriteCoinsViewEntry(CCoinsView& view, CAmount value, char flags)
 {
     CCoinsMap map;
     InsertCoinsMapEntry(map, value, flags);
-    BOOST_CHECK(view.BatchWrite(map, {}));
+    BOOST_CHECK(view.BatchWrite(map, {}, {}));
 }
 
 class SingleEntryCacheTest
@@ -719,7 +732,7 @@ static void CheckAddCoinBase(CAmount base_value, CAmount cache_value, CAmount mo
     try {
         CTxOut output;
         output.nValue = modify_value;
-        test.cache.AddCoin(OUTPOINT, Coin(std::move(output), 1, coinbase), coinbase);
+        test.cache.AddCoin(OUTPOINT, Coin(std::move(output), 1, coinbase ? TxType::COINBASE : TxType::REGULAR), coinbase);
         test.cache.SelfTest();
         GetCoinsMapEntry(test.cache.map(), result_value, result_flags);
     } catch (std::logic_error&) {
@@ -856,6 +869,14 @@ BOOST_AUTO_TEST_CASE(ccoins_write)
             for (const char parent_flags : parent_value == ABSENT ? ABSENT_FLAGS : FLAGS)
                 for (const char child_flags : child_value == ABSENT ? ABSENT_FLAGS : CLEAN_FLAGS)
                     CheckWriteCoins(parent_value, child_value, parent_value, parent_flags, child_flags, parent_flags);
+}
+
+BOOST_AUTO_TEST_CASE(ccoins_clear) {
+  CCoinsViewTest base;
+  CCoinsViewCache cache1(&base);
+  CCoinsViewCache cache2(&cache1);
+  cache2.ClearCoins();
+  BOOST_CHECK(base.clear_coins_called);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

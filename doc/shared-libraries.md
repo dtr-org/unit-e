@@ -41,9 +41,3 @@ The interface is defined in the C header `uniteconsensus.h` located in `src/scri
 - `uniteconsensus_ERR_TX_SIZE_MISMATCH` - `txToLen` did not match with the size of `txTo`
 - `uniteconsensus_ERR_DESERIALIZE` - An error deserializing `txTo`
 - `uniteconsensus_ERR_AMOUNT_REQUIRED` - Input amount is required if WITNESS is used
-
-### Example Implementations
-- [NUnit-e](https://github.com/NicolasDorier/NUnit-e/blob/master/NUnit-e/Script.cs#L814) (.NET Bindings)
-- [node-libuniteconsensus](https://github.com/bitpay/node-libuniteconsensus) (Node.js Bindings)
-- [java-libuniteconsensus](https://github.com/dexX7/java-libuniteconsensus) (Java Bindings)
-- [uniteconsensus-php](https://github.com/Bit-Wasp/uniteconsensus-php) (PHP Bindings)

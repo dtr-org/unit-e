@@ -1,13 +1,6 @@
 #!/sbin/openrc-run
 
-# backward compatibility for existing gentoo layout 
-#
-if [ -d "/var/lib/unite/.unit-e" ]; then
-	UNIT_E_DEFAULT_DATADIR="/var/lib/unite/.unit-e"
-else
-	UNIT_E_DEFAULT_DATADIR="/var/lib/unit-e"
-fi
-
+UNIT_E_DEFAULT_DATADIR="/var/lib/unit-e"
 UNIT_E_CONFIGFILE=${UNIT_E_CONFIGFILE:-/etc/unite/unit-e.conf}
 UNIT_E_PIDDIR=${UNIT_E_PIDDIR:-/var/run/unit-e}
 UNIT_E_PIDFILE=${UNIT_E_PIDFILE:-${UNIT_E_PIDDIR}/unit-e.pid}

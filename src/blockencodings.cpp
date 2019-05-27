@@ -6,6 +6,7 @@
 #include <consensus/consensus.h>
 #include <consensus/validation.h>
 #include <chainparams.h>
+#include <injector.h>
 #include <crypto/sha256.h>
 #include <crypto/siphash.h>
 #include <random.h>
@@ -16,7 +17,7 @@
 
 #include <unordered_map>
 
-CBlockHeaderAndShortTxIDs::CBlockHeaderAndShortTxIDs(const CBlock& block, bool fUseWTXID) :
+CBlockHeaderAndShortTxIDs::CBlockHeaderAndShortTxIDs(const CBlock& block) :
         nonce(GetRand(std::numeric_limits<uint64_t>::max())),
         shorttxids(block.vtx.size() - 1), prefilledtxn(1), header(block) {
     FillShortTxIDSelector();
@@ -24,7 +25,7 @@ CBlockHeaderAndShortTxIDs::CBlockHeaderAndShortTxIDs(const CBlock& block, bool f
     prefilledtxn[0] = {0, block.vtx[0]};
     for (size_t i = 1; i < block.vtx.size(); i++) {
         const CTransaction& tx = *block.vtx[i];
-        shorttxids[i - 1] = GetShortID(fUseWTXID ? tx.GetWitnessHash() : tx.GetHash());
+        shorttxids[i - 1] = GetShortID(tx.GetWitnessHash());
     }
 }
 
@@ -198,7 +199,7 @@ ReadStatus PartiallyDownloadedBlock::FillBlock(CBlock& block, const std::vector<
         return READ_STATUS_INVALID;
 
     CValidationState state;
-    if (!CheckBlock(block, state, Params().GetConsensus())) {
+    if (!GetComponent<staking::LegacyValidationInterface>()->CheckBlock(block, state, Params().GetConsensus())) {
         // TODO: We really want to just check merkle tree manually here,
         // but that is expensive, and CheckBlock caches a block's
         // "checked-status" (in the CBlock?). CBlock should be able to

@@ -10,14 +10,26 @@
 - verify that getchaintips now returns two chain tips.
 """
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, DISABLE_FINALIZATION
 from test_framework.util import assert_equal
 
 class GetChainTipsTest (UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 4
+        self.extra_args = [[DISABLE_FINALIZATION]] * 4
+        self.setup_clean_chain = True
+
+    # UNIT-E TODO [0.18.0]: Was deleted
+    def skip_test_if_missing_module(self):
+        self.skip_if_no_wallet()
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0], self.nodes[2])
+
+        # start with 200 blocks
+        self.nodes[0].generatetoaddress(200, self.nodes[0].getnewaddress('', 'bech32'))
+        self.sync_all()
+
         tips = self.nodes[0].getchaintips()
         assert_equal(len(tips), 1)
         assert_equal(tips[0]['branchlen'], 0)

@@ -4,7 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the invalidateblock RPC."""
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, DISABLE_FINALIZATION
 from test_framework.address import ADDRESS_BCRT1_UNSPENDABLE
 from test_framework.util import (
     assert_equal,
@@ -18,11 +18,19 @@ class InvalidateTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
+        self.extra_args = [[DISABLE_FINALIZATION]] * 3
+
+    # UNIT-E TODO [0.18.0]: Deleted
+    def skip_test_if_missing_module(self):
+        self.skip_if_no_wallet()
 
     def setup_network(self):
         self.setup_nodes()
 
     def run_test(self):
+
+        self.setup_stake_coins(*self.nodes)
+
         self.log.info("Make sure we repopulate setBlockIndexCandidates after InvalidateBlock:")
         self.log.info("Mine 4 blocks on Node 0")
         self.nodes[0].generatetoaddress(4, self.nodes[0].get_deterministic_priv_key().address)

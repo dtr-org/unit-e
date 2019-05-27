@@ -35,4 +35,21 @@ std::string FormatISO8601DateTime(int64_t nTime);
 std::string FormatISO8601Date(int64_t nTime);
 std::string FormatISO8601Time(int64_t nTime);
 
+class RAIIMockTime {
+private:
+  int64_t m_prev_mock_time;
+
+public:
+  RAIIMockTime(int64_t mock_time, bool set_time) {
+    m_prev_mock_time = GetMockTime();
+    if (set_time) {
+      SetMockTime(mock_time);
+    }
+  }
+
+  ~RAIIMockTime() {
+    SetMockTime(m_prev_mock_time);
+  }
+};
+
 #endif // UNITE_UTIL_TIME_H

@@ -10,6 +10,11 @@ from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
+    hex_str_to_bytes,
+    wait_until,
+)
+from test_framework.mininode import (
+    P2PInterface,
 )
 import json
 import os
@@ -53,6 +58,8 @@ class GetblockstatsTest(UnitETestFramework):
 
     def generate_test_data(self, filename):
         mocktime = time.time()
+        self.setup_stake_coins(self.nodes[0])
+
         self.nodes[0].generate(101)
 
         self.nodes[0].sendtoaddress(address=self.nodes[1].getnewaddress(), amount=10, subtractfeefromamount=True)
@@ -95,8 +102,12 @@ class GetblockstatsTest(UnitETestFramework):
         self.nodes[0].setmocktime(mocktime)
         self.nodes[1].setmocktime(mocktime)
 
+        self.nodes[0].add_p2p_connection(P2PInterface())
+
         for b in blocks:
-            self.nodes[0].submitblock(b)
+            self.nodes[0].p2p.send_data(b'block', hex_str_to_bytes(b))
+
+        wait_until(lambda: self.nodes[0].getblockcount() == len(blocks) - 1)
 
     def run_test(self):
         test_data = os.path.join(TESTSDIR, self.options.test_data)
