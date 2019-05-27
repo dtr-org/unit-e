@@ -18,6 +18,10 @@ class uint256;
 struct CBlockLocator;
 class CTransaction;
 
+namespace esperanza {
+    class WalletExtensionDeps;
+}
+
 using CTransactionRef = std::shared_ptr<const CTransaction>;
 
 namespace interfaces {

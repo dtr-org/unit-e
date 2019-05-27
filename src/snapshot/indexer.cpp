@@ -5,7 +5,7 @@
 #include <snapshot/indexer.h>
 
 #include <crypto/sha256.h>
-#include <util.h>
+#include <util/system.h>
 
 namespace snapshot {
 

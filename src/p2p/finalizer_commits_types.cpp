@@ -3,7 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <p2p/finalizer_commits_types.h>
-#include <util.h>
+#include <util/system.h>
 
 std::string p2p::FinalizerCommitsLocator::ToString() const {
   return strprintf("Locator(start=%s stop=%s)", util::to_string(start), stop.GetHex());

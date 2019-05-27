@@ -13,7 +13,7 @@
 #include <script/script.h>
 #include <test/test_unite.h>
 #include <uint256.h>
-#include <util.h>
+#include <util/system.h>
 #include <boost/test/unit_test.hpp>
 
 BOOST_FIXTURE_TEST_SUITE(grapheneblock_tests, ReducedTestingSetup)
@@ -254,13 +254,13 @@ BOOST_AUTO_TEST_CASE(decode_rate) {
                                                          random);
 
     CBlockHeaderAndShortTxIDs cmpct_block(block);
-    const size_t cmpct_size = GetSerializeSize(cmpct_block, SER_NETWORK, PROTOCOL_VERSION);
+    const size_t cmpct_size = GetSerializeSize(cmpct_block, PROTOCOL_VERSION);
     size_t graphene_size = 0;
 
     if (maybe_graphene) {
       const p2p::GrapheneBlock graphene = maybe_graphene.get();
       p2p::GrapheneBlockReconstructor r(graphene, receiver);
-      graphene_size = GetSerializeSize(graphene, SER_NETWORK, PROTOCOL_VERSION);
+      graphene_size = GetSerializeSize(graphene, PROTOCOL_VERSION);
 
       if (r.GetState() != +p2p::GrapheneDecodeState::CANT_DECODE_IBLT) {
         ++successes;

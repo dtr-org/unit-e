@@ -57,10 +57,11 @@ struct Fixture {
           return argsman;
         }()),
         settings(Settings::New(args_manager.get(), behavior.get())),
-        wallet(new CWallet("mock", WalletDatabase::CreateMock(), [&] {
-          esperanza::WalletExtensionDeps deps(settings.get(), &stake_validator);
-          return deps;
-        }())),
+        // UNIT-E TODO [0.18.0]: Update a call to the CWallet constructor
+        // wallet(new CWallet("mock", WalletDatabase::CreateMock(), [&] {
+        //   esperanza::WalletExtensionDeps deps(settings.get(), &stake_validator);
+        //   return deps;
+        // }())),
         multi_wallet_mock([&] {
           MultiWalletMock mock;
           mock.wallets.emplace_back(wallet);

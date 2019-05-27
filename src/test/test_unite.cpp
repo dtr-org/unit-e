@@ -24,23 +24,23 @@
 
 #include <memory>
 
-void CConnmanTest::AddNode(CNode& node, CConnman* connman)
+void CConnmanTest::AddNode(CNode& node)
 {
-    LOCK(cs_vNodes);
-    vNodes.push_back(&node);
+    LOCK(g_connman->cs_vNodes);
+    g_connman->vNodes.push_back(&node);
 }
 
-void CConnmanTest::ClearNodes(CConnman* connman)
+void CConnmanTest::ClearNodes()
 {
-    LOCK(cs_vNodes);
-    for (CNode* node : vNodes) {
+    LOCK(g_connman->cs_vNodes);
+    for (CNode* node : g_connman->vNodes) {
         delete node;
     }
-    vNodes.clear();
+    g_connman->vNodes.clear();
 }
 
-void CConnmanTest::StartThreadMessageHandler(CConnman* connman) {
-    ThreadMessageHandler();
+void CConnmanTest::StartThreadMessageHandler() {
+    g_connman->ThreadMessageHandler();
 }
 
 void SelectNetwork(const std::string& network_name) {
@@ -145,7 +145,8 @@ TestingSetup::TestingSetup(const std::string& chainName, UnitEInjectorConfigurat
             threadGroup.create_thread(&ThreadScriptCheck);
         g_connman = std::unique_ptr<CConnman>(new CConnman(0x1337, 0x1337)); // Deterministic randomness for tests.
         connman = g_connman.get();
-        peerLogic.reset(new PeerLogicValidation(connman, scheduler, /*enable_bip61=*/true));
+        banman = g_banman.get();
+        peerLogic.reset(new PeerLogicValidation(connman, banman, scheduler, /*enable_bip61=*/true));
 }
 
 TestingSetup::~TestingSetup()

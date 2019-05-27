@@ -997,7 +997,6 @@ public:
      * selected by SelectCoins(); Also create the change output, when needed
      * @note passing nChangePosInOut as -1 will result in setting a random position
      */
-    // UNIT-E TODO [0.18.0] Update implementation
     bool CreateTransaction(interfaces::Chain::Lock& locked_chain, const std::vector<CRecipient>& vecSend, CTransactionRef& tx, CReserveKey& reservekey, CAmount& nFeeRet, int& nChangePosInOut,
                            std::string& strFailReason, const CCoinControl& coin_control, bool sign = true, TxType type = TxType::REGULAR);
     bool CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::vector<std::pair<std::string, std::string>> orderForm, CReserveKey& reservekey, CConnman* connman, CValidationState& state, bool relay = true, CWalletTx **tx_out = nullptr);
@@ -1207,8 +1206,8 @@ public:
     void SetHDSeed(const CPubKey& key);
 
     bool SetHDMasterKey(
-        const CPubKey& masterKey, const std::vector<CExtPubKey> &acctKeys,
-        const std::vector<CKeyMetadata> &metadata, bool hardwareDevice = false
+        const CPubKey& masterKey, const CExtPubKey &acctKey,
+        const CKeyMetadata &metadata, bool hardwareDevice = false
     );
 
     /**

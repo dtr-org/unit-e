@@ -233,7 +233,6 @@ void UpdateInput(CTxIn& input, const SignatureData& data);
  * Solvability is unrelated to whether we consider this output to be ours. */
 bool IsSolvable(const SigningProvider& provider, const CScript& script);
 
-#endif // UNITE_SCRIPT_SIGN_H
 //! \brief Signs the vote passed with the keystore passed
 //! \param[in] keystore the keystore used to sign the vote
 //! \param[in] vote the vote data

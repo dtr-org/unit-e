@@ -11,7 +11,7 @@
 #include <set>
 
 #include <primitives/transaction.h>
-#include <util.h>
+#include <util/system.h>
 
 namespace p2p {
 

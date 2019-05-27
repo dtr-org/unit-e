@@ -10,7 +10,7 @@
 #include <snapshot/state.h>
 #include <sync.h>
 #include <txdb.h>
-#include <util.h>
+#include <util/system.h>
 #include <validation.h>
 
 namespace snapshot {
@@ -152,7 +152,7 @@ bool P2PState::ProcessSnapshot(CNode &node, CDataStream &data,
   data >> msg;
   if (node.m_best_snapshot.IsNull() ||
       msg.snapshot_hash != node.m_best_snapshot.snapshot_hash) {
-    g_connman->Ban(node.addr, BanReasonNodeMisbehaving);
+    g_banman->Ban(node.addr, BanReasonNodeMisbehaving);
     return false;
   }
 

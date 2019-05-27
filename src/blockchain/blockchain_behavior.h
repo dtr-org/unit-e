@@ -10,7 +10,7 @@
 #include <amount.h>
 #include <blockchain/blockchain_interfaces.h>
 #include <dependency.h>
-#include <util.h>
+#include <util/system.h>
 
 #include <boost/optional.hpp>
 

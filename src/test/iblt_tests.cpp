@@ -11,7 +11,7 @@
 
 #include <test/test_unite.h>
 #include <uint256.h>
-#include <util.h>
+#include <util/system.h>
 #include <boost/test/unit_test.hpp>
 
 BOOST_AUTO_TEST_SUITE(iblt_tests)

@@ -8,7 +8,7 @@
 #include <p2p/embargoman.h>
 #include <test/test_unite.h>
 #include <uint256.h>
-#include <util.h>
+#include <util/system.h>
 #include <boost/test/unit_test.hpp>
 
 BOOST_FIXTURE_TEST_SUITE(embargoman_tests, ReducedTestingSetup)

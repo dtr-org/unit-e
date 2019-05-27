@@ -1132,10 +1132,10 @@ UniValue extractvotefromsignature(const JSONRPCRequest &request) {
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "script decode failed");
     }
 
-    r.push_back(Pair("validator_address", vote.m_validator_address.GetHex()));
-    r.push_back(Pair("target_hash", vote.m_target_hash.GetHex()));
-    r.push_back(Pair("source_epoch", (uint64_t)vote.m_source_epoch));
-    r.push_back(Pair("target_epoch", (uint64_t)vote.m_target_epoch));
+    r.pushKV("validator_address", vote.m_validator_address.GetHex());
+    r.pushKV("target_hash", vote.m_target_hash.GetHex());
+    r.pushKV("source_epoch", (uint64_t)vote.m_source_epoch);
+    r.pushKV("target_epoch", (uint64_t)vote.m_target_epoch);
     return r;
 }
 

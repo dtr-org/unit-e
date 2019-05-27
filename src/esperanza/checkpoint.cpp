@@ -3,7 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <esperanza/checkpoint.h>
-#include <util.h>
+#include <util/system.h>
 
 namespace esperanza {
 

@@ -5,7 +5,7 @@
 #include <snapshot/snapshot_index.h>
 
 #include <txdb.h>
-#include <util.h>
+#include <util/system.h>
 #include <validation.h>
 
 #include <algorithm>

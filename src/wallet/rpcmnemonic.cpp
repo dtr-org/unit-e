@@ -9,10 +9,11 @@
 #include <random.h>
 #include <rpc/server.h>
 #include <rpc/util.h>
-#include <util.h>
-#include <utiltime.h>
+#include <util/system.h>
+#include <util/time.h>
 #include <validation.h>
 #include <wallet/crypter.h>
+#include <wallet/rpcwallet.h>
 #include <wallet/wallet.h>
 #include <wallet/walletdb.h>
 #include <wallet/walletutil.h>
@@ -181,6 +182,7 @@ UniValue importmasterkey(const JSONRPCRequest &request) {
 
   {
     LOCK2(cs_main, wallet->cs_wallet);
+    auto locked_chain = wallet->chain().lock();
 
     if (!wallet->GetWalletExtension().SetMasterKeyFromSeed(seed, brand_new, error)) {
       throw std::runtime_error(error);
@@ -200,7 +202,7 @@ UniValue importmasterkey(const JSONRPCRequest &request) {
       }
     }
 
-    wallet->ReacceptWalletTransactions();
+    wallet->ReacceptWalletTransactions(*locked_chain);
   }
 
   UniValue response(UniValue::VOBJ);

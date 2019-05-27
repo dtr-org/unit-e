@@ -13,7 +13,7 @@
 #include <snapshot/p2p_processing.h>
 #include <snapshot/snapshot_index.h>
 #include <snapshot/state.h>
-#include <util.h>
+#include <util/system.h>
 #include <validation.h>
 
 #include <atomic>

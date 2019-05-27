@@ -330,6 +330,7 @@ UniValue sendtypeto(const JSONRPCRequest &request) {
   return wtx->GetHash().GetHex();
 }
 
+
 constexpr const char* STAKEAT_HELP = "stakeat recipient test_fee coin_control\n"
 "\nDelegate staking to the provided recipient. The funds will still be spendable\n"
 "by the current node.\n%s\n"
@@ -421,9 +422,14 @@ static UniValue stakeat(const JSONRPCRequest &request) {
   CTransactionRef wtx;
   CReserveKey key_change(pwallet);
 
+  // UNIT-E TODO [0.18.0]: Clean up locked_chain logic
+  LOCK2(cs_main, pwallet->cs_wallet);
+  auto locked_chain = pwallet->chain().lock();
+
   auto &wallet_ext = pwallet->GetWalletExtension();
+
   bool created = wallet_ext.CreateRemoteStakingTransaction(
-      recipient, &wtx, &key_change, &tx_fee, &error, coin_control);
+      *locked_chain, recipient, &wtx, &key_change, &tx_fee, &error, coin_control);
   if (!created) {
     throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, error);
   }

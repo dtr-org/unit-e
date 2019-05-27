@@ -5,7 +5,7 @@
 #include <blockchain/blockchain_parameters.h>
 
 #include <blockchain/blockchain_genesis.h>
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 
 #include <numeric>
 

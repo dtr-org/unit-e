@@ -5,7 +5,7 @@
 #include <p2p/finalizer_commits_handler.h>
 
 #include <p2p/finalizer_commits_handler_impl.h>
-#include <util.h>
+#include <util/system.h>
 
 namespace p2p {
 

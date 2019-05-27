@@ -7,7 +7,7 @@
 #include <test/esperanza/finalization_utils.h>
 #include <test/esperanza/finalizationstate_utils.h>
 #include <ufp64.h>
-#include <util.h>
+#include <util/system.h>
 #include <validation.h>
 
 using namespace esperanza;
@@ -131,7 +131,7 @@ BOOST_AUTO_TEST_CASE(register_last_validator_tx) {
   CTransaction prevTx(tx);
 
   // Test deposit
-  CTransactionRef depositTx = MakeTransactionRef(CreateDepositTx(tx, k, 10000));
+  CTransactionRef depositTx = MakeTransactionRef(CreateDepositTx(CTransaction(tx), k, 10000));
   block.vtx = std::vector<CTransactionRef>{depositTx};
 
   uint256 depositHash = depositTx->GetHash();
@@ -206,7 +206,7 @@ BOOST_AUTO_TEST_CASE(deposit_amount) {
   base_tx.vin.resize(1);
   base_tx.vout.resize(1);
 
-  CMutableTransaction deposit_tx(CreateDepositTx(base_tx, k, 10000));
+  CMutableTransaction deposit_tx(CreateDepositTx(CTransaction(base_tx), k, 10000));
   deposit_tx.vout.emplace_back(15000, CScript::CreateP2PKHScript(ToByteVector(validatorAddress)));
 
   block.vtx = std::vector<CTransactionRef>{MakeTransactionRef(deposit_tx)};

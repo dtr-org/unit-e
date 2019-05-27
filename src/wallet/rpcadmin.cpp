@@ -22,7 +22,7 @@ struct UTXO {
 
 uint256 SignAndSend(CMutableTransaction &&mutableTx, CWallet *const wallet,
                       const std::vector<UTXO> &adminUTXOs) {
-  CTransaction constTx = mutableTx;
+  CTransaction constTx = CTransaction(mutableTx);
   SignatureData sigdata;
 
   for (size_t i = 0; i < constTx.vin.size(); ++i) {
@@ -46,7 +46,7 @@ uint256 SignAndSend(CMutableTransaction &&mutableTx, CWallet *const wallet,
   CTransactionRef txref = MakeTransactionRef(mutableTx);
   CReserveKey reserveKey(wallet);
   CValidationState state;
-  if (!wallet->CommitTransaction(txref, {} /* mapValue */, {} /* orderForm */, {} /* fromAccount */, reserveKey,
+  if (!wallet->CommitTransaction(txref, {} /* mapValue */, {} /* orderForm */, reserveKey,
                                  g_connman.get(), state)) {
     LogPrint(BCLog::RPC, "Unable to commit admin transaction\n");
     throw JSONRPCError(RPC_TRANSACTION_ERROR,

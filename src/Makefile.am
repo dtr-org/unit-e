@@ -91,17 +91,15 @@ endif
 if BUILD_UNITE_CLI
   bin_PROGRAMS += unit-e-cli
 endif
+
 if BUILD_UNITE_TX
   bin_PROGRAMS += unit-e-tx
 endif
+
 if ENABLE_WALLET
 if BUILD_UNITE_WALLET
   bin_PROGRAMS += unite-wallet
 endif
-endif
-
-if BUILD_BITCOIN_UTILS
-  bin_PROGRAMS += bitcoin-cli bitcoin-tx
 endif
 
 .PHONY: FORCE check-symbols check-security
@@ -703,9 +701,7 @@ endif
 # cli #
 libunite_cli_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_cli_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libunite_cli_a_SOURCES = \
-  rpc/client.cpp \
-  $(UNITE_CORE_H)
+libunite_cli_a_SOURCES = $(UNITE_CORE_H)
 
 nodist_libunite_util_a_SOURCES = $(srcdir)/obj/build.h
 #
@@ -879,12 +875,6 @@ check-security: $(bin_PROGRAMS)
 if HARDEN
 	@echo "Checking binary security..."
 	$(AM_V_at) READELF=$(READELF) OBJDUMP=$(OBJDUMP) $(top_srcdir)/contrib/devtools/security-check.py < $(bin_PROGRAMS)
-endif
-
-if ENABLE_BIP70
-%.pb.cc %.pb.h: %.proto
-	@test -f $(PROTOC)
-	$(AM_V_GEN) $(PROTOC) --cpp_out=$(@D) --proto_path=$(<D) $<
 endif
 
 if EMBEDDED_LEVELDB

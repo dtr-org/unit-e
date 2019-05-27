@@ -28,7 +28,19 @@
 #include <validation.h>
 #include <wallet/feebumper.h>
 #include <wallet/fees.h>
+
+// UNIT-E TODO [0.18.0]: Sort out RPC includes
+#include <wallet/rpcaddressbook.h>
+#include <wallet/rpcmnemonic.h>
 #include <wallet/rpcwallet.h>
+#include <wallet/rpcvalidator.h>
+#include <wallet/rpcadmin.h>
+#include <wallet/rpcwalletext.h>
+#include <rpc/finalization.h>
+#include <rpc/staking.h>
+#include <rpc/proposing.h>
+#include <snapshot/rpc_processing.h>
+
 #include <wallet/wallet.h>
 #include <wallet/walletutil.h>
 

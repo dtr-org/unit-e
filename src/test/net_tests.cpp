@@ -298,14 +298,14 @@ BOOST_AUTO_TEST_CASE(thread_message_handler) {
         node5.get(),
     };
 
-    CConnmanTest::AddNode(*nodes[0], &connman);
-    CConnmanTest::AddNode(*nodes[1], &connman);
-    CConnmanTest::AddNode(*nodes[2], &connman);
-    CConnmanTest::AddNode(*nodes[3], &connman);
-    CConnmanTest::AddNode(*nodes[4], &connman);
+    CConnmanTest::AddNode(*nodes[0]);
+    CConnmanTest::AddNode(*nodes[1]);
+    CConnmanTest::AddNode(*nodes[2]);
+    CConnmanTest::AddNode(*nodes[3]);
+    CConnmanTest::AddNode(*nodes[4]);
 
     connman.WakeMessageHandler(); // ensure that function doesn't wait
-    CConnmanTest::StartThreadMessageHandler(&connman);
+    CConnmanTest::StartThreadMessageHandler();
 
     BOOST_CHECK_EQUAL(nodes[0]->nSendBytes, 1);
     BOOST_CHECK_EQUAL(nodes[1]->nSendBytes, 0); // disconnected
@@ -319,7 +319,7 @@ BOOST_AUTO_TEST_CASE(thread_message_handler) {
     BOOST_CHECK_EQUAL(nodes[3]->nRecvBytes, 0); // disconnected
     BOOST_CHECK_EQUAL(nodes[4]->nRecvBytes, 1);
 
-    CConnmanTest::ClearNodes(&connman);
+    CConnmanTest::ClearNodes();
 }
 
 BOOST_AUTO_TEST_CASE(LimitedAndReachable_Network)

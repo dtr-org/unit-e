@@ -42,7 +42,7 @@ class LockImpl : public Chain::Lock
     {
         const Optional<int> tip_height = getHeight();
         const Optional<int> height = getBlockHeight(hash);
-        if (!tip_hegiht || !height) {
+        if (!tip_height || !height) {
             return 0;
         }
         const int depth = *tip_height - *height + 1;

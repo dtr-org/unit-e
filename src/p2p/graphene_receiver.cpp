@@ -11,7 +11,7 @@
 #include <p2p/graphene_receiver.h>
 #include <sync.h>
 #include <tinyformat.h>
-#include <util.h>
+#include <util/system.h>
 #include <util/scope_stopwatch.h>
 #include <validation.h>
 

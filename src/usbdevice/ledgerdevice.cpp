@@ -9,7 +9,7 @@
 #include <usbdevice/ledger/dongleCommHidHidapi.h>
 #include <usbdevice/ledgerapdu.h>
 #include <usbdevice/ledgerdevice.h>
-#include <util.h>
+#include <util/system.h>
 
 #include <hidapi/hidapi.h>
 

@@ -8,7 +8,7 @@
 #include <test/test_unite.h>
 #include <script/interpreter.h>
 #include <script/script.h>
-#include <util.h>
+#include <util/system.h>
 
 BOOST_FIXTURE_TEST_SUITE(interpreter_tests, ReducedTestingSetup)
 
@@ -65,13 +65,13 @@ BOOST_AUTO_TEST_CASE(signaturehash_vote)
 
     CHashWriter ss(SER_GETHASH, 0);
     ss << tx.nVersion;
-    ss << GetPrevoutHash(tx);
-    ss << GetSequenceHash(tx);
+    ss << GetPrevoutHash(CTransaction(tx));
+    ss << GetSequenceHash(CTransaction(tx));
     ss << tx.vin[0].prevout;
     ss << tx.vin[0].scriptSig;
     ss << amount;
     ss << tx.vin[0].nSequence;
-    ss << GetOutputsHash(tx);
+    ss << GetOutputsHash(CTransaction(tx));
     ss << tx.nLockTime;
     ss << (int)SIGHASH_ALL;
 

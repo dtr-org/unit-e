@@ -7,7 +7,7 @@
 #include <key.h>
 #include <univalue.h>
 #include <usbdevice/debugdevice.h>
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 #include <validation.h>
 
 #include <memory>

@@ -245,7 +245,7 @@ void FinalizerCommitsHandlerImpl::OnGetCommits(
 
     response_copy.data.emplace_back(*header_and_commits);
 
-    const size_t response_size = GetSerializeSize(response_copy, SER_NETWORK, PROTOCOL_VERSION);
+    const size_t response_size = GetSerializeSize(response_copy, PROTOCOL_VERSION);
     if (response_size >= MAX_PROTOCOL_MESSAGE_LENGTH) {
       response.status = FinalizerCommitsResponse::Status::LengthExceeded;
       LogPrint(BCLog::NET, "Send %d headers+commits, status=%d\n",

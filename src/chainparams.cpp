@@ -144,7 +144,7 @@ const CChainParams &Params() {
     return *globalChainParams;
 }
 
-std::unique_ptr<const CChainParams> CreateChainParams(Dependency<blockchain::Behavior> blockchain_behavior, const std::string& chain)
+std::unique_ptr<CChainParams> CreateChainParams(Dependency<blockchain::Behavior> blockchain_behavior, const std::string& chain)
 {
     if (chain == CBaseChainParams::TESTNET)
         return std::unique_ptr<CChainParams>(new CTestNetParams(blockchain_behavior->GetParameters()));
@@ -153,7 +153,7 @@ std::unique_ptr<const CChainParams> CreateChainParams(Dependency<blockchain::Beh
     throw std::runtime_error(strprintf("%s: Unknown chain %s.", __func__, chain));
 }
 
-std::unique_ptr<const CChainParams> CreateChainParams(const std::string& chain)
+std::unique_ptr<CChainParams> CreateChainParams(const std::string& chain)
 {
   std::unique_ptr<blockchain::Behavior> blockchain_behavior;
   if (chain == CBaseChainParams::TESTNET) {

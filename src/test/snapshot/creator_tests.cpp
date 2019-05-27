@@ -9,7 +9,7 @@
 #include <snapshot/iterator.h>
 #include <snapshot/snapshot_index.h>
 #include <test/test_unite.h>
-#include <util.h>
+#include <util/system.h>
 #include <validation.h>
 #include <boost/test/unit_test.hpp>
 

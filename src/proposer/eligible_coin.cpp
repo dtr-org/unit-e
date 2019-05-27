@@ -4,7 +4,7 @@
 
 #include <proposer/eligible_coin.h>
 
-#include <util.h>
+#include <util/system.h>
 
 #include <tinyformat.h>
 

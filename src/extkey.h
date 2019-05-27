@@ -6,7 +6,7 @@
 #define UNITE_EXTKEY_H_INCLUDED
 
 #include <key.h>
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 
 #include <cstdint>
 #include <string>

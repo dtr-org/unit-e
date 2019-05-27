@@ -155,7 +155,7 @@ std::shared_ptr<CWallet> LoadWallet(interfaces::Chain& chain, const WalletLocati
         return nullptr;
     }
     AddWallet(wallet);
-    wallet->postInitProcess();
+    // UNIT-E TODO [0.18.0]: Do we need to call postInitProcess here?
     return wallet;
 }
 
@@ -246,7 +246,8 @@ CPubKey CWallet::DeriveNewPubKey(WalletBatch &batch, bool internal)
     int64_t nCreationTime = GetTime();
     CKeyMetadata metadata(nCreationTime);
     metadata.hd_seed_id = hdChain.seed_id;
-    metadata.master_key_id = hdChain.master_key_id;
+    metadata.key_origin = hdChain.key_origin;
+    metadata.has_key_origin = hdChain.has_key_origin;
 
     CExtPubKey &accountPubKey = hdChain.account_pubkeys[0];
     CKeyMetadata accKeyMetadata = mapKeyMetadata[accountPubKey.pubkey.GetID()];
@@ -300,7 +301,7 @@ CPubKey CWallet::DeriveNewPubKey(WalletBatch &batch, bool internal)
         RemoveWatchOnly(script);
     }
 
-    if (!batch.WriteKeyMetadata(pubkey, metadata)) {
+    if (!batch.WriteKeyMetadata(metadata, pubkey)) {
         throw std::runtime_error(std::string(__func__) + ": Writing key metadata failed");
     }
 
@@ -1405,7 +1406,7 @@ void CWallet::BlockConnected(const std::shared_ptr<const CBlock>& pblock, const 
 
     m_last_block_processed = pindex->GetBlockHash();
 
-    m_wallet_extension.BlockConnected(pblock, m_last_block_processed);
+    m_wallet_extension.BlockConnected(*locked_chain, pblock, *pindex);
 }
 
 void CWallet::BlockDisconnected(const std::shared_ptr<const CBlock>& pblock) {
@@ -1674,28 +1675,27 @@ void CWallet::SetHDSeed(const CPubKey& seed)
 }
 
 bool CWallet::SetHDMasterKey(
-    const CPubKey& masterKey, const std::vector<CExtPubKey> &acctKeys,
-    const std::vector<CKeyMetadata> &acctKeyMetadata, bool isHardwareDevice
+    const CPubKey& masterKey, const CExtPubKey &acctKey,
+    const CKeyMetadata &metadata, bool isHardwareDevice
 )
  {
-    assert(!isHardwareDevice || !acctKeys.empty());
-    assert(acctKeys.size() == acctKeyMetadata.size());
+    assert(!isHardwareDevice);
 
      LOCK(cs_wallet);
 
     CHDChain newHdChain;
     newHdChain.nVersion = CHDChain::VERSION_HD_HW_WALLET;
-    newHdChain.master_key_id = masterKey.GetID();
-    newHdChain.account_pubkeys.insert(newHdChain.account_pubkeys.end(), acctKeys.begin(), acctKeys.end());
+    newHdChain.key_origin = metadata.key_origin;
+    newHdChain.has_key_origin = metadata.has_key_origin;
+    newHdChain.account_pubkeys.insert(newHdChain.account_pubkeys.end(), acctKey);
     newHdChain.is_hardware_device = isHardwareDevice;
 
     // Associated metadata (HD key paths) must be persisted to the DB
     WalletBatch walletdb(*database);
-    for (size_t i = 0; i < acctKeyMetadata.size(); i++) {
-        mapKeyMetadata[acctKeys[i].pubkey.GetID()] = acctKeyMetadata[i];
-        if (!walletdb.WriteKeyMetadata(acctKeys[i].pubkey, acctKeyMetadata[i])) {
-            return false;
-        }
+
+    mapKeyMetadata[acctKey.pubkey.GetID()] = metadata;
+    if (!walletdb.WriteKeyMetadata(metadata, acctKey.pubkey)) {
+        return false;
     }
 
     SetHDChain(newHdChain, false);

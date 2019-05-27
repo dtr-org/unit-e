@@ -14,7 +14,7 @@
 #include <snapshot/snapshot_validation.h>
 #include <streams.h>
 #include <univalue.h>
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 #include <validation.h>
 #include <version.h>
 
@@ -22,23 +22,23 @@ namespace snapshot {
 
 UniValue SnapshotNode(const uint256 &snapshot_hash) {
   UniValue node(UniValue::VOBJ);
-  node.push_back(Pair("snapshot_hash", snapshot_hash.GetHex()));
+  node.pushKV("snapshot_hash", snapshot_hash.GetHex());
 
   LOCK(cs_snapshot);
 
   std::unique_ptr<Indexer> idx = SnapshotIndex::OpenSnapshot(snapshot_hash);
   if (!idx) {
-    node.push_back(Pair("valid", false));
+    node.pushKV("valid", false);
     return node;
   }
 
   const snapshot::SnapshotHeader &snapshot_header = idx->GetSnapshotHeader();
-  node.push_back(Pair("valid", true));
-  node.push_back(Pair("block_hash", snapshot_header.block_hash.GetHex()));
-  node.push_back(Pair("block_height", mapBlockIndex[snapshot_header.block_hash]->nHeight));
-  node.push_back(Pair("stake_modifier", snapshot_header.stake_modifier.GetHex()));
-  node.push_back(Pair("chain_work", snapshot_header.chain_work.GetHex()));
-  node.push_back(Pair("total_utxo_subsets", snapshot_header.total_utxo_subsets));
+  node.pushKV("valid", true);
+  node.pushKV("block_hash", snapshot_header.block_hash.GetHex());
+  node.pushKV("block_height", mapBlockIndex[snapshot_header.block_hash]->nHeight);
+  node.pushKV("stake_modifier", snapshot_header.stake_modifier.GetHex());
+  node.pushKV("chain_work", snapshot_header.chain_work.GetHex());
+  node.pushKV("total_utxo_subsets", snapshot_header.total_utxo_subsets);
 
   uint64_t outputs = 0;
   Iterator iter(std::move(idx));
@@ -46,7 +46,7 @@ UniValue SnapshotNode(const uint256 &snapshot_hash) {
     outputs += iter.GetUTXOSubset().outputs.size();
     iter.Next();
   }
-  node.push_back(Pair("total_outputs", outputs));
+  node.pushKV("total_outputs", outputs);
 
   return node;
 }
@@ -64,7 +64,7 @@ UniValue listsnapshots(const JSONRPCRequest &request) {
   UniValue list_nodes(UniValue::VARR);
   for (const Checkpoint &p : GetSnapshotCheckpoints()) {
     UniValue node = SnapshotNode(p.snapshot_hash);
-    node.push_back(Pair("snapshot_finalized", p.finalized));
+    node.pushKV("snapshot_finalized", p.finalized);
     list_nodes.push_back(node);
   }
 
@@ -90,7 +90,7 @@ UniValue getblocksnapshot(const JSONRPCRequest &request) {
     const uint256 block_hash = uint256S(request.params[0].get_str());
     const auto it = mapBlockIndex.find(block_hash);
     if (it == mapBlockIndex.end()) {
-      root_node.push_back(Pair("error", "invalid block hash"));
+      root_node.pushKV("error", "invalid block hash");
       return root_node;
     }
     block_index = it->second;
@@ -114,19 +114,19 @@ UniValue getblocksnapshot(const JSONRPCRequest &request) {
       }
 
       if (!found) {
-        root_node.push_back(Pair("error", "can't retrieve snapshot hash of the fork"));
+        root_node.pushKV("error", "can't retrieve snapshot hash of the fork");
         return root_node;
       }
     }
 
     CBlock block;
     if (!ReadBlockFromDisk(block, parent, ::Params().GetConsensus())) {
-      root_node.push_back(Pair("error", "can't read block from disk"));
+      root_node.pushKV("error", "can't read block from disk");
       return root_node;
     }
 
     if (!ReadSnapshotHashFromTx(*block.vtx[0].get(), snapshot_hash)) {
-      root_node.push_back(Pair("error", "block doesn't contain snapshot hash"));
+      root_node.pushKV("error", "block doesn't contain snapshot hash");
       return root_node;
     }
   }
@@ -134,13 +134,13 @@ UniValue getblocksnapshot(const JSONRPCRequest &request) {
   UniValue node = SnapshotNode(snapshot_hash);
   for (const Checkpoint &p : GetSnapshotCheckpoints()) {
     if (p.snapshot_hash == snapshot_hash) {
-      node.push_back(Pair("snapshot_finalized", p.finalized));
+      node.pushKV("snapshot_finalized", p.finalized);
       return node;
     }
   }
 
-  node.push_back(Pair("snapshot_deleted", true));
-  node.push_back(Pair("block_hash", block_index->GetBlockHash().GetHex()));
+  node.pushKV("snapshot_deleted", true);
+  node.pushKV("block_hash", block_index->GetBlockHash().GetHex());
   return node;
 }
 
@@ -162,7 +162,7 @@ UniValue deletesnapshot(const JSONRPCRequest &request) {
   SnapshotIndex::DeleteSnapshot(snapshot_hash);
 
   UniValue root(UniValue::VOBJ);
-  root.push_back(Pair("snapshot_hash", snapshot_hash.GetHex()));
+  root.pushKV("snapshot_hash", snapshot_hash.GetHex());
   return root;
 }
 
@@ -234,8 +234,8 @@ UniValue calcsnapshothash(const JSONRPCRequest &request) {
   }
 
   UniValue root(UniValue::VOBJ);
-  root.push_back(Pair("hash", HexStr(hash.GetHash(stake_modifier, chain_work))));
-  root.push_back(Pair("data", HexStr(hash.GetData())));
+  root.pushKV("hash", HexStr(hash.GetHash(stake_modifier, chain_work)));
+  root.pushKV("data", HexStr(hash.GetData()));
   return root;
 }
 
@@ -255,8 +255,8 @@ UniValue gettipsnapshot(const JSONRPCRequest &request) {
   SnapshotHash hash = pcoinsTip->GetSnapshotHash();
   uint256 sm = chainActive.Tip()->stake_modifier;
   uint256 cw = ArithToUint256(chainActive.Tip()->nChainWork);
-  root.push_back(Pair("hash", HexStr(hash.GetHash(sm, cw))));
-  root.push_back(Pair("data", HexStr(hash.GetData())));
+  root.pushKV("hash", HexStr(hash.GetHash(sm, cw)));
+  root.pushKV("data", HexStr(hash.GetData()));
 
   return root;
 }

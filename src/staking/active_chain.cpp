@@ -7,7 +7,7 @@
 #include <chainparams.h>
 #include <coins.h>
 #include <timedata.h>
-#include <util.h>
+#include <util/system.h>
 #include <validation.h>
 
 namespace staking {

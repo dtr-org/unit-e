@@ -4,7 +4,7 @@
 
 #include <proposer/multiwallet.h>
 
-#include <util.h>
+#include <util/system.h>
 #include <wallet/wallet.h>
 
 namespace proposer {

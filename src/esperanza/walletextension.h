@@ -11,6 +11,7 @@
 #include <esperanza/walletextension_deps.h>
 #include <esperanza/walletstate.h>
 #include <finalization/vote_recorder.h>
+#include <interfaces/chain.h>
 #include <key.h>
 #include <key/mnemonic/mnemonic.h>
 #include <miner.h>
@@ -61,7 +62,7 @@ class WalletExtension : public staking::StakingWallet {
   std::vector<std::pair<finalization::VoteRecord, finalization::VoteRecord>> pendingSlashings;
 
   //! Cast vote if needed
-  void VoteIfNeeded();
+  void VoteIfNeeded(interfaces::Chain::Lock& locked_chain);
 
   void ManagePendingSlashings();
 
@@ -133,7 +134,7 @@ class WalletExtension : public staking::StakingWallet {
   //! \param[in] amount
   //! \param[out] wtxOut the transaction created
   //! \returns true if the operation was successful, false otherwise.
-  bool SendDeposit(const CKeyID &keyID, CAmount amount, CTransactionRef &wtxOut);
+  bool SendDeposit(interfaces::Chain::Lock& locked_chain, const CKeyID &keyID, CAmount amount, CTransactionRef &wtxOut);
 
   //! \brief Creates a vote transaction starting from a Vote object and a
   //! previous transaction (vote or deposit  reference. It fills inputs,
@@ -144,7 +145,7 @@ class WalletExtension : public staking::StakingWallet {
   //! transaction, depending which one is the most recent
   //! \param[in] vote the vote data
   //! \param[out] wtxNew the vote transaction committed
-  bool SendVote(const CTransactionRef &depositRef, const Vote &vote,
+  bool SendVote(interfaces::Chain::Lock& locked_chain, const CTransactionRef &depositRef, const Vote &vote,
                 CTransactionRef &wtxNewOut);
 
   //! \brief Creates and sends a logout transaction.
@@ -172,18 +173,19 @@ class WalletExtension : public staking::StakingWallet {
   //!
   //! The arguments mirror the ones for CWallet::CreateTransaction.
   //! \returns true if the operation was successful, false otherwise.
-  bool CreateRemoteStakingTransaction(const CRecipient &recipient, CTransactionRef *wtx_out,
+  bool CreateRemoteStakingTransaction(interfaces::Chain::Lock& locked_chain, const CRecipient &recipient, CTransactionRef *wtx_out,
                                       CReserveKey *key_change_out, CAmount *fee_out,
                                       std::string *error_out,
                                       const CCoinControl &coin_control);
 
   bool AddToWalletIfInvolvingMe(const CTransactionRef &tx,
-                                const CBlockIndex *pIndex);
+                                const uint256& block_hash);
 
   void ReadValidatorStateFromFile();
   void WriteValidatorStateToFile();
 
-  void BlockConnected(const std::shared_ptr<const CBlock> &pblock,
+  void BlockConnected(interfaces::Chain::Lock& locked_chain,
+                      const std::shared_ptr<const CBlock> &pblock,
                       const CBlockIndex &index);
 
   const proposer::State &GetProposerState() const;

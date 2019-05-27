@@ -12,9 +12,8 @@ bool ExtractValidatorPubkey(const CTransaction &tx, CPubKey &pubkeyOut) {
   if (tx.IsVote()) {
 
     std::vector<std::vector<unsigned char>> vSolutions;
-    txnouttype typeRet;
 
-    if (Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions)) {
+    if (Solver(tx.vout[0].scriptPubKey, vSolutions)) {
       pubkeyOut = CPubKey(vSolutions[0]);
       return true;
     }
@@ -29,10 +28,8 @@ bool ExtractValidatorAddress(const CTransaction &tx,
     case TxType::DEPOSIT:
     case TxType::LOGOUT: {
       std::vector<std::vector<unsigned char>> vSolutions;
-      txnouttype typeRet;
 
-      if (Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions)) {
-        assert(typeRet == TX_COMMIT);
+      if (Solver(tx.vout[0].scriptPubKey, vSolutions)) {
         validatorAddressOut = CPubKey(vSolutions[0]).GetID();
         return true;
       }

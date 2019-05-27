@@ -232,7 +232,7 @@ static size_t BruteForceSymDif(const size_t all_receiver_txs,
   size_t best_sym_diff = 2;
 
   static const size_t iblt_entry_size =
-      GetSerializeSize(GrapheneIblt::IBLTEntry(), SER_NETWORK, PROTOCOL_VERSION);
+      GetSerializeSize(GrapheneIblt::IBLTEntry(), PROTOCOL_VERSION);
 
   for (size_t sym_diff = best_sym_diff; sym_diff <= all_receiver_txs; ++sym_diff) {
     const double fpr = ComputeFpr(sym_diff, receiver_excess);

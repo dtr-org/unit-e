@@ -79,8 +79,12 @@ UniValue deposit(const JSONRPCRequest &request)
     }
   }
 
+  // UNIT-E TODO [0.18.0]: Clean up locked_chain logic
+  LOCK2(cs_main, pwallet->cs_wallet);
+  auto locked_chain = pwallet->chain().lock();
+
   CTransactionRef tx;
-  if (!extWallet.SendDeposit(*keyID, amount, tx)) {
+  if (!extWallet.SendDeposit(*locked_chain, *keyID, amount, tx)) {
     throw JSONRPCError(RPC_TRANSACTION_ERROR, "Cannot create deposit.");
   }
 
@@ -308,7 +312,7 @@ UniValue createvotetransaction(const JSONRPCRequest &request) {
   uint256 txid = ParseHashV(request.params[1], "txid");
   uint256 hash_block;
   CBlockIndex *block_index = nullptr;
-  if (!GetTransaction(txid, prev_tx, Params().GetConsensus(), hash_block, true, block_index)) {
+  if (!GetTransaction(txid, prev_tx, Params().GetConsensus(), hash_block, block_index)) {
     throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No transaction with such id");
   }
 
@@ -330,7 +334,7 @@ UniValue createvotetransaction(const JSONRPCRequest &request) {
   CTxOut txout(amount, script_pubkey);
   tx.vout.push_back(txout);
 
-  return EncodeHexTx(tx, RPCSerializationFlags());
+  return EncodeHexTx(CTransaction(tx), RPCSerializationFlags());
 }
 
 // clang-format off

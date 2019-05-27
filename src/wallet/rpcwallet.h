@@ -5,6 +5,8 @@
 #ifndef UNITE_WALLET_RPCWALLET_H
 #define UNITE_WALLET_RPCWALLET_H
 
+#include <interfaces/chain.h>
+
 #include <memory>
 #include <string>
 
@@ -29,6 +31,8 @@ std::shared_ptr<CWallet> GetWalletForJSONRPCRequest(const JSONRPCRequest& reques
 std::string HelpRequiringPassphrase(CWallet *);
 void EnsureWalletIsUnlocked(CWallet *);
 bool EnsureWalletIsAvailable(CWallet *, bool avoidException);
+
+static void WalletTxToJSON(interfaces::Chain&, interfaces::Chain::Lock&, const CWalletTx&, UniValue&);
 
 UniValue getaddressinfo(const JSONRPCRequest& request);
 UniValue signrawtransactionwithwallet(const JSONRPCRequest& request);

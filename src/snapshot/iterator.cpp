@@ -10,7 +10,7 @@
 #include <clientversion.h>
 #include <fs.h>
 #include <serialize.h>
-#include <util.h>
+#include <util/system.h>
 #include <version.h>
 
 namespace snapshot {

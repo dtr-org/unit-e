@@ -6,12 +6,12 @@
 #include <crypto/hmac_sha512.h>
 #include <crypto/sha256.h>
 #include <key_io.h>
-#include <util.h>
+#include <util/system.h>
 
 #include <unilib/uninorms.h>
 #include <unilib/utf8.h>
 
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 
 #include <key/mnemonic/mnemonic.h>
 

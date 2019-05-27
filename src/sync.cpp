@@ -5,7 +5,7 @@
 #include <sync.h>
 
 #include <logging.h>
-#include <util.h>
+#include <util/system.h>
 #include <util/strencodings.h>
 
 #include <stdio.h>

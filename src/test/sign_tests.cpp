@@ -9,7 +9,7 @@
 #include <script/sign.h>
 #include <string.h>
 #include <test/test_unite.h>
-#include <util.h>
+#include <util/system.h>
 
 #include <boost/test/unit_test.hpp>
 

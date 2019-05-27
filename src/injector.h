@@ -29,7 +29,7 @@
 #include <staking/staking_rpc.h>
 #include <staking/transactionpicker.h>
 #include <txpool.h>
-#include <util.h>
+#include <util/system.h>
 
 #ifdef ENABLE_WALLET
 #include <proposer/block_builder.h>

@@ -57,7 +57,7 @@ TestChain100Setup::TestChain100Setup(UnitEInjectorConfiguration config)
 
   WalletRescanReserver reserver(m_wallet.get());
   reserver.reserve();
-  m_wallet->ScanForWalletTransactions(chainActive.Genesis(), nullptr, reserver);
+  m_wallet->ScanForWalletTransactions(chainActive.Genesis()->GetBlockHash(), {}, reserver, false);
 
   // Generate a 100-block chain:
   GetComponent<Settings>()->stake_split_threshold = 0; // reset to 0

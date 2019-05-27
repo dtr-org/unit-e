@@ -1935,7 +1935,7 @@ static UniValue walletpassphrase(const JSONRPCRequest& request)
                     {"passphrase", RPCArg::Type::STR, RPCArg::Optional::NO, "The wallet passphrase"},
                     {"timeout", RPCArg::Type::NUM, RPCArg::Optional::NO, "The time to keep the decryption key in seconds; capped at 100000000 (~3 years)."},
                     {"staking_only", RPCArg::Type::BOOL, /* default */ "false", "Unlock the wallet for staking, but not for other operations. Set <timeout> to 0\n"
-                                                   "                             to keep it unlocked indefinitely.\n"
+                                                   "                             to keep it unlocked indefinitely.\n"},
                 },
                 RPCResults{},
                 RPCExamples{
@@ -3462,8 +3462,8 @@ UniValue generate(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2) {
         throw std::runtime_error(
             RPCHelpMan{"generate",
-                "\nMine up to nblocks blocks immediately (before the RPC call returns) to an address in the wallet.\n",
-                "\nNote: this function can only be used on the regtest network.\n"
+                "\nMine up to nblocks blocks immediately (before the RPC call returns) to an address in the wallet.\n"
+                "\nNote: this function can only be used on the regtest network.\n",
                 {
                     {"nblocks", RPCArg::Type::NUM, RPCArg::Optional::NO, "How many blocks are generated immediately."},
                     {"maxtries", RPCArg::Type::NUM, /* default */ "1000000", "How many iterations to try."},

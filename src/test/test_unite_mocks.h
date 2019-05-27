@@ -16,7 +16,7 @@
 #include <staking/network.h>
 #include <staking/stake_validator.h>
 #include <staking/transactionpicker.h>
-#include <util.h>
+#include <util/system.h>
 
 #include <atomic>
 #include <cstdint>

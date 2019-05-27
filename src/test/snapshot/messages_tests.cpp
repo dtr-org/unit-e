@@ -5,7 +5,7 @@
 #include <snapshot/messages.h>
 
 #include <test/test_unite.h>
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 #include <boost/test/unit_test.hpp>
 
 BOOST_FIXTURE_TEST_SUITE(snapshot_messages_tests, ReducedTestingSetup)

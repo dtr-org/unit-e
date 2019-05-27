@@ -111,14 +111,14 @@ bool GrapheneSenderImpl::SendBlock(CNode &to, const CBlock &block, const CBlockI
   {
     SCOPE_STOPWATCH("Compare graphene and compact block sizes");
 
-    const size_t graphene_block_size = GetSerializeSize(graphene_block, SER_NETWORK, PROTOCOL_VERSION);
+    const size_t graphene_block_size = GetSerializeSize(graphene_block, PROTOCOL_VERSION);
 
     // This can be optimized if one day we notice performance problems here
 
     // We assume that ALL unit-e nodes support compact blocks and all compact
     // blocks are smaller than legacy blocks
     CBlockHeaderAndShortTxIDs cmpct_block(block);
-    const size_t cmpct_block_size = GetSerializeSize(cmpct_block, SER_NETWORK, PROTOCOL_VERSION);
+    const size_t cmpct_block_size = GetSerializeSize(cmpct_block, PROTOCOL_VERSION);
 
     if (graphene_block_size >= cmpct_block_size) {
       LogPrint(BCLog::NET, "Graphene block %s is bigger than compact block (%d vs %d bytes)\n",

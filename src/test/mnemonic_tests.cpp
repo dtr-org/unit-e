@@ -11,7 +11,7 @@
 
 #include <key.h>
 #include <base58.h>
-#include <util.h>
+#include <util/system.h>
 
 #include <string>
 #include <boost/test/unit_test.hpp>

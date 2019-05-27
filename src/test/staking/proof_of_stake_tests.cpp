@@ -15,7 +15,7 @@
 #include <primitives/transaction.h>
 #include <pubkey.h>
 #include <script/ismine.h>
-#include <util.h>
+#include <util/system.h>
 
 #include <array>
 #include <functional>

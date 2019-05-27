@@ -8,8 +8,8 @@
 #include <rpc/server.h>
 #include <rpc/util.h>
 #include <ufp64.h>
-#include <util.h>
-#include <utilstrencodings.h>
+#include <util/system.h>
+#include <util/strencodings.h>
 
 UniValue getfinalizationstate(const JSONRPCRequest &request) {
   if (request.fHelp || !request.params.empty()) {

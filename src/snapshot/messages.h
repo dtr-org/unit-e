@@ -8,7 +8,8 @@
 #include <vector>
 
 #include <primitives/transaction.h>
-#include <secp256k1_multiset.h>
+#include <secp256k1/include/secp256k1.h>
+#include <secp256k1/include/secp256k1_multiset.h>
 #include <serialize.h>
 #include <uint256.h>
 

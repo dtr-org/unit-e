@@ -11,7 +11,7 @@
 #include <script/sign.h>
 #include <script/standard.h>
 #include <txmempool.h>
-#include <util.h>
+#include <util/system.h>
 #include <validation.h>
 
 namespace esperanza {
@@ -117,8 +117,7 @@ bool CheckDepositTx(const CTransaction &tx, CValidationState &err_state,
   }
 
   std::vector<std::vector<unsigned char>> solutions;
-  txnouttype type_ret;
-  if (!Solver(tx.vout[0].scriptPubKey, type_ret, solutions)) {
+  if (!Solver(tx.vout[0].scriptPubKey, solutions)) {
     return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-deposit-script-not-solvable");
   }
@@ -176,8 +175,7 @@ bool CheckLogoutTx(const CTransaction &tx, CValidationState &err_state,
   }
 
   std::vector<std::vector<unsigned char>> solutions;
-  txnouttype type_ret;
-  if (!Solver(tx.vout[0].scriptPubKey, type_ret, solutions)) {
+  if (!Solver(tx.vout[0].scriptPubKey, solutions)) {
     return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-logout-script-not-solvable");
   }
@@ -248,8 +246,7 @@ bool CheckWithdrawTx(const CTransaction &tx, CValidationState &err_state,
   }
 
   std::vector<std::vector<unsigned char>> solutions;
-  txnouttype type_ret;
-  if (!Solver(tx.vout[0].scriptPubKey, type_ret, solutions)) {
+  if (!Solver(tx.vout[0].scriptPubKey, solutions)) {
     return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-withdraw-script-not-solvable");
   }
@@ -285,8 +282,7 @@ bool ContextualCheckWithdrawTx(const CTransaction &tx, CValidationState &err_sta
   }
 
   std::vector<std::vector<unsigned char>> prev_solutions;
-  txnouttype prev_type_ret;
-  if (!Solver(prev_out_script, prev_type_ret, prev_solutions)) {
+  if (!Solver(prev_out_script, prev_solutions)) {
     return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-withdraw-script-not-solvable");
   }

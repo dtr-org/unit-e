@@ -5,7 +5,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include <ufp64.h>
-#include <util.h>
+#include <util/system.h>
 
 using namespace ufp64;
 

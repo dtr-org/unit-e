@@ -7,7 +7,7 @@
 #include <blockchain/blockchain_genesis.h>
 #include <blockchain/blockchain_parameters.h>
 #include <blockchain/blockchain_types.h>
-#include <util.h>
+#include <util/system.h>
 
 #include <univalue/include/univalue.h>
 #include <boost/optional.hpp>

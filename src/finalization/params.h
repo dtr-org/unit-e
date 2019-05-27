@@ -11,7 +11,7 @@
 #include <esperanza/adminparams.h>
 #include <injector_config.h>
 #include <ufp64.h>
-#include <util.h>
+#include <util/system.h>
 
 #include <boost/optional.hpp>
 

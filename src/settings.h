@@ -7,7 +7,7 @@
 
 #include <amount.h>
 #include <dependency.h>
-#include <util.h>
+#include <util/system.h>
 
 #include <script/standard.h>
 #include <memory>

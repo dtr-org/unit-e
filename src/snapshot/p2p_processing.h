@@ -14,6 +14,7 @@
 
 #include <chain.h>
 #include <net.h>
+#include <banman.h>
 #include <netmessagemaker.h>
 #include <snapshot/indexer.h>
 #include <snapshot/messages.h>

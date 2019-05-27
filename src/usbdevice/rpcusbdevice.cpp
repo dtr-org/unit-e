@@ -9,8 +9,9 @@
 #include <rpc/protocol.h>
 #include <rpc/server.h>
 #include <usbdevice/usbdevice.h>
-#include <util.h>
-#include <utilstrencodings.h>
+#include <util/system.h>
+#include <util/strencodings.h>
+#include <wallet/rpcwallet.h>
 #include <wallet/wallet.h>
 
 #include <memory>
@@ -250,23 +251,21 @@ static UniValue initaccountfromdevice(const JSONRPCRequest &request) {
   path_string = FormatExtKeyPath(path);
 
   {
-    LOCK(pwallet->cs_wallet);
+    LOCK2(cs_main, pwallet->cs_wallet);
+    auto locked_chain = pwallet->chain().lock();
     WalletBatch wdb(pwallet->GetDBHandle(), "r+");
 
     int64_t creation_time = GetTime();
     CKeyMetadata metadata(creation_time);
     metadata.hdKeypath = path_string;
 
-    std::vector<CExtPubKey> acctKeys{acctKey};
-    std::vector<CKeyMetadata> acctKeyMetadata{metadata};
-
-    pwallet->SetHDMasterKey(master_key, acctKeys, acctKeyMetadata, true);
+    pwallet->SetHDMasterKey(master_key, acctKey, metadata, true);
     pwallet->NewKeyPool();
-  }  // pwallet->cs_wallet
 
-  pwallet->RescanFromTime(TIMESTAMP_MIN, reserver, true /* update */);
-  pwallet->MarkDirty();
-  pwallet->ReacceptWalletTransactions();
+    pwallet->RescanFromTime(TIMESTAMP_MIN, reserver, true /* update */);
+    pwallet->MarkDirty();
+    pwallet->ReacceptWalletTransactions(*locked_chain);
+  }  // pwallet->cs_wallet
 
   UniValue result(UniValue::VOBJ);
   result.pushKV("extpubkey", ExtKeyToString(acctKey));

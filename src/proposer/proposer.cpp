@@ -19,8 +19,8 @@
 #include <staking/network.h>
 #include <staking/transactionpicker.h>
 #include <sync.h>
-#include <util.h>
-#include <utilmoneystr.h>
+#include <util/system.h>
+#include <util/moneystr.h>
 #include <wallet/wallet.h>
 
 #include <atomic>

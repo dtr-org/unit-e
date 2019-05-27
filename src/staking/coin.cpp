@@ -4,7 +4,7 @@
 
 #include <staking/coin.h>
 
-#include <util.h>
+#include <util/system.h>
 
 #include <chain.h>
 #include <tinyformat.h>

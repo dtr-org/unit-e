@@ -13,9 +13,9 @@
 #include <script/script.h>
 #include <script/standard.h>
 #include <uint256.h>
-#include <util.h>
-#include <utilstrencodings.h>
-#include <utiltime.h>
+#include <util/system.h>
+#include <util/strencodings.h>
+#include <util/time.h>
 
 namespace blockchain {
 

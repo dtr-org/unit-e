@@ -20,7 +20,7 @@
 #include <snapshot/messages.h>
 #include <streams.h>
 #include <threadsafety.h>
-#include <util.h>
+#include <util/system.h>
 #include <version.h>
 
 namespace snapshot {

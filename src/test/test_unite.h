@@ -10,7 +10,9 @@
 #include <chainparamsbase.h>
 #include <fs.h>
 #include <injector_config.h>
+#include <interfaces/node.h>
 #include <key.h>
+#include <net.h>
 #include <pubkey.h>
 #include <random.h>
 #include <scheduler.h>
@@ -109,7 +111,10 @@ struct CConnmanTest : public CConnman {
 class PeerLogicValidation;
 struct TestingSetup : public BasicTestingSetup {
     boost::thread_group threadGroup;
+    CConnman* connman;
+    BanMan* banman;
     CScheduler scheduler;
+    std::unique_ptr<PeerLogicValidation> peerLogic;
 
     explicit TestingSetup(
         const std::string& chainName = CBaseChainParams::TESTNET,

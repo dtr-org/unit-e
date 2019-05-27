@@ -12,7 +12,7 @@
 #include <test/esperanza/finalization_utils.h>
 #include <test/esperanza/finalizationstate_utils.h>
 #include <test/test_unite.h>
-#include <util.h>
+#include <util/system.h>
 #include <validation.h>
 #include <boost/test/unit_test.hpp>
 
@@ -436,8 +436,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckLogoutTx_test) {
 
     LOCK(mempool.cs);
     TestMemPoolEntryHelper entry;
-    mempool.addUnchecked(prev_tx->GetHash(),
-                         entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
+    mempool.addUnchecked(entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
 
     CValidationState err_state;
 
@@ -783,7 +782,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
     TestMemPoolEntryHelper entry;
     {
       LOCK(mempool.cs);
-      mempool.addUnchecked(prev_tx->GetHash(), entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
+      mempool.addUnchecked(entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
     }
 
     finalization::Params params;
@@ -820,7 +819,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
     TestMemPoolEntryHelper entry;
     {
       LOCK(mempool.cs);
-      mempool.addUnchecked(prev_tx->GetHash(), entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
+      mempool.addUnchecked(entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
     }
 
     finalization::Params params;
@@ -855,7 +854,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
   {
     LOCK(mempool.cs);
     TestMemPoolEntryHelper entry;
-    mempool.addUnchecked(prev_tx->GetHash(), entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
+    mempool.addUnchecked(entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
 
     finalization::Params params;
     FinalizationStateSpy spy(params);
@@ -989,7 +988,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckWithdrawTx_test) {
   {
     LOCK(mempool.cs);
     TestMemPoolEntryHelper entry;
-    mempool.addUnchecked(prev_tx->GetHash(), entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
+    mempool.addUnchecked(entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
 
     CBlockIndex block_index;
     block_index.phashBlock = &target_hash;

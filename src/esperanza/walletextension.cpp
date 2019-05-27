@@ -19,7 +19,7 @@
 #include <scheduler.h>
 #include <script/standard.h>
 #include <staking/active_chain.h>
-#include <util.h>
+#include <util/system.h>
 #include <validation.h>
 #include <wallet/coincontrol.h>
 #include <wallet/fees.h>
@@ -72,7 +72,7 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
 
     const bool skip_reward = tx->IsCoinBase() && tx->GetBlocksToRewardMaturity(*locked_chain) > 0;
     for (std::size_t out_index = skip_reward ? 1 : 0; out_index < coins.size(); ++out_index) {
-      if (m_enclosing_wallet.IsSpent(txId, static_cast<unsigned int>(out_index))) {
+      if (m_enclosing_wallet.IsSpent(*locked_chain, txId, static_cast<unsigned int>(out_index))) {
         continue;
       }
       if (!view.HaveCoin(COutPoint(txId, static_cast<uint32_t>(out_index)))) {
@@ -119,6 +119,7 @@ CAmount WalletExtension::GetRemoteStakingBalance() const {
   AssertLockHeld(cs_main);
   AssertLockHeld(m_enclosing_wallet.cs_wallet);  // access to mapWallet
 
+  auto locked_chain = m_enclosing_wallet.chain().lock();
   CAmount balance = 0;
 
   for (const auto &it : m_enclosing_wallet.mapWallet) {
@@ -127,7 +128,7 @@ CAmount WalletExtension::GetRemoteStakingBalance() const {
 
     for (size_t i = 0; i < tx.tx->vout.size(); ++i) {
       const CTxOut &tx_out = tx.tx->vout[i];
-      if (m_enclosing_wallet.IsSpent(tx_hash, i)) {
+      if (m_enclosing_wallet.IsSpent(*locked_chain, tx_hash, i)) {
         continue;
       }
       if (::IsStakedRemotely(m_enclosing_wallet, tx_out.scriptPubKey)) {
@@ -152,7 +153,7 @@ boost::optional<CKey> WalletExtension::GetKey(const CPubKey &pubkey) const {
   return key;
 }
 
-bool WalletExtension::CreateRemoteStakingTransaction(const CRecipient &recipient,
+bool WalletExtension::CreateRemoteStakingTransaction(interfaces::Chain::Lock& locked_chain, const CRecipient &recipient,
                                                      CTransactionRef *wtx_out, CReserveKey *key_change_out,
                                                      CAmount *fee_out, std::string *error_out,
                                                      const CCoinControl &coin_control) {
@@ -176,7 +177,7 @@ bool WalletExtension::CreateRemoteStakingTransaction(const CRecipient &recipient
 
   std::vector<std::vector<uint8_t>> solutions;
   txnouttype type;
-  if (!Solver(recipient.scriptPubKey, type, solutions)) {
+  if (!Solver(recipient.scriptPubKey, solutions)) {
     *error_out = "Invalid scriptPubKey for recipient";
     return false;
   }
@@ -199,7 +200,7 @@ bool WalletExtension::CreateRemoteStakingTransaction(const CRecipient &recipient
   const std::vector<CRecipient> recipients = {staking_recipient};
 
   return m_enclosing_wallet.CreateTransaction(
-      recipients, *wtx_out, *key_change_out, *fee_out, change_pos_out, *error_out, coin_control);
+      locked_chain, recipients, *wtx_out, *key_change_out, *fee_out, change_pos_out, *error_out, coin_control);
 }
 
 bool WalletExtension::SignCoinbaseTransaction(CMutableTransaction &tx) {
@@ -279,7 +280,7 @@ void WalletExtension::WriteValidatorStateToFile() {
   WalletBatch(m_enclosing_wallet.GetDBHandle()).WriteValidatorState(*validatorState);
 }
 
-bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
+bool WalletExtension::SendDeposit(interfaces::Chain::Lock& locked_chain, const CKeyID &keyID, CAmount amount,
                                   CTransactionRef &wtxOut) {
 
   assert(validatorState);
@@ -328,7 +329,7 @@ bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
   vecSend.push_back(r);
 
   if (!m_enclosing_wallet.CreateTransaction(
-          vecSend, wtxOut, reservekey, nFeeRet, nChangePosInOut, sError,
+          locked_chain, vecSend, wtxOut, reservekey, nFeeRet, nChangePosInOut, sError,
           coinControl, true, TxType::DEPOSIT)) {
 
     LogPrint(BCLog::FINALIZATION, "%s: Cannot create deposit transaction. %s\n",
@@ -338,7 +339,7 @@ bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
 
   {
     CValidationState state;
-    if (!m_enclosing_wallet.CommitTransaction(wtxOut, {}, {}, {}, reservekey,
+    if (!m_enclosing_wallet.CommitTransaction(wtxOut, {}, {}, reservekey,
                                               g_connman.get(), state)) {
       LogPrint(BCLog::FINALIZATION, "%s: Cannot commit deposit transaction.\n",
                __func__);
@@ -406,7 +407,7 @@ bool WalletExtension::SendLogout(CTransactionRef &wtxNewOut) {
   CTxOut txout(amount, prevScriptPubkey);
   txNew.vout.push_back(txout);
 
-  const auto nBytes = static_cast<unsigned int>(GetVirtualTransactionSize(txNew));
+  const auto nBytes = static_cast<unsigned int>(GetVirtualTransactionSize(CTransaction(txNew)));
 
   CCoinControl coinControl;
   coinControl.m_fee_mode = FeeEstimateMode::CONSERVATIVE;
@@ -431,7 +432,7 @@ bool WalletExtension::SendLogout(CTransactionRef &wtxNewOut) {
   wtxNewOut = MakeTransactionRef(std::move(txNew));
 
   CValidationState validation_state;
-  m_enclosing_wallet.CommitTransaction(wtxNewOut, {}, {}, {}, reservekey, g_connman.get(),
+  m_enclosing_wallet.CommitTransaction(wtxNewOut, {}, {}, reservekey, g_connman.get(),
                                        validation_state);
   if (validation_state.IsInvalid()) {
     LogPrint(BCLog::FINALIZATION, /* Continued */
@@ -531,7 +532,7 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address, CTransactionRe
   // will be included.
   FeeCalculation feeCalc;
 
-  const auto nBytes = static_cast<unsigned int>(GetVirtualTransactionSize(txNew));
+  const auto nBytes = static_cast<unsigned int>(GetVirtualTransactionSize(CTransaction(txNew)));
 
   const CAmount fees = GetMinimumFee(m_enclosing_wallet, nBytes, coinControl, ::mempool, ::feeEstimator, &feeCalc);
 
@@ -551,7 +552,7 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address, CTransactionRe
 
   wtxNewOut = MakeTransactionRef(std::move(txNew));
 
-  m_enclosing_wallet.CommitTransaction(wtxNewOut, {}, {}, {}, reservekey, g_connman.get(),
+  m_enclosing_wallet.CommitTransaction(wtxNewOut, {}, {}, reservekey, g_connman.get(),
                                        errState);
   if (errState.IsInvalid()) {
     LogPrint(BCLog::FINALIZATION, /* Continued */
@@ -563,7 +564,7 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address, CTransactionRe
   return true;
 }
 
-void WalletExtension::VoteIfNeeded() {
+void WalletExtension::VoteIfNeeded(interfaces::Chain::Lock& locked_chain) {
   LOCK2(cs_main, m_enclosing_wallet.cs_wallet);
 
   LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
@@ -620,14 +621,15 @@ void WalletExtension::VoteIfNeeded() {
   assert(prev_tx);
 
   CTransactionRef createdTx;
-  if (SendVote(prev_tx->tx, vote, createdTx)) {
+  if (SendVote(locked_chain, prev_tx->tx, vote, createdTx)) {
 
     LogPrint(BCLog::FINALIZATION, "%s: Casted vote with id %s.\n", __func__,
              createdTx->GetHash().GetHex());
   }
 }
 
-bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
+bool WalletExtension::SendVote(interfaces::Chain::Lock& locked_chain,
+                               const CTransactionRef &prevTxRef,
                                const Vote &vote, CTransactionRef &wtxNewOut) {
 
   AssertLockHeld(m_enclosing_wallet.cs_wallet);
@@ -675,7 +677,7 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
 
   CConnman *connman = g_connman.get();
 
-  m_enclosing_wallet.CommitTransaction(wtxNewOut, {}, {}, {}, reservekey, g_connman.get(), state, /*relay*/ false, &wtx_new);
+  m_enclosing_wallet.CommitTransaction(wtxNewOut, {}, {}, reservekey, g_connman.get(), state, /*relay*/ false, &wtx_new);
   if (state.IsInvalid()) {
     LogPrint(BCLog::FINALIZATION, "%s: Cannot commit vote transaction: %s.\n",
              __func__, state.GetRejectReason());
@@ -693,7 +695,7 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
   }
 
   if (!embargoed) {
-    wtx_new->RelayWalletTransaction(connman);
+    wtx_new->RelayWalletTransaction(locked_chain, connman);
   }
 
   return true;
@@ -727,8 +729,7 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
 
   CTransactionRef lastSlashableTx;
   uint256 blockHash;
-  GetTransaction(txHash, lastSlashableTx, ::Params().GetConsensus(), blockHash,
-                 true);
+  GetTransaction(txHash, lastSlashableTx, ::Params().GetConsensus(), blockHash);
 
   if (!lastSlashableTx) {
     LogPrint(BCLog::FINALIZATION, "%s: Error: previous validator transaction not found: %s.\n",
@@ -745,7 +746,7 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
 
   auto txref = MakeTransactionRef(std::move(txNew));
 
-  m_enclosing_wallet.CommitTransaction(txref, {}, {}, {}, reservekey, g_connman.get(),
+  m_enclosing_wallet.CommitTransaction(txref, {}, {}, reservekey, g_connman.get(),
                                        errState);
 
   if (errState.IsInvalid()) {
@@ -756,10 +757,11 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
     // cannot add it to our mempool
     {
       LOCK2(cs_main, m_enclosing_wallet.cs_wallet);
+      auto locked_chain = m_enclosing_wallet.chain().lock();
       auto it = m_enclosing_wallet.mapWallet.find(txref->GetHash());
       if (it != m_enclosing_wallet.mapWallet.end()) {
         CWalletTx &slash_tx = it->second;
-        slash_tx.RelayWalletTransaction(g_connman.get());
+        slash_tx.RelayWalletTransaction(*locked_chain, g_connman.get());
       }
     }
     return false;
@@ -769,7 +771,7 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
 }
 
 void WalletExtension::BlockConnected(
-    const std::shared_ptr<const CBlock> &pblock, const CBlockIndex &index) {
+    interfaces::Chain::Lock& locked_chain, const std::shared_ptr<const CBlock> &pblock, const CBlockIndex &index) {
 
   if (!nIsValidatorEnabled) {
     // finalizer is explicitly disabled
@@ -782,18 +784,18 @@ void WalletExtension::BlockConnected(
     return;
   }
 
-  VoteIfNeeded();
+  VoteIfNeeded(locked_chain);
 }
 
 bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
-                                               const CBlockIndex *pIndex) {
+                                               const uint256& block_hash) {
   if (!nIsValidatorEnabled) {
     return true;
   }
 
   const CTransaction &tx = *ptx;
 
-  if (pIndex == nullptr) {
+  if (block_hash.IsNull()) {
     return true;
   }
 

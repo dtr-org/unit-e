@@ -6,7 +6,7 @@
 
 #include <consensus/validation.h>
 #include <esperanza/finalizationstate.h>
-#include <util.h>
+#include <util/system.h>
 #include <validationinterface.h>
 
 namespace finalization {

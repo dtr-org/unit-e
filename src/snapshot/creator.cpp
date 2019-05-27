@@ -10,7 +10,7 @@
 #include <snapshot/snapshot_index.h>
 #include <snapshot/state.h>
 #include <sync.h>
-#include <util.h>
+#include <util/system.h>
 #include <validation.h>
 
 #include <atomic>

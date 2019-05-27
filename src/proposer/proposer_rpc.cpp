@@ -14,6 +14,7 @@
 #include <staking/active_chain.h>
 #include <staking/network.h>
 #include <wallet/wallet.h>
+#include <wallet/rpcwallet.h>
 
 #include <better-enums/enum.h>
 #include <tinyformat.h>

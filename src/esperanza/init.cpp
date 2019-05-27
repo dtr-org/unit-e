@@ -4,7 +4,7 @@
 
 #include <esperanza/init.h>
 
-#include <util.h>
+#include <util/system.h>
 
 namespace esperanza {
 

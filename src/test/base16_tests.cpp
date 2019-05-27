@@ -4,7 +4,7 @@
 
 #include <test/test_unite.h>
 
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 
 #include <string>
 #include <boost/test/unit_test.hpp>
