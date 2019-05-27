@@ -82,16 +82,18 @@ TestChain100Setup::TestChain100Setup(UnitEInjectorConfiguration config)
 // scriptPubKey, and try to add it to the current chain.
 //
 CBlock
-TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns, const CScript& coinbase_script, bool *processed)
+TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns,
+                                         const CScript& coinbase_script,
+                                         boost::optional<staking::Coin> stake,
+                                         bool *processed)
 {
   const CChainParams& chainparams = Params();
 
   esperanza::WalletExtension &wallet_ext = m_wallet->GetWalletExtension();
 
-  staking::CoinSet coins;
-  {
+  if (!stake) {
     LOCK2(m_active_chain->GetLock(), wallet_ext.GetLock());
-    coins = wallet_ext.GetStakeableCoins();
+    stake.emplace(*wallet_ext.GetStakeableCoins().begin());
   }
 
   const CAmount fees = 0;
@@ -110,7 +112,7 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
   blockchain::Height tip_height = tip->nHeight;
 
   proposer::EligibleCoin coin = {
-      *coins.begin(),
+      *stake,
       uint256(),
       m_behavior->CalculateBlockReward(tip_height),
       static_cast<blockchain::Height>(tip_height+1),

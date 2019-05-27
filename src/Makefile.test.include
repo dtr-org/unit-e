@@ -104,6 +104,7 @@ UNITE_TESTS =\
   test/multisig_tests.cpp \
   test/net_tests.cpp \
   test/netbase_tests.cpp \
+  test/new_pos_valid_block_tests.cpp \
   test/pmt_tests.cpp \
   test/p2p/grapheneblock_tests.cpp \
   test/policyestimator_tests.cpp \

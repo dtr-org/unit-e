@@ -1998,8 +1998,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         }
         const boost::optional<staking::Coin> utxo = utxo_view.GetUTXO(block.GetStakingInput().prevout);
         if (utxo) {
-            pindex->stake_modifier =
-                validator->ComputeStakeModifier(pindex->pprev, *utxo_view.GetUTXO(block.GetStakingInput().prevout));
+            pindex->stake_modifier = validator->ComputeStakeModifier(pindex->pprev, *utxo);
         }
         CheckStakeFlags::Type check_stake_flags = CheckStakeFlags::NONE;
         if (Flags::IsSet(connect_block_flags, ConnectBlockFlags::SKIP_ELIGIBILITY_CHECK)) {
@@ -3406,6 +3405,33 @@ static CDiskBlockPos SaveBlockToDisk(const CBlock& block, int nHeight, const CCh
     return blockPos;
 }
 
+bool AcceptStake(CBlockIndex &index, const CBlock &block, CValidationState &state, const CCoinsViewCache &coins_cache) {
+    const auto stake_validator = GetComponent<staking::StakeValidator>();
+    UTXOViewAdapter utxo_view(GetComponent<staking::ActiveChain>(), coins_cache);
+
+    staking::BlockValidationResult stake_validation_result =
+        stake_validator->CheckStake(block, &state.block_validation_info, CheckStakeFlags::NONE, &utxo_view);
+
+    if (!staking::CheckResult(stake_validation_result, state)) {
+        LogPrint(BCLog::VALIDATION, "%s: Invalid stake found for block=%s failure=%s\n",
+                 __func__, block.GetHash().ToString(), stake_validation_result.GetRejectionMessage());
+        return false;
+    }
+
+    const CTransactionRef coinbase = block.vtx[0];
+    PrecomputedTransactionData txdata(*coinbase);
+
+    constexpr unsigned int standard_flags = STANDARD_SCRIPT_VERIFY_FLAGS;
+    if (!CheckInputs(*coinbase, state, coins_cache, true, standard_flags, true, true, txdata)) {
+        LogPrint(BCLog::VALIDATION, "%s: Invalid stake found for block=%s failure=%s\n",
+                 __func__, block.GetHash().ToString(), state.GetDebugMessage());
+        return false;
+    }
+
+    return true;
+}
+
+
 /** Store block on disk. If dbp is non-nullptr, the file is known to already reside on disk */
 bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp, bool* fNewBlock)
 {
@@ -3462,6 +3488,21 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
         return error("%s: %s", __func__, FormatStateMessage(state));
     }
 
+    if (chainActive.Tip() == pindex->pprev) {
+        if (!AcceptStake(*pindex, block, state, *pcoinsTip)){
+            return false;
+        }
+
+        // Header is valid, merkle tree and segwit merkle tree are good, stake is good...RELAY NOW
+        // (but if it does not build on our best tip, let the SendMessages loop relay it)
+        if (!IsInitialBlockDownload()) {
+            GetMainSignals().NewPoSValidBlock(pindex, pblock);
+        }
+    }
+    else {
+        // UNIT-E TODO:
+    }
+
     if (!pindex->commits) {
         pindex->commits = std::vector<CTransactionRef>();
         for (const auto &tx : pblock->vtx) {
@@ -3470,11 +3511,6 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
             }
         }
     }
-
-    // Header is valid/has work, merkle tree and segwit merkle tree are good...RELAY NOW
-    // (but if it does not build on our best tip, let the SendMessages loop relay it)
-    if (!IsInitialBlockDownload() && chainActive.Tip() == pindex->pprev)
-        GetMainSignals().NewPoWValidBlock(pindex, pblock);
 
     // Write block to history file
     if (fNewBlock) *fNewBlock = true;

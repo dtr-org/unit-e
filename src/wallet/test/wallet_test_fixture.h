@@ -45,6 +45,7 @@ struct TestChain100Setup : public WalletTestingSetup {
   // a pointer to a bool can be passed in which the result will be stored in.
   CBlock CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns,
                                const CScript& scriptPubKey,
+                               boost::optional<staking::Coin> stake = boost::none,
                                bool *processed = nullptr);
 
   ~TestChain100Setup();
