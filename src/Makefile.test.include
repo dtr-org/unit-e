@@ -41,7 +41,9 @@ UNITE_TEST_SUITE = \
   test/util/mocks.h \
   test/util/mocks.cpp \
   test/util/txtools.h \
-  test/util/txtools.cpp
+  test/util/txtools.cpp \
+  test/util/util.h \
+  test/util/util.cpp
 
 # test_unite binary #
 UNITE_TESTS =\
@@ -179,8 +181,6 @@ UNITE_TESTS += \
   wallet/test/coinselector_tests.cpp
 
 UNITE_TEST_SUITE += \
-  test/util/util.h \
-  test/util/util.cpp \
   wallet/test/wallet_test_fixture.cpp \
   wallet/test/wallet_test_fixture.h
 endif

@@ -440,7 +440,6 @@ libunite_wallet_a_SOURCES = \
   esperanza/walletextension.cpp \
   esperanza/walletextension_deps.cpp \
   interfaces/wallet.cpp \
-  key/mnemonic/mnemonic.cpp \
   miner.cpp \
   proposer/block_builder.cpp \
   proposer/eligible_coin.cpp \
@@ -452,8 +451,6 @@ libunite_wallet_a_SOURCES = \
   proposer/waiter.cpp \
   staking/transactionpicker.cpp \
   rpc/proposing.cpp \
-  unilib/uninorms.cpp \
-  unilib/utf8.cpp \
   wallet/coincontrol.cpp \
   wallet/crypter.cpp \
   wallet/db.cpp \
@@ -600,6 +597,7 @@ libunite_common_a_SOURCES = \
   finalization/params.cpp \
   key.cpp \
   key_io.cpp \
+  key/mnemonic/mnemonic.cpp \
   keystore.cpp \
   netaddress.cpp \
   netbase.cpp \
@@ -615,6 +613,8 @@ libunite_common_a_SOURCES = \
   snapshot/indexer.cpp \
   staking/proof_of_stake.cpp \
   ufp64.cpp \
+  unilib/uninorms.cpp \
+  unilib/utf8.cpp \
   warnings.cpp \
   $(UNITE_CORE_H)
 
