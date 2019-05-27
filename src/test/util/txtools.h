@@ -13,14 +13,17 @@ namespace txtools {
 
 class TxTool {
 
- private:
-  CBasicKeyStore m_key_store;
-
  public:
   CKey CreateKey();
 
   //! \brief Creates a mocked, but properly signed, P2WPKH transaction.
   CTransaction CreateTransaction();
+
+ private:
+  CBasicKeyStore m_key_store;
+
+  void AddSomeOutput(CMutableTransaction& mtx, CAmount amount = 1);
+
 };
 
 };

@@ -72,7 +72,8 @@ BOOST_AUTO_TEST_CASE(GetTransactionWeight_test) {
     const std::size_t expected = GetTransactionWeight(tx);
     const std::size_t weight = b->GetTransactionWeight(tx);
 
-    BOOST_CHECK_EQUAL(437, weight);
+    BOOST_CHECK_GE(weight, 435);
+    BOOST_CHECK_LE(weight, 437);
     BOOST_CHECK_EQUAL(expected, weight);
   }
 }
@@ -102,7 +103,7 @@ BOOST_AUTO_TEST_CASE(GetBlockWeight_test) {
     const std::size_t expected = GetBlockWeight(block);
     const std::size_t weight = b->GetBlockWeight(block);
 
-    BOOST_CHECK_GE(weight, 1004);
+    BOOST_CHECK_GE(weight, 1003);
     BOOST_CHECK_LE(weight, 1005);
     BOOST_CHECK_EQUAL(expected, weight);
   }
