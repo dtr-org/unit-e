@@ -29,6 +29,7 @@ class Behavior {
 
  private:
   const Parameters m_parameters;
+  const std::size_t m_absolute_transaction_size_minimum;
 
   void CheckConsistency() const;
 
@@ -79,6 +80,17 @@ class Behavior {
   const Parameters &GetParameters() const;
 
   const Settings &GetDefaultSettings() const;
+
+  std::size_t GetTransactionWeight(const CTransaction &tx) const;
+
+  std::size_t GetBlockWeight(const CBlock &block) const;
+
+  std::size_t GetTransactionInputWeight(const CTxIn &txin) const;
+
+  //! \brief The absolute minimum size a serialized transaction can have.
+  std::size_t GetAbsoluteTransactionSizeMinimum() const;
+
+  bool IsInMoneyRange(CAmount) const;
 
   static std::unique_ptr<Behavior> New(Dependency<::ArgsManager>);
 

@@ -12,6 +12,8 @@
 
 #include <test/test_unite.h>
 #include <test/test_unite_mocks.h>
+#include <test/util/txtools.h>
+#include <test/util/util.h>
 
 #include <boost/mpl/list.hpp>
 #include <boost/test/test_case_template.hpp>
@@ -24,30 +26,39 @@ void SortTxs(CBlock &block, bool reverse = false) {
     std::reverse(block.vtx.begin() + 1, block.vtx.end());
   }
 }
-struct Fixture {
+struct Fixture : public txtools::TxTool {
   std::unique_ptr<blockchain::Behavior> blockchain_behavior =
       blockchain::Behavior::NewForNetwork(blockchain::Network::test);
   mocks::ActiveChainMock active_chain;
   std::unique_ptr<staking::BlockValidator> block_validator =
       staking::BlockValidator::New(blockchain_behavior.get());
-  mocks::StakeValidatorMock stake_validator;
+  mocks::NetworkMock network;
   std::unique_ptr<staking::LegacyValidationInterface> validation;
 
+  const CChainParams &chainparams;
+  const Consensus::Params &params;
+
   explicit Fixture(decltype(&staking::LegacyValidationInterface::LegacyImpl) factory)
-      : validation(factory(&active_chain, block_validator.get(), &stake_validator)) {}
+      : validation(factory(&active_chain, block_validator.get(), &network)),
+        chainparams(Params()),
+        params(chainparams.GetConsensus()) {}
 };
 struct LegacyImpl : public Fixture {
   LegacyImpl() : Fixture(staking::LegacyValidationInterface::LegacyImpl) {}
 };
-using TestFixtures = boost::mpl::list<LegacyImpl>;
+struct NewImpl : public Fixture {
+  NewImpl() : Fixture(staking::LegacyValidationInterface::New) {}
+};
+using TestFixtures = boost::mpl::list<LegacyImpl, NewImpl>;
 
 }  // namespace
 
 BOOST_FIXTURE_TEST_SUITE(validation_tests, TestingSetup)
 
-CMutableTransaction CreateTx() {
+CMutableTransaction CreateTx(const TxType txtype = TxType::REGULAR) {
 
   CMutableTransaction mut_tx;
+  mut_tx.SetType(txtype);
 
   CBasicKeyStore keystore;
   CKey k;
@@ -79,15 +90,16 @@ CMutableTransaction CreateTx() {
   return mut_tx;
 }
 
-CMutableTransaction CreateCoinbase() {
+CMutableTransaction CreateCoinbase(blockchain::Height height = 0) {
   CMutableTransaction coinbase_tx;
   coinbase_tx.SetType(TxType::COINBASE);
-  coinbase_tx.vin.resize(1);
+  coinbase_tx.vin.resize(2);
   coinbase_tx.vin[0].prevout.SetNull();
+  coinbase_tx.vin[1].prevout = {uint256::zero, 2};
   coinbase_tx.vout.resize(1);
   coinbase_tx.vout[0].scriptPubKey = CScript();
   coinbase_tx.vout[0].nValue = 0;
-  coinbase_tx.vin[0].scriptSig = CScript() << CScriptNum::serialize(0) << ToByteVector(GetRandHash());
+  coinbase_tx.vin[0].scriptSig = CScript() << CScriptNum::serialize(height) << ToByteVector(GetRandHash());
   return coinbase_tx;
 }
 
@@ -98,7 +110,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_empty, F, TestFixtures) {
   assert(block.vtx.empty());
 
   CValidationState state;
-  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false);
+  fixture.validation->CheckBlock(block, state, fixture.params, false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-blk-length");
 }
@@ -109,12 +121,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_too_many_transactions, F, TestFixtures)
   auto tx_weight = GetTransactionWeight(CTransaction(CreateTx()));
 
   CBlock block;
+  block.vtx.push_back(MakeTransactionRef(CreateTx(TxType::COINBASE)));
   for (int i = 0; i <= (MAX_BLOCK_WEIGHT / tx_weight * WITNESS_SCALE_FACTOR) + 1; ++i) {
     block.vtx.push_back(MakeTransactionRef(CreateTx()));
   }
 
   CValidationState state;
-  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false);
+  fixture.validation->CheckBlock(block, state, fixture.params, false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-blk-length");
 }
@@ -126,7 +139,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_coinbase_missing, F, TestFixtures) {
   block.vtx.push_back(MakeTransactionRef(CTransaction(CreateTx())));
 
   CValidationState state;
-  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false);
+  fixture.validation->CheckBlock(block, state, fixture.params, false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-cb-missing");
 }
@@ -140,7 +153,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_duplicate_coinbase, F, TestFixtures) {
   block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
 
   CValidationState state;
-  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false);
+  fixture.validation->CheckBlock(block, state, fixture.params, false);
+
+  ltor::SortTransactions(block.vtx);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-cb-multiple");
 }
@@ -152,16 +167,18 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_too_many_sigs, F, TestFixtures) {
   block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
 
   auto tx = CreateTx();
-  auto many_checsigs = CScript();
+  auto many_checksigs = CScript();
   for (int i = 0; i < (MAX_BLOCK_SIGOPS_COST / WITNESS_SCALE_FACTOR) + 1; ++i) {
-    many_checsigs = many_checsigs << OP_CHECKSIG;
+    many_checksigs = many_checksigs << OP_CHECKSIG;
   }
 
-  tx.vout[0].scriptPubKey = many_checsigs;
+  tx.vout[0].scriptPubKey = many_checksigs;
   block.vtx.push_back(MakeTransactionRef(CTransaction(tx)));
 
+  ltor::SortTransactions(block.vtx);
+
   CValidationState state;
-  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false);
+  fixture.validation->CheckBlock(block, state, fixture.params, false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-blk-sigops");
 }
@@ -175,7 +192,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_merkle_root, F, TestFixtures) {
   block.hashMerkleRoot = GetRandHash();
 
   CValidationState state;
-  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), true);
+  fixture.validation->CheckBlock(block, state, fixture.params, true);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txnmrklroot");
 }
@@ -190,11 +207,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_merkle_root_mutated, F, TestFixtures) {
   block.vtx.push_back(MakeTransactionRef(tx));
   block.vtx.push_back(MakeTransactionRef(tx));
 
+  ltor::SortTransactions(block.vtx);
+
   bool ignored;
   block.hashMerkleRoot = BlockMerkleRoot(block, &ignored);
 
   CValidationState state;
-  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), true);
+  fixture.validation->CheckBlock(block, state, fixture.params, true);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-duplicate");
 }
@@ -211,7 +230,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_duplicates_tx, F, TestFixtures) {
   block.vtx.push_back(MakeTransactionRef(tx));
 
   CValidationState state;
-  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false);
+  fixture.validation->CheckBlock(block, state, fixture.params, false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-duplicate");
 }
@@ -227,7 +246,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_tx_order, F, TestFixtures) {
   SortTxs(block, true);
 
   CValidationState state;
-  fixture.validation->CheckBlock(block, state, Params().GetConsensus(), false);
+  fixture.validation->CheckBlock(block, state, fixture.params, false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-tx-ordering");
 }
@@ -247,6 +266,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(contextualcheckblock_is_final_tx, F, TestFixtures)
   //test with a tx non final because of height
   {
     CBlock block;
+    block.vtx.push_back(MakeTransactionRef(CreateCoinbase(prev.nHeight + 1)));
     block.vtx.push_back(MakeTransactionRef(final_tx));
 
     auto not_final_height_tx = CreateTx();
@@ -257,7 +277,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(contextualcheckblock_is_final_tx, F, TestFixtures)
     SortTxs(block);
 
     CValidationState state;
-    fixture.validation->ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
+    state.GetBlockValidationInfo().MarkCheckBlockSuccessfull(prev.nHeight + 1, uint256::zero);
+    state.GetBlockValidationInfo().MarkContextualCheckBlockHeaderSuccessfull();
+    fixture.validation->ContextualCheckBlock(block, state, fixture.params, &prev);
 
     BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-nonfinal");
   }
@@ -265,6 +287,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(contextualcheckblock_is_final_tx, F, TestFixtures)
   //test with a tx non final because of time
   {
     CBlock block;
+    block.vtx.push_back(MakeTransactionRef(CreateCoinbase(prev.nHeight + 1)));
     block.vtx.push_back(MakeTransactionRef(final_tx));
 
     auto not_final_time_tx = CreateTx();
@@ -275,7 +298,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(contextualcheckblock_is_final_tx, F, TestFixtures)
     SortTxs(block);
 
     CValidationState state;
-    fixture.validation->ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
+    state.GetBlockValidationInfo().MarkCheckBlockSuccessfull(prev.nHeight + 1, uint256::zero);
+    state.GetBlockValidationInfo().MarkContextualCheckBlockHeaderSuccessfull();
+    fixture.validation->ContextualCheckBlock(block, state, fixture.params, &prev);
 
     BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-nonfinal");
   }
@@ -286,8 +311,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_witness, F, TestFixtures) {
 
   CBlockIndex prev;
 
-  auto consensus_params = Params().GetConsensus();
-
   //bad witness merkle not matching
   CBlock block;
   block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
@@ -295,7 +318,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_witness, F, TestFixtures) {
   block.hash_witness_merkle_root = GetRandHash();
 
   CValidationState state;
-  fixture.validation->CheckBlock(block, state, consensus_params, true);
+  fixture.validation->CheckBlock(block, state, fixture.params, true);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-witness-merkle-match");
 }
@@ -312,7 +335,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(contextualcheckblock_block_weight, F, TestFixtures
   SortTxs(block);
 
   CValidationState state;
-  fixture.validation->ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
+  state.GetBlockValidationInfo().MarkCheckBlockSuccessfull(1, uint256::zero);
+  state.GetBlockValidationInfo().MarkContextualCheckBlockHeaderSuccessfull();
+  fixture.validation->ContextualCheckBlock(block, state, fixture.params, &prev);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-blk-weight");
 }
@@ -340,12 +365,17 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(contextualcheckblockheader_time, F, TestFixtures) 
 
     prev_2.phashBlock = &block.hashPrevBlock;
 
-    CValidationState state;
-    BOOST_CHECK(fixture.validation->ContextualCheckBlockHeader(block, state, Params(), &prev_2, adjusted_time));
+    {
+      CValidationState state;
+      BOOST_CHECK(fixture.validation->ContextualCheckBlockHeader(block, state, fixture.chainparams, &prev_2, adjusted_time));
+    }
 
-    block.nTime = 1999;  // 1 unit less than the median
-    fixture.validation->ContextualCheckBlockHeader(block, state, Params(), &prev_2, adjusted_time);
-    BOOST_CHECK_EQUAL(state.GetRejectReason(), "time-too-old");
+    {
+      CValidationState state;
+      block.nTime = 1999;  // 1 unit less than the median
+      BOOST_CHECK(!fixture.validation->ContextualCheckBlockHeader(block, state, fixture.chainparams, &prev_2, adjusted_time));
+      BOOST_CHECK_EQUAL(state.GetRejectReason(), "time-too-old");
+    }
   }
 
   // Block time is too far in the future
@@ -359,13 +389,132 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(contextualcheckblockheader_time, F, TestFixtures) 
 
     prev.phashBlock = &block.hashPrevBlock;
 
-    CValidationState state;
-    BOOST_CHECK(fixture.validation->ContextualCheckBlockHeader(block, state, Params(), &prev, adjusted_time));
+    {
+      CValidationState state;
+      BOOST_CHECK(fixture.validation->ContextualCheckBlockHeader(block, state, fixture.chainparams, &prev, adjusted_time));
+    }
 
-    block.nTime = adjusted_time + params.max_future_block_time_seconds + 1;
-    fixture.validation->ContextualCheckBlockHeader(block, state, Params(), &prev, adjusted_time);
-    BOOST_CHECK_EQUAL(state.GetRejectReason(), "time-too-new");
+    {
+      CValidationState state;
+      block.nTime = adjusted_time + params.max_future_block_time_seconds + 1;
+      BOOST_CHECK(!fixture.validation->ContextualCheckBlockHeader(block, state, fixture.chainparams, &prev, adjusted_time));
+      BOOST_CHECK_EQUAL(state.GetRejectReason(), "time-too-new");
+    }
   }
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_minimal_complete_block, F, TestFixtures) {
+  F fixture;
+
+  CBlock block = MinimalBlock();
+
+  // check that a minimal complete block without modifications passes
+  CValidationState state;
+  BOOST_REQUIRE(fixture.validation->CheckBlock(block, state, fixture.params, true));
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_tx_no_inputs, F, TestFixtures) {
+  F fixture;
+
+  CBlock block = MinimalBlock([&](CBlock &block) {
+    CMutableTransaction mtx(fixture.CreateTransaction());
+    mtx.vin.clear();
+    block.vtx.emplace_back(MakeTransactionRef(mtx));
+  });
+
+  CValidationState state;
+  BOOST_REQUIRE_MESSAGE(!fixture.validation->CheckBlock(block, state, fixture.params, true), state.GetRejectReason());
+  BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-vin-empty");
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_tx_no_outputs, F, TestFixtures) {
+  F fixture;
+
+  CBlock block = MinimalBlock([&](CBlock &block) {
+    CMutableTransaction mtx(fixture.CreateTransaction());
+    mtx.vout.clear();
+    block.vtx.emplace_back(MakeTransactionRef(mtx));
+  });
+
+  CValidationState state;
+  BOOST_REQUIRE_MESSAGE(!fixture.validation->CheckBlock(block, state, fixture.params, true), state.GetRejectReason());
+  BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-vout-empty");
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_tx_duplicate_inputs, F, TestFixtures) {
+  F fixture;
+
+  CBlock block = MinimalBlock([&](CBlock &block) {
+    CMutableTransaction mtx(fixture.CreateTransaction());
+    mtx.vin.emplace_back(mtx.vin.back());
+    block.vtx.emplace_back(MakeTransactionRef(mtx));
+  });
+
+  CValidationState state;
+  BOOST_REQUIRE_MESSAGE(!fixture.validation->CheckBlock(block, state, fixture.params, true), state.GetRejectReason());
+  BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-inputs-duplicate");
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_tx_negative_output, F, TestFixtures) {
+  F fixture;
+
+  CBlock block = MinimalBlock([&](CBlock &block) {
+    CMutableTransaction mtx(fixture.CreateTransaction());
+    CAmount out(-1);
+    mtx.vout.emplace_back(out, CScript());
+    block.vtx.emplace_back(MakeTransactionRef(mtx));
+  });
+
+  CValidationState state;
+  BOOST_REQUIRE_MESSAGE(!fixture.validation->CheckBlock(block, state, fixture.params, true), state.GetRejectReason());
+  BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-vout-negative");
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_tx_output_pays_too_much, F, TestFixtures) {
+  F fixture;
+
+  CBlock block = MinimalBlock([&](CBlock &block) {
+    CMutableTransaction mtx(fixture.CreateTransaction());
+    mtx.vout[0].nValue = fixture.blockchain_behavior->GetParameters().expected_maximum_supply + 1;
+    block.vtx.emplace_back(MakeTransactionRef(mtx));
+  });
+
+  CValidationState state;
+  BOOST_REQUIRE_MESSAGE(!fixture.validation->CheckBlock(block, state, fixture.params, true), state.GetRejectReason());
+  BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-vout-toolarge");
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_tx_sum_of_outputs_pays_too_much, F, TestFixtures) {
+  F fixture;
+
+  CBlock block = MinimalBlock([&](CBlock &block) {
+    CMutableTransaction mtx(fixture.CreateTransaction());
+    CScript script_pub_key = mtx.vout[0].scriptPubKey;
+    mtx.vout.clear();
+    for (std::size_t ix = 0; ix < 2; ++ix) {
+      const CAmount amount = fixture.blockchain_behavior->GetParameters().expected_maximum_supply - 1;
+      mtx.vout.emplace_back(amount, script_pub_key);
+    }
+    block.vtx.emplace_back(MakeTransactionRef(mtx));
+  });
+
+  CValidationState state;
+  BOOST_REQUIRE_MESSAGE(!fixture.validation->CheckBlock(block, state, fixture.params, true), state.GetRejectReason());
+  BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-txouttotal-toolarge");
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(checkblock_tx_null_input, F, TestFixtures) {
+  F fixture;
+
+  CBlock block = MinimalBlock([&](CBlock &block) {
+    CMutableTransaction mtx(fixture.CreateTransaction());
+    mtx.vin[0].prevout.SetNull();
+    block.vtx.emplace_back(MakeTransactionRef(mtx));
+  });
+
+  CValidationState state;
+  BOOST_REQUIRE_MESSAGE(!fixture.validation->CheckBlock(block, state, fixture.params, true), state.GetRejectReason());
+  BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-prevout-null");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

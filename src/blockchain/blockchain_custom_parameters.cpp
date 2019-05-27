@@ -334,7 +334,7 @@ blockchain::Parameters ReadCustomParametersFromJson(
   READ_PARAMETER(relay_non_standard_transactions);
   READ_PARAMETER(maximum_block_weight);
   READ_PARAMETER(maximum_block_serialized_size);
-  READ_PARAMETER(maximum_block_sigops_cost);
+  READ_PARAMETER(maximum_sigops_count);
   READ_PARAMETER(coinbase_maturity);
   READ_PARAMETER(stake_maturity);
   READ_PARAMETER(stake_maturity_activation_height);

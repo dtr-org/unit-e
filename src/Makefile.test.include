@@ -39,7 +39,11 @@ UNITE_TEST_SUITE = \
   test/util/blocktools.h \
   test/util/blocktools.cpp \
   test/util/mocks.h \
-  test/util/mocks.cpp
+  test/util/mocks.cpp \
+  test/util/txtools.h \
+  test/util/txtools.cpp \
+  test/util/util.h \
+  test/util/util.cpp
 
 # test_unite binary #
 UNITE_TESTS =\

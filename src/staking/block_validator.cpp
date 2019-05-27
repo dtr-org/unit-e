@@ -5,6 +5,7 @@
 #include <staking/block_validator.h>
 
 #include <consensus/merkle.h>
+#include <consensus/tx_verify.h>
 #include <primitives/transaction.h>
 #include <pubkey.h>
 #include <script/script.h>
@@ -178,9 +179,9 @@ class BlockValidatorImpl : public AbstractBlockValidator {
       uint256 *snapshot_hash_out       //!< [out] The snapshot hash extracted from the scriptSig
       ) const override {
 
-    // check that there are transactions
-    if (block.vtx.empty()) {
-      return BlockValidationResult(Error::NO_TRANSACTIONS);
+    // check block size limits
+    if (!CheckBlockSize(block)) {
+      return BlockValidationResult(Error::INVALID_BLOCK_SIZE);
     }
 
     // check that coinbase transaction is first transaction
@@ -194,10 +195,22 @@ class BlockValidatorImpl : public AbstractBlockValidator {
     }
 
     // check that all other transactions are no coinbase transactions
+    CTransactionRef prev_tx = *block.vtx.cbegin();
     for (auto tx = block.vtx.cbegin() + 1; tx != block.vtx.cend(); ++tx) {
       if ((*tx)->GetType() == +TxType::COINBASE) {
         return BlockValidationResult(Error::COINBASE_TRANSACTION_AT_POSITION_OTHER_THAN_FIRST);
       }
+      const int ordering = (*tx)->GetHash().CompareAsNumber(prev_tx->GetHash());
+      if (ordering < 0 && !prev_tx->IsCoinBase()) {
+        return BlockValidationResult(Error::INVALID_TRANSACTION_ORDERING);
+      } else if (ordering == 0) {
+        return BlockValidationResult(Error::DUPLICATE_TRANSACTION);
+      }
+      prev_tx = *tx;
+    }
+
+    if (!CheckSigOpCount(block)) {
+      return BlockValidationResult(Error::INVALID_BLOCK_SIGOPS_COUNT);
     }
 
     // will be set by invocation of BlockMerkleRoot()
@@ -225,8 +238,16 @@ class BlockValidatorImpl : public AbstractBlockValidator {
       return BlockValidationResult(Error::WITNESS_MERKLE_ROOT_DUPLICATE_TRANSACTIONS);
     }
 
+    // check finalization merkle tree root
     if (block.hash_finalizer_commits_merkle_root != BlockFinalizerCommitsMerkleRoot(block)) {
       return BlockValidationResult(Error::FINALIZER_COMMITS_MERKLE_ROOT_MISMATCH);
+    }
+
+    for (const CTransactionRef &tx : block.vtx) {
+      const BlockValidationResult result = CheckTransaction(*tx);
+      if (!result) {
+        return result;
+      }
     }
 
     // check proposer signature
@@ -240,6 +261,50 @@ class BlockValidatorImpl : public AbstractBlockValidator {
     return BlockValidationResult::success;
   }
 
+  bool CheckSigOpCount(const CBlock &block) const {
+    unsigned int num_sig_ops = 0;
+    for (const auto &tx : block.vtx) {
+      num_sig_ops += GetLegacySigOpCount(*tx);
+    }
+    const std::uint32_t maximum_sigops_count = m_blockchain_behavior->GetParameters().maximum_sigops_count;
+    const std::uint32_t witness_scale_factor = m_blockchain_behavior->GetParameters().witness_scale_factor;
+    return num_sig_ops * witness_scale_factor <= maximum_sigops_count;
+  }
+
+  //! Checks block size limits of a block.
+  //!
+  //! Block size limits used to be quite simple in bitcoin: There used to be a
+  //! maximum block size (1000000 Bytes, i.e. 1MB). With the advent of segwit
+  //! the block size is no longer the determining factor, but block weight.
+  //! The factor between maximum block size and maximum block weight is the
+  //! witness scale factor.
+  //!
+  //! CheckBlockSize checks that a block is not empty and that it does not
+  //! exceed the maximum block weight. This is not done exactly (a proper check
+  //! follows in ContextualCheckBlock) but heuristically: If the number of
+  //! transactions times the minimal transaction size exceeds the block weight
+  //! already we can save the proper check and return an error code already.
+  bool CheckBlockSize(const CBlock &block) const {
+    // A block without any transactions is not valid - it must at least have a coinbase.
+    if (block.vtx.empty()) {
+      return false;
+    }
+    const std::uint32_t maximum_block_weight = m_blockchain_behavior->GetParameters().maximum_block_weight;
+    const std::uint32_t witness_scale_factor = m_blockchain_behavior->GetParameters().witness_scale_factor;
+    // Estimate a minimum size of the block such that the more expensive GetSerialSize call can be skipped
+    // for blocks which are - under any circumstances - too big.
+    const std::size_t number_of_transactions = block.vtx.size();
+    const std::size_t lowest_possible_size_of_txns_block = number_of_transactions * m_blockchain_behavior->GetAbsoluteTransactionSizeMinimum();
+    const std::size_t lowest_possible_weight_of_txns_block = lowest_possible_size_of_txns_block * m_blockchain_behavior->GetParameters().witness_scale_factor;
+    if (lowest_possible_weight_of_txns_block > maximum_block_weight) {
+      return false;
+    }
+    // Check that the block weight matches. The block weight is the size of the block serialized
+    // without witness data times the witness scale factor.
+    const std::size_t serialized_size = GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
+    return serialized_size * witness_scale_factor <= maximum_block_weight;
+  }
+
   BlockValidationResult ContextualCheckBlockInternal(
       const CBlock &block,
       const CBlockIndex &prev_block,
@@ -247,6 +312,15 @@ class BlockValidatorImpl : public AbstractBlockValidator {
 
     if (validation_info.GetHeight() != static_cast<blockchain::Height>(prev_block.nHeight) + 1) {
       return BlockValidationResult(Error::MISMATCHING_HEIGHT);
+    }
+    std::int64_t lock_time_cutoff = prev_block.GetMedianTimePast();
+    for (const auto &tx : block.vtx) {
+      if (!IsFinalTx(*tx, validation_info.GetHeight(), lock_time_cutoff)) {
+        return BlockValidationResult(Error::NON_FINAL_TRANSACTION);
+      }
+    }
+    if (m_blockchain_behavior->GetBlockWeight(block) > m_blockchain_behavior->GetParameters().maximum_block_weight) {
+      return BlockValidationResult(Error::INVALID_BLOCK_WEIGHT);
     }
     return BlockValidationResult::success;
   }
@@ -256,6 +330,64 @@ class BlockValidatorImpl : public AbstractBlockValidator {
       const CBlock &block,
       const CTransaction &coinbase_tx) const override {
     return CheckCoinbaseTransactionInternal(block, coinbase_tx, nullptr, nullptr);
+  }
+
+  BlockValidationResult CheckTransaction(
+      const CTransaction &tx) const override {
+    if (tx.vin.empty()) {
+      return BlockValidationResult(Error::INVALID_TRANSACTION_NO_INPUTS);
+    }
+    if (tx.vout.empty()) {
+      return BlockValidationResult(Error::INVALID_TRANSACTION_NO_OUTPUTS);
+    }
+    const std::size_t size = GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
+    const std::size_t weight = size * m_blockchain_behavior->GetParameters().witness_scale_factor;
+    if (weight > m_blockchain_behavior->GetParameters().maximum_block_weight) {
+      return BlockValidationResult(Error::INVALID_TRANSACTION_TOO_BIG);
+    }
+    std::set<COutPoint> outpoints;
+    for (std::size_t ix = 0; ix < tx.vin.size(); ++ix) {
+      const CTxIn &txin = tx.vin[ix];
+      if (!outpoints.insert(txin.prevout).second) {
+        return BlockValidationResult(Error::INVALID_TRANSACTION_DUPLICATE_INPUTS);
+      }
+      if (txin.prevout.IsNull()) {
+        if (tx.IsCoinBase() && ix == 0) {
+          // the zeroth input in a coinbase transaction is the meta input
+          continue;
+        }
+        return BlockValidationResult(Error::INVALID_TRANSACTION_NULL_INPUT);
+      }
+    }
+    CAmount out_total(0);
+    for (const auto &txout : tx.vout) {
+      if (txout.nValue < 0) {
+        return BlockValidationResult(Error::INVALID_TRANSACTION_NEGATIVE_OUTPUT);
+      }
+      if (txout.nValue > m_blockchain_behavior->GetParameters().expected_maximum_supply) {
+        return BlockValidationResult(Error::INVALID_TRANSACTION_OUTPUT_PAYS_TOO_MUCH);
+      }
+      out_total += txout.nValue;
+      if (!m_blockchain_behavior->IsInMoneyRange(out_total)) {
+        return BlockValidationResult(Error::INVALID_TRANSACTION_PAYS_TOO_MUCH);
+      }
+    }
+    switch (tx.GetType()) {
+      case TxType::DEPOSIT:
+      case TxType::VOTE:
+      case TxType::LOGOUT:
+        if (!tx.vout[0].scriptPubKey.IsFinalizerCommitScript()) {
+          return BlockValidationResult(Error::INVALID_FINALIZER_COMMIT_BAD_SCRIPT);
+        }
+        break;
+      case TxType::REGULAR:
+      case TxType::COINBASE:
+      case TxType::SLASH:
+      case TxType::WITHDRAW:
+      case TxType::ADMIN:
+        break;
+    }
+    return BlockValidationResult::success;
   }
 
   explicit BlockValidatorImpl(Dependency<blockchain::Behavior> blockchain_behavior)
