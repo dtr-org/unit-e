@@ -25,11 +25,11 @@ class BlockBuilder {
  public:
   //! \brief Builds a coinbase transaction.
   virtual const CTransactionRef BuildCoinbaseTransaction(
-      const CBlockIndex &prev_block,                    //!< The previous block / current tip.
       const uint256 &snapshot_hash,                     //!< The snapshot hash to be included.
       const EligibleCoin &eligible_coin,                //!< The eligible coin to reference as stake. Also contains the target height.
       const staking::CoinSet &coins,                    //!< Any other coins that should be combined into the coinbase tx.
       CAmount fees,                                     //!< The amount of fees to be included (for the reward).
+      const std::vector<CTxOut> &finalization_rewards,  //!< The finalization reward outputs to be added after block reward output.
       const boost::optional<CScript> &coinbase_script,  //!< The scriptpubkey to be used for the coinbase reward and fees.
       staking::StakingWallet &wallet                    //!< The wallet to be used for signing the transaction.
       ) const = 0;
@@ -42,15 +42,14 @@ class BlockBuilder {
       const staking::CoinSet &coins,                    //!< Other coins to combine with the stake.
       const std::vector<CTransactionRef> &txs,          //!< Transactions to include in the block.
       CAmount fees,                                     //!< The fees on the transactions.
+      const std::vector<CTxOut> &finalization_rewards,  //!< The finalization reward outputs to be added to the coinbase transaction.
       const boost::optional<CScript> &coinbase_script,  //!< The scriptpubkey to be used for the coinbase reward and fees.
       staking::StakingWallet &wallet                    //!< A wallet used to sign blocks and stake.
       ) const = 0;
 
   virtual ~BlockBuilder() = default;
 
-  static std::unique_ptr<BlockBuilder> New(
-      Dependency<Settings>,
-      Dependency<FinalizationRewardLogic>);
+  static std::unique_ptr<BlockBuilder> New(Dependency<Settings>);
 };
 
 }  // namespace proposer

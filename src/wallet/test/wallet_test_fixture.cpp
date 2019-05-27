@@ -49,7 +49,7 @@ WalletTestingSetup::~WalletTestingSetup()
 
 TestChain100Setup::TestChain100Setup(UnitEInjectorConfiguration config)
     : WalletTestingSetup(CBaseChainParams::REGTEST, config),
-      m_block_builder(proposer::BlockBuilder::New(&settings, GetComponent<proposer::FinalizationRewardLogic>())),
+      m_block_builder(proposer::BlockBuilder::New(&settings)),
       m_active_chain(staking::ActiveChain::New()),
       m_behavior(blockchain::Behavior::NewForNetwork(blockchain::Network::regtest))
 {
@@ -120,12 +120,13 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
   };
 
   std::shared_ptr<const CBlock> block = m_block_builder->BuildBlock(
-      *m_active_chain->GetTip(),
+      *tip,
       snapshot_hash,
       coin,
       {},
       tx_refs,
       fees,
+      GetComponent<proposer::FinalizationRewardLogic>()->GetFinalizationRewards(*tip),
       coinbase_script,
       wallet_ext);
 

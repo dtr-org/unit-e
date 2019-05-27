@@ -83,7 +83,8 @@ struct Fixture {
         &chain_mock,
         &transaction_picker_mock,
         &block_builder_mock,
-        &logic_mock);
+        &logic_mock,
+        &finalization_reward_logic);
   }
 };
 

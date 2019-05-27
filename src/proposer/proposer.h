@@ -31,6 +31,7 @@ namespace proposer {
 class BlockBuilder;
 class Logic;
 class MultiWallet;
+class FinalizationRewardLogic;
 
 class Proposer {
 
@@ -56,7 +57,8 @@ class Proposer {
                                        Dependency<staking::ActiveChain>,
                                        Dependency<staking::TransactionPicker>,
                                        Dependency<BlockBuilder>,
-                                       Dependency<Logic>);
+                                       Dependency<Logic>,
+                                       Dependency<FinalizationRewardLogic>);
 };
 
 }  // namespace proposer

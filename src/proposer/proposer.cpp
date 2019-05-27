@@ -35,6 +35,7 @@ std::shared_ptr<const CBlock> GenerateBlock(staking::ActiveChain &active_chain,
                                             staking::TransactionPicker &transaction_picker,
                                             proposer::BlockBuilder &block_builder,
                                             proposer::Logic &logic,
+                                            proposer::FinalizationRewardLogic &fin_reward_logic,
                                             staking::StakingWallet &wallet,
                                             const staking::CoinSet &coins,
                                             const boost::optional<CScript> &coinbase_script) {
@@ -59,8 +60,10 @@ std::shared_ptr<const CBlock> GenerateBlock(staking::ActiveChain &active_chain,
   const CAmount fees = std::accumulate(result.fees.begin(), result.fees.end(), CAmount(0));
   const uint256 snapshot_hash = active_chain.ComputeSnapshotHash();
 
+  const CBlockIndex &tip = *active_chain.GetTip();
+  const std::vector<CTxOut> fin_rewards = fin_reward_logic.GetFinalizationRewards(tip);
   return block_builder.BuildBlock(
-      *active_chain.GetTip(), snapshot_hash, coin, coins, result.transactions, fees, coinbase_script, wallet);
+      tip, snapshot_hash, coin, coins, result.transactions, fees, fin_rewards, coinbase_script, wallet);
 }
 
 }  // namespace
@@ -70,16 +73,19 @@ class PassiveProposerImpl : public Proposer {
   const Dependency<proposer::BlockBuilder> m_block_builder;
   const Dependency<staking::TransactionPicker> m_transaction_picker;
   const Dependency<proposer::Logic> m_proposer_logic;
+  const Dependency<FinalizationRewardLogic> m_finalization_reward_logic;
 
  public:
   PassiveProposerImpl(Dependency<staking::ActiveChain> const active_chain,
                       Dependency<proposer::BlockBuilder> const block_builder,
                       Dependency<staking::TransactionPicker> const transaction_picker,
-                      Dependency<proposer::Logic> const proposer_logic)
+                      Dependency<proposer::Logic> const proposer_logic,
+                      Dependency<FinalizationRewardLogic> const finalization_reward_logic)
       : m_active_chain(active_chain),
         m_block_builder(block_builder),
         m_transaction_picker(transaction_picker),
-        m_proposer_logic(proposer_logic) {}
+        m_proposer_logic(proposer_logic),
+        m_finalization_reward_logic(finalization_reward_logic) {}
 
   void Wake() override {}
   void Start() override {}
@@ -93,6 +99,7 @@ class PassiveProposerImpl : public Proposer {
                                    *m_transaction_picker,
                                    *m_block_builder,
                                    *m_proposer_logic,
+                                   *m_finalization_reward_logic,
                                    wallet,
                                    coins,
                                    coinbase_script);
@@ -110,6 +117,7 @@ class ActiveProposerImpl : public Proposer {
   const Dependency<blockchain::Behavior> m_blockchain_behavior;
   const Dependency<MultiWallet> m_multi_wallet;
   const Dependency<staking::Network> m_network;
+  const Dependency<FinalizationRewardLogic> m_finalization_reward_logic;
 
   mutable CCriticalSection m_startstop_lock;
 
@@ -179,6 +187,7 @@ class ActiveProposerImpl : public Proposer {
                                           *m_transaction_picker,
                                           *m_block_builder,
                                           *m_proposer_logic,
+                                          *m_finalization_reward_logic,
                                           wallet_ext,
                                           coins,
                                           boost::none /* coinbase_script */);
@@ -211,7 +220,8 @@ class ActiveProposerImpl : public Proposer {
                      const Dependency<proposer::Logic> proposer_logic,
                      const Dependency<blockchain::Behavior> blockchain_behavior,
                      const Dependency<MultiWallet> multi_wallet,
-                     const Dependency<staking::Network> network)
+                     const Dependency<staking::Network> network,
+                     const Dependency<FinalizationRewardLogic> finalization_reward_logic)
       : m_active_chain(active_chain),
         m_transaction_picker(transaction_picker),
         m_block_builder(block_builder),
@@ -219,6 +229,7 @@ class ActiveProposerImpl : public Proposer {
         m_blockchain_behavior(blockchain_behavior),
         m_multi_wallet(multi_wallet),
         m_network(network),
+        m_finalization_reward_logic(finalization_reward_logic),
         m_interrupted(false) {
   }
 
@@ -273,11 +284,14 @@ std::unique_ptr<Proposer> Proposer::New(
     const Dependency<staking::ActiveChain> active_chain,
     const Dependency<staking::TransactionPicker> transaction_picker,
     const Dependency<BlockBuilder> block_builder,
-    const Dependency<Logic> proposer_logic) {
+    const Dependency<Logic> proposer_logic,
+    const Dependency<FinalizationRewardLogic> finalization_reward_logic) {
   if (settings->node_is_proposer) {
-    return MakeUnique<ActiveProposerImpl>(active_chain, transaction_picker, block_builder, proposer_logic, behavior, multi_wallet, network);
+    return MakeUnique<ActiveProposerImpl>(active_chain, transaction_picker, block_builder, proposer_logic, behavior,
+                                          multi_wallet, network, finalization_reward_logic);
   } else {
-    return MakeUnique<PassiveProposerImpl>(active_chain, block_builder, transaction_picker, proposer_logic);
+    return MakeUnique<PassiveProposerImpl>(active_chain, block_builder, transaction_picker, proposer_logic,
+                                           finalization_reward_logic);
   }
 }
 

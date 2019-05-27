@@ -392,14 +392,15 @@ class BlockBuilderMock : public proposer::BlockBuilder, public Mock {
   MethodMock<decltype(&proposer::BlockBuilder::BuildBlock)> mock_BuildBlock{this};
 
   const CTransactionRef BuildCoinbaseTransaction(
-      const CBlockIndex &prev_block,
       const uint256 &snapshot_hash,
       const proposer::EligibleCoin &eligible_coin,
       const staking::CoinSet &coins,
       const CAmount fees,
+      const std::vector<CTxOut> &finalization_rewards,
       const boost::optional<CScript> &coinbase_script,
       staking::StakingWallet &wallet) const override {
-    return mock_BuildCoinbaseTransaction(prev_block, snapshot_hash, eligible_coin, coins, fees, coinbase_script, wallet);
+    return mock_BuildCoinbaseTransaction(
+        snapshot_hash, eligible_coin, coins, fees, finalization_rewards, coinbase_script, wallet);
   }
   std::shared_ptr<const CBlock> BuildBlock(
       const CBlockIndex &index,
@@ -408,9 +409,11 @@ class BlockBuilderMock : public proposer::BlockBuilder, public Mock {
       const staking::CoinSet &coins,
       const std::vector<CTransactionRef> &txs,
       const CAmount fees,
+      const std::vector<CTxOut> &finalization_rewards,
       const boost::optional<CScript> &coinbase_script,
       staking::StakingWallet &wallet) const override {
-    return mock_BuildBlock(index, snapshot_hash, stake_coin, coins, txs, fees, coinbase_script, wallet);
+    return mock_BuildBlock(
+        index, snapshot_hash, stake_coin, coins, txs, fees, finalization_rewards, coinbase_script, wallet);
   }
 };
 
@@ -418,7 +421,7 @@ class StateRepositoryMock : public finalization::StateRepository {
  public:
   explicit StateRepositoryMock(const finalization::Params &params)
       : m_finalization_params(params),
-        state(m_finalization_params) { }
+        state(m_finalization_params) {}
 
   CCriticalSection &GetLock() override { return cs; }
   FinalizationState *GetTipState() override { return &state; }
@@ -428,7 +431,7 @@ class StateRepositoryMock : public finalization::StateRepository {
   bool RestoreFromDisk(Dependency<finalization::StateProcessor>) override { return false; }
   bool SaveToDisk() override { return false; }
   bool Restoring() const override { return false; }
-  void TrimUntilHeight(const blockchain::Height) override { }
+  void TrimUntilHeight(const blockchain::Height) override {}
 
  private:
   finalization::Params m_finalization_params;

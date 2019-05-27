@@ -136,8 +136,7 @@ class UnitEInjector : public Injector<UnitEInjector> {
   COMPONENT(MultiWallet, proposer::MultiWallet, proposer::MultiWallet::New)
 
   COMPONENT(BlockBuilder, proposer::BlockBuilder, proposer::BlockBuilder::New,
-            Settings,
-            proposer::FinalizationRewardLogic)
+            Settings)
 
   COMPONENT(ProposerRPC, proposer::ProposerRPC, proposer::ProposerRPC::New,
             Settings,
@@ -160,7 +159,8 @@ class UnitEInjector : public Injector<UnitEInjector> {
             staking::ActiveChain,
             staking::TransactionPicker,
             proposer::BlockBuilder,
-            proposer::Logic)
+            proposer::Logic,
+            proposer::FinalizationRewardLogic)
 
 #endif
 
