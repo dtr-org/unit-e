@@ -131,7 +131,7 @@ BOOST_AUTO_TEST_CASE(GetTransactionInputWeight_test) {
     const std::size_t expected = GetTransactionInputWeight(txin);
     const std::size_t weight = b->GetTransactionInputWeight(txin);
 
-    BOOST_CHECK_GE(weight, 270);
+    BOOST_CHECK_GE(weight, 269);
     BOOST_CHECK_LE(weight, 271);
     BOOST_CHECK_EQUAL(expected, weight);
   }
