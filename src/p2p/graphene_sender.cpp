@@ -179,7 +179,7 @@ void GrapheneSenderImpl::OnGrapheneTxRequestReceived(CNode &from,
 
     CBlock block;
 
-    if (!ReadBlockFromDisk(block, block_index, Params().GetConsensus())) {
+    if (!ReadBlockFromDisk(block, block_index)) {
       LogPrint(BCLog::NET, "Can not read block %s from disk\n", block_hash.GetHex());
       return;
     }

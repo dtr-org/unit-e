@@ -120,7 +120,7 @@ void BaseIndex::ThreadSync()
             }
 
             CBlock block;
-            if (!ReadBlockFromDisk(block, pindex, consensus_params)) {
+            if (!ReadBlockFromDisk(block, pindex)) {
                 FatalError("%s: Failed to read block %s from disk",
                            __func__, pindex->GetBlockHash().ToString());
                 return;

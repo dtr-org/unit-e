@@ -120,7 +120,7 @@ UniValue getblocksnapshot(const JSONRPCRequest &request) {
     }
 
     CBlock block;
-    if (!ReadBlockFromDisk(block, parent, ::Params().GetConsensus())) {
+    if (!ReadBlockFromDisk(block, parent)) {
       root_node.push_back(Pair("error", "can't read block from disk"));
       return root_node;
     }
