@@ -98,10 +98,10 @@ BOOST_AUTO_TEST_CASE(get_finalization_rewards) {
   BOOST_CHECK_EQUAL(reward_amounts.size(), 0);
 
   for (uint32_t epoch = 1; epoch < 3; ++epoch) {
-    fin_state.InitializeEpoch(fin_state.GetEpochStartHeight(epoch));
+    fin_state.InitializeEpoch(f.fin_params.GetEpochStartHeight(epoch));
     BOOST_REQUIRE_EQUAL(fin_state.GetCurrentEpoch(), epoch);
 
-    for (auto height = fin_state.GetEpochStartHeight(epoch); height < f.fin_params.GetEpochCheckpointHeight(epoch);
+    for (auto height = f.fin_params.GetEpochStartHeight(epoch); height < f.fin_params.GetEpochCheckpointHeight(epoch);
          ++height) {
       rewards = logic->GetFinalizationRewards(f.BlockIndexAtHeight(height));
       reward_amounts = logic->GetFinalizationRewardAmounts(f.BlockIndexAtHeight(height));
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(get_finalization_rewards) {
     BOOST_CHECK_EQUAL(rewards.size(), f.fin_params.epoch_length);
     BOOST_CHECK_EQUAL(reward_amounts.size(), f.fin_params.epoch_length);
     for (std::size_t i = 0; i < rewards.size(); ++i) {
-      auto h = static_cast<blockchain::Height>(fin_state.GetEpochStartHeight(epoch) + i);
+      auto h = static_cast<blockchain::Height>(f.fin_params.GetEpochStartHeight(epoch) + i);
       auto r = static_cast<CAmount>(f.parameters.reward_function(f.parameters, h) * 0.4);
       BOOST_CHECK_EQUAL(rewards[i].nValue, r);
       BOOST_CHECK_EQUAL(reward_amounts[i], r);
