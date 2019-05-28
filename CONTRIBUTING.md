@@ -366,8 +366,7 @@ GitHub](https://github.com/dtr-org/unit-e/issues). There is some more
 information in the [developer
 notes](https://github.com/dtr-org/unit-e/blob/master/doc/developer-notes.md#github-issues).
 
-Contact security@dtr.org to report security vulnerabilities or discuss sensitive
-security related matters.
+See [SECURITY.md](SECURITY.md) for information how to deal with security issues.
 
 
 Release Policy
