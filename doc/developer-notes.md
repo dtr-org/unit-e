@@ -61,7 +61,7 @@ forward declarations of functions and templated classes are prohibited according
   - Do not use the scope resolution unless it is required (that is: use `Type` instead of `::Type` if not ambigious otherwise)
 
 You can check the code for style violations by running
-[`contrib/devtools/lint-clang-format.py`](../contrib/devtools/lint-clang-format.py).
+[`test/lint/lint-clang-format.py`](../test/lint/lint-clang-format.py).
 Use the `--help` option to get more info how to use it.
 
 Copy the [`contrib/githooks/pre-commit`](../contrib/githooks/pre-commit) file to
