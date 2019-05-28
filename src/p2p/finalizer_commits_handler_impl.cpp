@@ -192,7 +192,7 @@ boost::optional<HeaderAndFinalizerCommits> FinalizerCommitsHandlerImpl::FindHead
   }
 
   CBlock block;
-  if (!ReadBlockFromDisk(block, &index, params)) {
+  if (!ReadBlockFromDisk(block, &index)) {
     assert(not("Cannot load block from the disk"));
   }
 

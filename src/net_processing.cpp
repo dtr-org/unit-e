@@ -1178,7 +1178,7 @@ void static ProcessGetBlockData(CNode* pfrom, const CChainParams& chainparams, c
         } else {
             // Send block from disk
             std::shared_ptr<CBlock> pblockRead = std::make_shared<CBlock>();
-            if (!ReadBlockFromDisk(*pblockRead, pindex, consensusParams))
+            if (!ReadBlockFromDisk(*pblockRead, pindex))
                 assert(!"cannot load block from disk");
             pblock = pblockRead;
         }
@@ -2129,7 +2129,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         }
 
         CBlock block;
-        bool ret = ReadBlockFromDisk(block, pindex, chainparams.GetConsensus());
+        bool ret = ReadBlockFromDisk(block, pindex);
         assert(ret);
 
         SendBlockTransactions(block, req, pfrom, connman);
@@ -3549,7 +3549,7 @@ bool PeerLogicValidation::SendMessages(CNode* pto, size_t node_index, size_t tot
                     }
                     if (!fGotBlockFromCache) {
                         CBlock block;
-                        bool ret = ReadBlockFromDisk(block, pBestIndex, consensusParams);
+                        bool ret = ReadBlockFromDisk(block, pBestIndex);
                         assert(ret);
                         CBlockHeaderAndShortTxIDs cmpctblock(block);
                         connman->PushMessage(pto, msgMaker.Make(nSendFlags, NetMsgType::CMPCTBLOCK, cmpctblock));

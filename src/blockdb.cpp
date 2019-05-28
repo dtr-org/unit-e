@@ -16,7 +16,7 @@ class BlockDiskStorage final : public BlockDB {
 
   boost::optional<CBlock> ReadBlock(const CBlockIndex &index) override {
     boost::optional<CBlock> block((CBlock()));
-    if (!ReadBlockFromDisk(*block, &index, Params().GetConsensus())) {
+    if (!ReadBlockFromDisk(*block, &index)) {
       return boost::none;
     }
     return block;
