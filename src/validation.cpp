@@ -3424,7 +3424,7 @@ bool AcceptStake(CBlockIndex &index, const CBlock &block, CValidationState &stat
     constexpr unsigned int standard_flags = STANDARD_SCRIPT_VERIFY_FLAGS;
     if (!CheckInputs(*coinbase, state, coins_cache, true, standard_flags, true, true, txdata)) {
         LogPrint(BCLog::VALIDATION, "%s: Invalid stake found for block=%s failure=%s\n",
-                 __func__, block.GetHash().ToString(), state.GetDebugMessage());
+                 __func__, block.GetHash().ToString(), state.GetRejectReason());
         return false;
     }
 
@@ -3489,7 +3489,7 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
     }
 
     if (chainActive.Tip() == pindex->pprev) {
-        if (!AcceptStake(*pindex, block, state, *pcoinsTip)){
+        if (!AcceptStake(*pindex, block, state, *pcoinsTip)) {
             return false;
         }
 

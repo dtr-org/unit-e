@@ -4,15 +4,16 @@
 
 #include <wallet/test/wallet_test_fixture.h>
 
+#include <consensus/merkle.h>
 #include <injector.h>
 #include <key_io.h>
 #include <rpc/server.h>
+#include <test/test_unite_mocks.h>
 #include <validation.h>
 #include <wallet/db.h>
 #include <wallet/rpcvalidator.h>
 #include <wallet/rpcwalletext.h>
-#include <consensus/merkle.h>
-#include <test/test_unite_mocks.h>
+#include <boost/test/unit_test.hpp>
 
 WalletTestingSetup::WalletTestingSetup(const std::string& chainName, UnitEInjectorConfiguration config)
     : WalletTestingSetup([](Settings& s){}, chainName, config) {}
@@ -77,23 +78,18 @@ TestChain100Setup::TestChain100Setup(UnitEInjectorConfiguration config)
   }
 }
 
-//
-// Create a new block with just given transactions, coinbase paying to
-// scriptPubKey, and try to add it to the current chain.
-//
-CBlock
-TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns,
-                                         const CScript& coinbase_script,
-                                         boost::optional<staking::Coin> stake,
-                                         bool *processed)
+std::shared_ptr<const CBlock> TestChain100Setup::CreateBlock(
+    const std::vector<CMutableTransaction>& txns,
+    const CScript& coinbase_script,
+    boost::optional<staking::Coin> stake)
 {
-  const CChainParams& chainparams = Params();
-
   esperanza::WalletExtension &wallet_ext = m_wallet->GetWalletExtension();
 
   if (!stake) {
     LOCK2(m_active_chain->GetLock(), wallet_ext.GetLock());
-    stake.emplace(*wallet_ext.GetStakeableCoins().begin());
+    staking::CoinSet coin_set = wallet_ext.GetStakeableCoins();
+    BOOST_REQUIRE(!coin_set.empty());
+    stake.emplace(*coin_set.begin());
   }
 
   const CAmount fees = 0;
@@ -130,13 +126,28 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
       coinbase_script,
       wallet_ext);
 
-  const bool was_processed = ProcessNewBlock(chainparams, block, true, nullptr);
-  assert(processed != nullptr || was_processed);
-  if (processed != nullptr) {
-    *processed = was_processed;
-  }
+  return block;
+}
+
+bool TestChain100Setup::ProcessBlock(const std::shared_ptr<const CBlock> block) {
+  const bool was_processed = ProcessNewBlock(Params(), block, true, nullptr);
 
   SyncWithValidationInterfaceQueue(); // To prevent Wallet::ConnectBlock from running concurrently
+
+  return was_processed;
+}
+
+CBlock TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns,
+                                                const CScript& coinbase_script,
+                                                const boost::optional<staking::Coin> stake,
+                                                bool *processed) {
+  std::shared_ptr<const CBlock> block = CreateBlock(txns, coinbase_script, stake);
+
+  const bool was_processed = ProcessBlock(block);
+  BOOST_REQUIRE(processed != nullptr || was_processed);
+  if (processed) {
+    *processed = was_processed;
+  }
 
   return *block;
 }
