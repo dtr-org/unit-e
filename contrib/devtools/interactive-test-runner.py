@@ -99,8 +99,8 @@ class InteractiveTestRunner:
 
     @staticmethod
     def run_command(*args, **kwargs):
-        proc = subprocess.check_output(args, encoding='utf8', **kwargs)
-        return proc.stdout.strip()
+        stdout = subprocess.check_output(args, encoding='utf8', **kwargs)
+        return stdout.strip()
 
     def find_git_root(self):
         return self.run_command('git', 'rev-parse', '--show-toplevel')
