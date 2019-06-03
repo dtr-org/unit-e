@@ -108,7 +108,7 @@ class InteractiveTestRunner:
 
     @staticmethod
     def run_command(*args, **kwargs):
-        proc = subprocess.run(args, capture_output=True, encoding='utf8', check=True, **kwargs)
+        proc = subprocess.check_output(args, encoding='utf8', **kwargs)
         return proc.stdout.strip()
 
     def find_git_root(self):
