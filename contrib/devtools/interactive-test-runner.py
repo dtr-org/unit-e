@@ -39,16 +39,7 @@ red = colorizer('0;31')
 yellow = colorizer('0;33')
 blue = colorizer('0;34')
 
-try:
-    # Make sure python thinks it can write unicode to its stdout
-    '\u2713'.encode('utf8').decode(sys.stdout.encoding)
-    TICK = '✓'
-    CROSS = '✖'
-    CIRCLE = '○'
-except UnicodeDecodeError:
-    TICK = 'P'
-    CROSS = 'x'
-    CIRCLE = 'o'
+TICK, CROSS, CIRCLE = ('✓', '✖', '○') if sys.stdout.encoding == 'UTF-8' else ('P', 'x', 'o')
 
 TEST_EXIT_PASSED = 0
 TEST_EXIT_SKIPPED = 77
@@ -116,8 +107,8 @@ class InteractiveTestRunner:
 
     def find_functional_tests(self):
         stdout = self.run_command('git', 'ls-files', '*.py', cwd=self.functional_test_root)
-        pyfiles = filter(lambda line: '/' not in line, stdout.split('\n'))
-        return list(pyfiles)
+        pyfiles = [line for line in stdout.split('\n') if '/' not in line]
+        return pyfiles
 
     def read_test_runner(self):
         if self.functional_test_root not in sys.path:
@@ -158,7 +149,7 @@ class InteractiveTestRunner:
         print('\r%s' % format_line(yellow), end='', flush=True)
 
     def run(self, test_patterns):
-        remaining_tests = [name for name in self.tests if any([p in name for p in test_patterns])]
+        remaining_tests = [name for name in self.tests if any(p in name for p in test_patterns)]
         for order in self.tests_order:
             order(remaining_tests)
         running_jobs = []
