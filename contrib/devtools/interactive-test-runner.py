@@ -39,7 +39,8 @@ red = colorizer('0;31')
 yellow = colorizer('0;33')
 blue = colorizer('0;34')
 
-TICK, CROSS, CIRCLE = ('✓', '✖', '○') if sys.stdout.encoding == 'UTF-8' else ('P', 'x', 'o')
+TICK, CROSS, CIRCLE = ('✓', '✖', '○') if sys.stdout.encoding == 'UTF-8' else (
+'P', 'x', 'o')
 
 TEST_EXIT_PASSED = 0
 TEST_EXIT_SKIPPED = 77
@@ -89,7 +90,8 @@ class InteractiveTestRunner:
         assert num_jobs >= 1
 
         self.repo_root = self.find_git_root()
-        self.functional_test_root = os.path.join(self.repo_root, 'test', 'functional')
+        self.functional_test_root = os.path.join(self.repo_root, 'test',
+                                                 'functional')
         self.tests = self.read_test_runner()
         self.num_jobs = num_jobs
         self.passon_args = passon_args
@@ -105,8 +107,12 @@ class InteractiveTestRunner:
     def find_git_root(self):
         return self.run_command('git', 'rev-parse', '--show-toplevel')
 
-    def find_functional_tests(self):
-        stdout = self.run_command('git', 'ls-files', '*.py', cwd=self.functional_test_root)
+    def find_functional_tests(self, only_modified=False):
+        args = 'git ls-files'.split()
+        if only_modified:
+            args.append('--modified')
+        args.append('*.py')
+        stdout = self.run_command(*args, cwd=self.functional_test_root)
         pyfiles = [line for line in stdout.split('\n') if '/' not in line]
         return pyfiles
 
@@ -141,15 +147,26 @@ class InteractiveTestRunner:
 
     def report_running(self, running_jobs):
         def format_line(color=lambda s: s):
-            jobs = ', '.join(map(lambda j: '%s (%d)' % (color(j.test), time.time() - j.started), running_jobs))
+            jobs = ', '.join(map(
+                lambda j: '%s (%d)' % (color(j.test), time.time() - j.started),
+                running_jobs))
             return 'Running %s' % jobs
 
         line = format_line()
         self.line_length = max(len(line), self.line_length)
         print('\r%s' % format_line(yellow), end='', flush=True)
 
-    def run(self, test_patterns):
-        remaining_tests = [name for name in self.tests if any(p in name for p in test_patterns)]
+    def run(self, test_patterns, only_modified):
+        relevant_files = self.find_functional_tests(only_modified=only_modified)
+
+        def pattern_matches(name):
+            return any(p in name for p in test_patterns)
+
+        def is_relevant_file(name):
+            return name.split()[0] in relevant_files
+
+        remaining_tests = [name for name in self.tests if
+                           pattern_matches(name) and is_relevant_file(name)]
         for order in self.tests_order:
             order(remaining_tests)
         running_jobs = []
@@ -202,6 +219,8 @@ def main():
                         help='sort the list of tests alphabetically')
     parser.add_argument('--reverse', '-r', action='store_true',
                         help='reverse the list of tests (can be combined with --sort)')
+    parser.add_argument('--modified', '-m', action='store_true',
+                        help='only run tests that have been modified')
 
     args, unknown_args = parser.parse_known_args()
     passon_args, tests = partition(lambda arg: arg[:2] == '--', unknown_args)
@@ -220,8 +239,8 @@ def main():
     InteractiveTestRunner(
         num_jobs=args.jobs,
         passon_args=passon_args,
-        tests_order=tests_order
-    ).run(tests)
+        tests_order=tests_order,
+    ).run(test_patterns=tests, only_modified=args.modified)
 
 
 if __name__ == '__main__':
