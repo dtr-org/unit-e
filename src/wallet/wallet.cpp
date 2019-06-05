@@ -4742,12 +4742,12 @@ int CMerkleTx::GetDepthInMainChain(const CBlockIndex* &pindexRet) const
     return ((nIndex == -1) ? (-1) : 1) * depth;
 }
 
-int CMerkleTx::GetBlocksToRewardMaturity(const CBlockIndex* &index_ret) const
+int CMerkleTx::GetBlocksToRewardMaturity() const
 {
     if (!IsCoinBase()) {
         return 0;
     }
-    int chain_depth = GetDepthInMainChain(index_ret);
+    int chain_depth = GetDepthInMainChain();
     return std::max(0, (COINBASE_MATURITY+1) - chain_depth);
 }
 
