@@ -1,6 +1,6 @@
 # PSBT Howto for unit-e
 
-An RPC interface exists for Partially Signed Unit-e
+An RPC interface exists for Partially Signed Bitcoin
 Transactions (PSBTs, as specified in
 [BIP 174](https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki)).
 
