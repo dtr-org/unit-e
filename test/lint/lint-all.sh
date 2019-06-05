@@ -14,24 +14,35 @@
 set -u
 
 SCRIPTDIR=$(dirname "${BASH_SOURCE[0]}")
-LINTALL=$(basename "${BASH_SOURCE[0]}")
 
 SHELL_SCRIPTS=(
+  lint-assertions.sh
   lint-circular-dependencies.sh
   lint-filenames.sh
   lint-format-strings.sh
+  lint-include-guards.sh
   lint-includes.sh
   lint-locale-dependence.sh
   lint-logs.sh
+  lint-python.sh
+  lint-python-dead-code.sh
   lint-python-shebang.sh
   lint-python-utf8-encoding.sh
+  lint-rpc-help.sh
+  lint-shebang.sh
   lint-shell-locale.sh
+  lint-shell.sh
+  lint-spelling.sh
+  lint-tests.sh
   lint-whitespace.sh
 )
 
+EXIT_CODE=0
 for f in ${SHELL_SCRIPTS[@]}; do
   if ! "${SCRIPTDIR}/$f"; then
     echo "^---- failure generated from $f"
-    exit 1
+    EXIT_CODE=1
   fi
 done
+
+exit ${EXIT_CODE}
