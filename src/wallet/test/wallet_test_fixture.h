@@ -38,13 +38,18 @@ struct WalletTestingSetup : public TestingSetup {
 struct TestChain100Setup : public WalletTestingSetup {
   TestChain100Setup(UnitEInjectorConfiguration config = UnitEInjectorConfiguration());
 
-  // Create a new block with just given transactions, coinbase paying to
-  // scriptPubKey, and try to add it to the current chain.
-  //
-  // Asserts that the a new block was successfully created. Alternatively
-  // a pointer to a bool can be passed in which the result will be stored in.
+  //! \brief Create a new block with given transactions
+  std::shared_ptr<const CBlock> CreateBlock(const std::vector<CMutableTransaction>& txns,
+                                            const CScript& coinbase_script,
+                                            boost::optional<staking::Coin> stake = boost::none);
+
+  //! \brief Add given block to the current chain
+  bool ProcessBlock(std::shared_ptr<const CBlock> block);
+
+  //! \brief Create new block and add it to the current chain
   CBlock CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns,
-                               const CScript& scriptPubKey,
+                               const CScript& coinbase_script,
+                               boost::optional<staking::Coin> stake = boost::none,
                                bool *processed = nullptr);
 
   ~TestChain100Setup();

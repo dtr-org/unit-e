@@ -1351,6 +1351,7 @@ class FullBlockTest(UnitETestFramework):
         height = self.block_heights[self.tip.sha256] + 1
         snapshot_hash = self.block_snapshot_meta[self.tip.hashPrevBlock].hash
         coinbase = create_coinbase(height, self.get_staking_coin(), snapshot_hash, self.coinbase_pubkey)
+        coinbase = sign_coinbase(self.nodes[0], coinbase)
         chain1b3 = self.next_block(chain1_tip + 1, self.get_staking_coin())
         chain1b3.vtx[0] = coinbase
         block = self.update_block(chain1_tip + 1, [])

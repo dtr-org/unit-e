@@ -64,18 +64,18 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, TestChain100Setup)
     bool processed;
 
     // Test 1: block with both of those transactions should be rejected.
-    block = CreateAndProcessBlock(spends, scriptPubKey, &processed);
+    block = CreateAndProcessBlock(spends, scriptPubKey, boost::none, &processed);
     BOOST_CHECK(chainActive.Tip()->GetBlockHash() != block.GetHash());
 
     // Test 2: ... and should be rejected if spend1 is in the memory pool
     BOOST_CHECK(ToMemPool(spends[0]));
-    block = CreateAndProcessBlock(spends, scriptPubKey, &processed);
+    block = CreateAndProcessBlock(spends, scriptPubKey, boost::none, &processed);
     BOOST_CHECK(chainActive.Tip()->GetBlockHash() != block.GetHash());
     mempool.clear();
 
     // Test 3: ... and should be rejected if spend2 is in the memory pool
     BOOST_CHECK(ToMemPool(spends[1]));
-    block = CreateAndProcessBlock(spends, scriptPubKey, &processed);
+    block = CreateAndProcessBlock(spends, scriptPubKey, boost::none, &processed);
     BOOST_CHECK(chainActive.Tip()->GetBlockHash() != block.GetHash());
     mempool.clear();
 
@@ -154,7 +154,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
     CScript p2wpkh_scriptPubKey = GetScriptForWitness(p2pkh_scriptPubKey);
 
     bool processed;
-    const CTransactionRef p2pkh_coinbase = CreateAndProcessBlock({}, p2pkh_scriptPubKey, &processed).vtx[0];
+    const CTransactionRef p2pkh_coinbase = CreateAndProcessBlock({}, p2pkh_scriptPubKey, boost::none, &processed).vtx[0];
     BOOST_CHECK(processed);
 
     // Make the reward with p2pkh_scriptPubKey mature
