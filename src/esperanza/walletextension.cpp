@@ -71,7 +71,7 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
 
     std::size_t reward_offset = 0;
     if (tx->IsCoinBase() && tx->GetBlocksToRewardMaturity() > 0) {
-      reward_offset = m_dependencies.GetFinalizationRewardLogic().GetNumberOfRewardOutputs(height) + 1;
+      reward_offset = m_dependencies.GetFinalizationRewardLogic().GetNumberOfRewardOutputs(height);
     }
     for (std::size_t out_index = reward_offset; out_index < coins.size(); ++out_index) {
       if (m_enclosing_wallet.IsSpent(txId, static_cast<unsigned int>(out_index))) {

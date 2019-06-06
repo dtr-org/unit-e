@@ -223,7 +223,7 @@ class WalletExtension : public staking::StakingWallet {
         return;
       }
       if (depth <= COINBASE_MATURITY) {
-        reward_offset = m_dependencies.GetFinalizationRewardLogic().GetNumberOfRewardOutputs(block->nHeight) + 1;
+        reward_offset = m_dependencies.GetFinalizationRewardLogic().GetNumberOfRewardOutputs(block->nHeight);
       }
     }
     for (std::size_t i = reward_offset; i < tx.vout.size(); ++i) {
@@ -252,7 +252,7 @@ class WalletExtension : public staking::StakingWallet {
         return;
       }
       if (depth <= COINBASE_MATURITY) {
-        num_immature_rewards = m_dependencies.GetFinalizationRewardLogic().GetNumberOfRewardOutputs(block->nHeight) + 1;
+        num_immature_rewards = m_dependencies.GetFinalizationRewardLogic().GetNumberOfRewardOutputs(block->nHeight);
       }
     }
     for (std::size_t i = 0; i < tx.vout.size(); ++i) {

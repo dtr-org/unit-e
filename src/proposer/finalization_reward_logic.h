@@ -49,10 +49,11 @@ class FinalizationRewardLogic {
       const CBlockIndex &previous_block  //!< [in] The previous block.
       ) const = 0;
 
-  //! \brief Get the number of finalization rewards for the block at a given height.
+  //! \brief Get the number of reward outputs for the block at a given height.
   //!
-  //! The returned value is either the epoch length if the height corresponds
-  //! to the start of an epoch or zero in other cases.
+  //! The number includes both immediate block rewards and finalization rewards.
+  //! The returned value is either the epoch length plus one if the height
+  //! corresponds to the start of an epoch or one in other cases.
   virtual std::size_t GetNumberOfRewardOutputs(
       blockchain::Height height  //!< [in] The height of the block.
       ) const = 0;

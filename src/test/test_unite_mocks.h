@@ -445,7 +445,7 @@ class FinalizationRewardLogicMock : public proposer::FinalizationRewardLogic, pu
  public:
   MethodMock<decltype(&proposer::FinalizationRewardLogic::GetFinalizationRewards)> mock_GetFinalizationRewards{this, {}};
   MethodMock<decltype(&proposer::FinalizationRewardLogic::GetFinalizationRewardAmounts)> mock_GetFinalizationRewardAmounts{this, {}};
-  MethodMock<decltype(&proposer::FinalizationRewardLogic::GetNumberOfRewardOutputs)> mock_GetNumberOfRewardOutputs{this, 0};
+  MethodMock<decltype(&proposer::FinalizationRewardLogic::GetNumberOfRewardOutputs)> mock_GetNumberOfRewardOutputs{this, 1};
 
   std::vector<CTxOut> GetFinalizationRewards(const CBlockIndex &block_index) const override {
     return mock_GetFinalizationRewards(block_index);
@@ -476,7 +476,7 @@ class FinalizationRewardLogicFake : public mocks::FinalizationRewardLogicMock {
     });
     mock_GetNumberOfRewardOutputs.SetStub([this](blockchain::Height height) {
       arg_GetNumberOfRewardOutputs_height = height;
-      return rewards.size();
+      return rewards.size() + 1;
     });
   }
 };

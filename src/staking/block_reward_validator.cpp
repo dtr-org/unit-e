@@ -32,7 +32,7 @@ class BlockRewardValidatorImpl : public BlockRewardValidator {
     const CBlockIndex &prev_block = *index.pprev;
     CAmount total_reward = fees + m_behavior->CalculateBlockReward(index.nHeight);
 
-    std::size_t num_reward_outputs = m_finalization_reward_logic->GetNumberOfRewardOutputs(index.nHeight) + 1;
+    std::size_t num_reward_outputs = m_finalization_reward_logic->GetNumberOfRewardOutputs(index.nHeight);
     if (coinbase_tx.vout.size() < num_reward_outputs) {
       return state.DoS(100,
                        error("%s: too few coinbase outputs expected at least %d actual %d", __func__,
