@@ -1406,6 +1406,13 @@ bool AppInitMain(InitInterfaces& interfaces)
      * available in unit-e-cli even if external calls are disabled.
      */
     RegisterAllCoreRPCCommands(tableRPC);
+    RegisterFinalizationRPCCommands(tableRPC);
+    snapshot::RegisterRPCCommands(tableRPC);
+    RegisterStakingRPCCommands(tableRPC);
+#ifdef ENABLE_WALLET
+    RegisterMnemonicRPCCommands(tableRPC);
+    RegisterProposerRPCCommands(tableRPC);
+#endif
     for (const auto& client : interfaces.chain_clients) {
         client->registerRpcs();
     }

@@ -32,7 +32,7 @@ std::string HelpRequiringPassphrase(CWallet *);
 void EnsureWalletIsUnlocked(CWallet *);
 bool EnsureWalletIsAvailable(CWallet *, bool avoidException);
 
-static void WalletTxToJSON(interfaces::Chain&, interfaces::Chain::Lock&, const CWalletTx&, UniValue&);
+void WalletTxToJSON(interfaces::Chain&, interfaces::Chain::Lock&, const CWalletTx&, UniValue&);
 
 UniValue getaddressinfo(const JSONRPCRequest& request);
 UniValue signrawtransactionwithwallet(const JSONRPCRequest& request);

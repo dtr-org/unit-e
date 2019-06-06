@@ -383,7 +383,6 @@ libunite_server_a_SOURCES = \
   index/base.cpp \
   index/txindex.cpp \
   interfaces/chain.cpp \
-  interfaces/handler.cpp \
   interfaces/node.cpp \
   init.cpp \
   injector.cpp \
@@ -473,6 +472,7 @@ libunite_wallet_a_SOURCES = \
   esperanza/init.cpp \
   esperanza/walletextension.cpp \
   esperanza/walletextension_deps.cpp \
+  interfaces/handler.cpp \
   interfaces/wallet.cpp \
   key/mnemonic/mnemonic.cpp \
   miner.cpp \
@@ -772,7 +772,7 @@ unit_e_tx_LDADD = \
   $(LIBUNITE_CRYPTO) \
   $(LIBSECP256K1)
 
-unit_e_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS)
+unit_e_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) $(HIDAPI_LIBS) $(USB_LIBS)
 #
 
 # unite-wallet binary #
@@ -780,6 +780,7 @@ unite_wallet_SOURCES = unite-wallet.cpp
 unite_wallet_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 unite_wallet_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 unite_wallet_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+unite_wallet_LIBTOOLFLAGS = $(AM_LIBTOOLFLAGS) --preserve-dup-deps
 
 if TARGET_WINDOWS
 unite_wallet_SOURCES += unite-wallet-res.rc
@@ -789,19 +790,20 @@ unite_wallet_LDADD = \
   $(LIBUNITE_WALLET_TOOL) \
   $(LIBUNITE_WALLET) \
   $(LIBUNITE_SERVER) \
+  $(LIBUNITE_WALLET) \
   $(LIBUNITE_COMMON) \
+  $(LIBUNIVALUE) \
   $(LIBUNITE_CONSENSUS) \
   $(LIBUNITE_UTIL) \
+  $(LIBUNITE_ZMQ) \
   $(LIBUNITE_CRYPTO) \
   $(LIBLEVELDB) \
   $(LIBLEVELDB_SSE42) \
   $(LIBMEMENV) \
   $(LIBSECP256K1)
 
-unite_wallet_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS)
-
-unit_e_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) \
-  $(HIDAPI_LIBS) $(USB_LIBS)
+unite_wallet_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_LIBS) $(EVENT_PTHREADS_LIBS) \
+  $(EVENT_LIBS) $(ZMQ_LIBS)
 #
 
 # uniteconsensus library #

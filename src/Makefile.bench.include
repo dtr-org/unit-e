@@ -35,9 +35,11 @@ nodist_bench_bench_unite_SOURCES = $(GENERATED_BENCH_FILES)
 
 bench_bench_unite_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES) $(EVENT_CLFAGS) $(EVENT_PTHREADS_CFLAGS) -I$(builddir)/bench/
 bench_bench_unite_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+bench_bench_unite_LIBTOOLFLAGS = $(AM_LIBTOOLFLAGS) --preserve-dup-deps
 bench_bench_unite_LDADD = \
   $(LIBUNITE_WALLET) \
   $(LIBUNITE_SERVER) \
+  $(LIBUNITE_WALLET) \
   $(LIBUNITE_COMMON) \
   $(LIBUNITE_UTIL) \
   $(LIBUNITE_CONSENSUS) \
@@ -64,7 +66,7 @@ bench_bench_unite_SOURCES += \
   bench/coin_selection.cpp
 endif
 
-bench_bench_unite_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS)
+bench_bench_unite_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_LIBS) $(EVENT_PTHREADS_LIBS)
 bench_bench_unite_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
 CLEAN_UNITE_BENCH = bench/*.gcda bench/*.gcno $(GENERATED_BENCH_FILES)

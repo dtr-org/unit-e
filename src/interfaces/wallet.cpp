@@ -36,10 +36,6 @@
 #include <wallet/rpcvalidator.h>
 #include <wallet/rpcadmin.h>
 #include <wallet/rpcwalletext.h>
-#include <rpc/finalization.h>
-#include <rpc/staking.h>
-#include <rpc/proposing.h>
-#include <snapshot/rpc_processing.h>
 
 #include <wallet/wallet.h>
 #include <wallet/walletutil.h>
@@ -533,13 +529,6 @@ public:
         RegisterAdminRPCCommands(::tableRPC);
         RegisterAddressbookRPCCommands(::tableRPC);
         RegisterWalletextRPCCommands(::tableRPC);
-        RegisterFinalizationRPCCommands(::tableRPC);
-        snapshot::RegisterRPCCommands(::tableRPC);
-        RegisterStakingRPCCommands(::tableRPC);
-        #ifdef ENABLE_WALLET
-            RegisterMnemonicRPCCommands(::tableRPC);
-            RegisterProposerRPCCommands(::tableRPC);
-        #endif
         return;
     }
     bool verify() override { return VerifyWallets(m_chain, m_wallet_filenames); }
