@@ -19,21 +19,21 @@ BOOST_AUTO_TEST_CASE(creation_test) {
 
   {
     const char *const params[] = {"unit-e"};
-    args.ParseParameters(size(params), params, error);
+    static_cast<void>(args.ParseParameters(size(params), params, error));
     const auto b = blockchain::Behavior::New(&args);
     BOOST_CHECK_EQUAL(b->GetNetworkName(), "test");
   }
 
   {
     const char *const params[] = {"unit-e", "-regtest"};
-    args.ParseParameters(size(params), params, error);
+    static_cast<void>(args.ParseParameters(size(params), params, error));
     const auto b = blockchain::Behavior::New(&args);
     BOOST_CHECK_EQUAL(b->GetNetworkName(), "regtest");
   }
 
   {
     const char *const params[] = {"unit-e", "-regtest=0"};
-    args.ParseParameters(size(params), params, error);
+    static_cast<void>(args.ParseParameters(size(params), params, error));
     const auto b = blockchain::Behavior::New(&args);
     BOOST_CHECK_EQUAL(b->GetNetworkName(), "test");
   }

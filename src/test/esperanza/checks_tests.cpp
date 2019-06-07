@@ -434,7 +434,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckLogoutTx_test) {
   {
     CTransaction tx = CreateLogoutTx(*prev_tx, key, 10000);
 
-    LOCK(mempool.cs);
+    LOCK2(cs_main, mempool.cs);
     TestMemPoolEntryHelper entry;
     mempool.addUnchecked(entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
 
@@ -781,7 +781,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
   {
     TestMemPoolEntryHelper entry;
     {
-      LOCK(mempool.cs);
+      LOCK2(cs_main, mempool.cs);
       mempool.addUnchecked(entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
     }
 
@@ -818,7 +818,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
   {
     TestMemPoolEntryHelper entry;
     {
-      LOCK(mempool.cs);
+      LOCK2(cs_main, mempool.cs);
       mempool.addUnchecked(entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
     }
 
@@ -852,7 +852,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
   }
 
   {
-    LOCK(mempool.cs);
+    LOCK2(cs_main, mempool.cs);
     TestMemPoolEntryHelper entry;
     mempool.addUnchecked(entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
 
@@ -986,7 +986,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckWithdrawTx_test) {
   }
 
   {
-    LOCK(mempool.cs);
+    LOCK2(cs_main, mempool.cs);
     TestMemPoolEntryHelper entry;
     mempool.addUnchecked(entry.Fee(1000).Time(GetTime()).SpendsCoinbase(true).FromTx(prev_tx));
 

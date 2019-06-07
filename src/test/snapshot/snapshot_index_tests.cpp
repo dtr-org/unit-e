@@ -83,6 +83,8 @@ BOOST_AUTO_TEST_CASE(finalization) {
   snapshot::SnapshotIndex index(4, 2, true);
   BOOST_CHECK_EQUAL(index.GetSnapshotCheckpoints().size(), 0);
 
+  LOCK(cs_main);
+
   // create two forks and finalize the first one
   // b0 - b1 - b2 - b3 - b4
   // |
@@ -202,6 +204,8 @@ BOOST_AUTO_TEST_CASE(finalization) {
 
 BOOST_AUTO_TEST_CASE(serialization) {
   snapshot::SnapshotIndex index(4, 2, true);
+
+  LOCK(cs_main);
 
   auto b1 = std::unique_ptr<CBlockIndex>(new CBlockIndex());
   auto b2 = std::unique_ptr<CBlockIndex>(new CBlockIndex());

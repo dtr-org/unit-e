@@ -29,11 +29,16 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
   fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
   assert(snapshot::GetSnapshotCheckpoints().empty());
 
+
   uint256 bestBlock = uint256S("aa");
   auto bi = new CBlockIndex();
-  bi->nTime = 1269211443;
-  bi->nBits = 246;
-  bi->phashBlock = &mapBlockIndex.emplace(bestBlock, bi).first->first;
+  {
+    LOCK(cs_main);
+
+    bi->nTime = 1269211443;
+    bi->nBits = 246;
+    bi->phashBlock = &mapBlockIndex.emplace(bestBlock, bi).first->first;
+  }
 
   auto viewDB = MakeUnique<CCoinsViewDB>(0, false, true);
   auto viewCache = MakeUnique<CCoinsViewCache>(viewDB.get());
@@ -59,6 +64,8 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
   }
 
   {
+    LOCK(cs_main);
+
     // create snapshots
     std::vector<uint256> deletedSnapshots;
     size_t maxSnapshotsToKeep = 5;
@@ -128,9 +135,13 @@ BOOST_AUTO_TEST_CASE(snapshot_creator_concurrent_read) {
 
   uint256 bestBlock = uint256S("aa");
   auto bi = new CBlockIndex();
-  bi->nTime = 1269211443;
-  bi->nBits = 246;
-  bi->phashBlock = &mapBlockIndex.emplace(bestBlock, bi).first->first;
+  {
+    LOCK(cs_main);
+
+    bi->nTime = 1269211443;
+    bi->nBits = 246;
+    bi->phashBlock = &mapBlockIndex.emplace(bestBlock, bi).first->first;
+  }
 
   auto viewDB = MakeUnique<CCoinsViewDB>(0, false, true);
   auto viewCache = MakeUnique<CCoinsViewCache>(viewDB.get());

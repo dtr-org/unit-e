@@ -211,6 +211,8 @@ UniValue filteraddresses(const JSONRPCRequest &request) {
 static UniValue AddAddress(CWallet *pwallet, const std::string &address,
                            const std::string &label, const std::string &purpose,
                            const CTxDestination &dest) {
+  LOCK(pwallet->cs_wallet);
+
   auto it = pwallet->mapAddressBook.find(dest);
   if (it != pwallet->mapAddressBook.end()) {
     throw JSONRPCError(
@@ -238,6 +240,8 @@ static UniValue EditAddress(CWallet *pwallet, const std::string &address,
                             const std::string &label,
                             const std::string &purpose, bool setPurpose,
                             const CTxDestination &dest) {
+  LOCK(pwallet->cs_wallet);
+
   auto addressBookIt = pwallet->mapAddressBook.find(dest);
   if (addressBookIt == pwallet->mapAddressBook.end()) {
     throw JSONRPCError(
@@ -273,6 +277,8 @@ static UniValue EditAddress(CWallet *pwallet, const std::string &address,
 
 static UniValue DeleteAddress(CWallet *pwallet, const std::string &address,
                               const CTxDestination &dest) {
+  LOCK(pwallet->cs_wallet);
+
   auto addressBookIt = pwallet->mapAddressBook.find(dest);
   if (addressBookIt == pwallet->mapAddressBook.end()) {
     throw JSONRPCError(
@@ -298,6 +304,8 @@ static UniValue DeleteAddress(CWallet *pwallet, const std::string &address,
 static UniValue NewSend(CWallet *pwallet, const std::string &address,
                         const std::string &label, const std::string &purpose,
                         const CTxDestination &dest) {
+  LOCK(pwallet->cs_wallet);
+
   auto addressBookIt = pwallet->mapAddressBook.find(dest);
   // Only update the purpose field if address does not yet exist
   std::string newPurpose;  // Empty string means don't change purpose
@@ -325,6 +333,8 @@ static UniValue NewSend(CWallet *pwallet, const std::string &address,
 
 static UniValue AddressInfo(CWallet *pwallet, const std::string &address,
                             const CTxDestination &dest) {
+  LOCK(pwallet->cs_wallet);
+
   auto addressBookIt = pwallet->mapAddressBook.find(dest);
   if (addressBookIt == pwallet->mapAddressBook.end()) {
     throw JSONRPCError(

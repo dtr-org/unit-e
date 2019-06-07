@@ -48,7 +48,7 @@ class ArgsManagerMock : public ArgsManager {
       argv[i++] = arg.c_str();
     }
     std::string error;
-    ParseParameters(static_cast<int>(i), argv, error);
+    static_cast<void>(ParseParameters(static_cast<int>(i), argv, error));
     delete[] argv;
   }
   bool IsArgKnown(const std::string &) const override { return true; }

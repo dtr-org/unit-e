@@ -253,6 +253,8 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
     // Test P2SH: construct a transaction that is valid without P2SH, and
     // then test validity with P2SH.
     {
+        LOCK(cs_main);
+
         CMutableTransaction invalid_under_p2sh_tx;
         invalid_under_p2sh_tx.nVersion = 1;
         invalid_under_p2sh_tx.vin.resize(1);
@@ -269,6 +271,8 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
 
     // Test CHECKLOCKTIMEVERIFY
     {
+        LOCK(cs_main);
+
         CMutableTransaction invalid_with_cltv_tx;
         invalid_with_cltv_tx.nVersion = 1;
         invalid_with_cltv_tx.nLockTime = 100;
@@ -298,6 +302,8 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
 
     // TEST CHECKSEQUENCEVERIFY
     {
+        LOCK(cs_main);
+
         CMutableTransaction invalid_with_csv_tx;
         invalid_with_csv_tx.nVersion = 2;
         invalid_with_csv_tx.vin.resize(1);
@@ -329,6 +335,8 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
     // Test that passing CheckInputs with a valid witness doesn't imply success
     // for the same tx with a different witness.
     {
+        LOCK(cs_main);
+
         CMutableTransaction valid_with_witness_tx;
         valid_with_witness_tx.nVersion = 1;
         valid_with_witness_tx.vin.resize(1);
@@ -351,8 +359,10 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
         ValidateCheckInputsForAllFlags(CTransaction(valid_with_witness_tx), SCRIPT_VERIFY_WITNESS, true);
     }
 
+    // Test a transaction with multiple inputs.
     {
-        // Test a transaction with multiple inputs.
+        LOCK(cs_main);
+
         CMutableTransaction tx;
 
         tx.nVersion = 1;

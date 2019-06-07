@@ -13,6 +13,8 @@
 BOOST_FIXTURE_TEST_SUITE(snapshot_state_tests, TestingSetup)
 
 BOOST_AUTO_TEST_CASE(is_initial_snapshot_download) {
+  LOCK(cs_main);
+
   SetDataDir("snapshot_state");
   fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
 

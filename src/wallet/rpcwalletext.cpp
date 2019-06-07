@@ -9,7 +9,7 @@
 #include <key_io.h>
 #include <net.h>
 #include <policy/policy.h>
-#include <rpc/mining.h>
+#include <rpc/util.h>
 #include <rpc/server.h>
 #include <univalue.h>
 #include <validation.h>
@@ -455,6 +455,7 @@ static UniValue stakeat(const JSONRPCRequest &request) {
 static bool OutputToJSON(UniValue &output, const COutputEntry &o,
                          CWallet *const pwallet, const CWalletTx &wtx,
                          const isminefilter &watchonly) {
+  AssertLockHeld(pwallet->cs_wallet);
   std::string key = strprintf("n%d", o.vout);
   auto mvi = wtx.mapValue.find(key);
   if (mvi != wtx.mapValue.end()) {
@@ -533,33 +534,37 @@ static bool TxWithOutputsToJSON(interfaces::Chain::Lock &locked_chain, const CWa
     receive_outputs.insert(r.vout);
   }
 
-  // sent
-  if (!list_sent.empty()) {
-    entry.pushKV("fee", ValueFromAmount(-fee));
-    for (const auto &s : list_sent) {
+  {
+    LOCK(pwallet->cs_wallet);
+
+    // sent
+    if (!list_sent.empty()) {
+      entry.pushKV("fee", ValueFromAmount(-fee));
+      for (const auto &s : list_sent) {
+        UniValue output(UniValue::VOBJ);
+        if (!OutputToJSON(output, s, pwallet, wtx, watchonly)) {
+          return false;
+        }
+        amount -= s.amount;
+        if (receive_outputs.count(s.vout) == 0) {
+          output.pushKV("amount", ValueFromAmount(-s.amount));
+          outputs.push_back(output);
+        }
+      }
+    }
+
+    // received
+    for (const auto &r : list_received) {
       UniValue output(UniValue::VOBJ);
-      if (!OutputToJSON(output, s, pwallet, wtx, watchonly)) {
+      if (!OutputToJSON(output, r, pwallet, wtx, watchonly)) {
         return false;
       }
-      amount -= s.amount;
-      if (receive_outputs.count(s.vout) == 0) {
-        output.pushKV("amount", ValueFromAmount(-s.amount));
-        outputs.push_back(output);
-      }
+
+      output.pushKV("amount", ValueFromAmount(r.amount));
+      amount += r.amount;
+
+      outputs.push_back(output);
     }
-  }
-
-  // received
-  for (const auto &r : list_received) {
-    UniValue output(UniValue::VOBJ);
-    if (!OutputToJSON(output, r, pwallet, wtx, watchonly)) {
-      return false;
-    }
-
-    output.pushKV("amount", ValueFromAmount(r.amount));
-    amount += r.amount;
-
-    outputs.push_back(output);
   }
 
   if (wtx.IsCoinBase()) {

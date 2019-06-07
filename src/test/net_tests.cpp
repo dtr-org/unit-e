@@ -232,6 +232,8 @@ public:
     int expect_total_nodes = 0;
 
     bool ProcessMessages(CNode* pnode, std::atomic<bool>& interrupt) override {
+        LOCK(pnode->cs_vRecv);
+
         if (pnode->nRecvBytes == 0) {
             ++pnode->nRecvBytes;
         } else {
@@ -243,6 +245,8 @@ public:
     bool SendMessages(CNode* pnode, size_t node_index, size_t total_nodes) override {
         BOOST_CHECK_EQUAL(pnode->nVersion, node_index);
         BOOST_CHECK_EQUAL(total_nodes, expect_total_nodes);
+
+        LOCK(pnode->cs_vSend);
 
         ++pnode->nSendBytes;
         return true;

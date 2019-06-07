@@ -18,7 +18,6 @@
 #include <boost/thread.hpp>
 
 static const char DB_UNIT = 'C';
-static const char DB_UNITS = 'c';
 static const char DB_BLOCK_FILES = 'f';
 static const char DB_BLOCK_INDEX = 'b';
 

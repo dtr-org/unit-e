@@ -808,10 +808,10 @@ public:
     // UNIT-E TODO [0.18.0]: Update constructor's calls
     /** Construct wallet with specified name and database implementation. */
     CWallet(interfaces::Chain& chain, const WalletLocation& location, std::unique_ptr<WalletDatabase> database, const esperanza::WalletExtensionDeps &dependencies = esperanza::WalletExtensionDeps()) :
+        m_wallet_extension(dependencies, *this),
         m_chain(chain),
         m_location(location),
-        database(std::move(database)),
-        m_wallet_extension(dependencies, *this)
+        database(std::move(database))
     {
     }
 
@@ -1031,7 +1031,6 @@ public:
     bool TopUpKeyPool(unsigned int kpSize = 0);
     void AddKeypoolPubkey(const CPubKey& pubkey, const bool internal);
     void AddKeypoolPubkeyWithDB(const CPubKey& pubkey, const bool internal, WalletBatch& batch);
-    bool GenerateNewKeys(unsigned int amount);
 
     /**
      * Reserves a key from the keypool and sets nIndex to its index

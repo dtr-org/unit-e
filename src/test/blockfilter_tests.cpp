@@ -147,12 +147,12 @@ BOOST_AUTO_TEST_CASE(blockfilters_json_test)
 
         CBlockUndo block_undo;
         block_undo.vtxundo.emplace_back();
-        CTxUndo& tx_undo = block_undo.vtxundo.back();
+        // UNIT-E TODO [0.18.0]: Fix this test
+        // CTxUndo& tx_undo = block_undo.vtxundo.back();
         const UniValue& prev_scripts = test[pos++].get_array();
         for (unsigned int ii = 0; ii < prev_scripts.size(); ii++) {
             std::vector<unsigned char> raw_script = ParseHex(prev_scripts[ii].get_str());
             CTxOut txout(0, CScript(raw_script.begin(), raw_script.end()));
-            // UNIT-E TODO [0.18.0]: Fix this test
             // tx_undo.vprevout.emplace_back(txout, 0, false);
         }
 

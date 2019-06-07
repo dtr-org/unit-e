@@ -52,7 +52,7 @@ struct Fixture {
             argv[i++] = arg.c_str();
           }
           std::string error;
-          argsman->ParseParameters(static_cast<int>(i), argv, error);
+          static_cast<void>(argsman->ParseParameters(static_cast<int>(i), argv, error));
           delete[] argv;
           return argsman;
         }()),

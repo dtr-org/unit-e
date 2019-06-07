@@ -33,51 +33,49 @@ std::vector<CPubKey> ExtractP2WSHKeys(const CScriptWitness &witness) {
     return std::vector<CPubKey>{};
   }
   const CScript witness_script(script_data.begin(), script_data.end());
-  txnouttype type;
   std::vector<std::vector<unsigned char>> solutions;
-  if (Solver(witness_script, solutions)) {
-    switch (type) {
-      case TX_PUBKEYHASH: {
-        if (witness_stack.size() < 2) {
-          return std::vector<CPubKey>{};
-        }
-        const CPubKey pub_key(witness_stack[1]);
-        return std::vector<CPubKey>{pub_key};
-      }
-      case TX_PUBKEY: {
-        const CPubKey pub_key(solutions[0]);
-        return std::vector<CPubKey>{pub_key};
-      }
-      case TX_MULTISIG: {
-        std::vector<CPubKey> result;
-        // the first solution contains an OP_SMALLINTEGER with the number of signatures required
-        const auto num_signatures = static_cast<std::uint8_t>(solutions.front()[0]);
-        if (num_signatures != 1) {
-          // stake is signed by a single proposer only and the block carries a single
-          // signature of that proposer. 2-of-3 and similar multisig scenarios are not
-          // allowed for staking.
-          return std::vector<CPubKey>{};
-        }
-        // the last solution contains an OP_SMALLINTEGER with the number of pubkeys provided
-        const auto num_pubkeys = static_cast<std::uint8_t>(solutions.back()[0]);
-        if (num_pubkeys != solutions.size() - 2) {
-          // number of pubkeys provided does not match amount required.
-          return std::vector<CPubKey>{};
-        }
-        for (std::size_t i = 1; i < solutions.size() - 1; ++i) {
-          const CPubKey key(solutions[i]);
-          if (!key.IsFullyValid()) {
-            return std::vector<CPubKey>{};
-          }
-          result.emplace_back(solutions[i]);
-        }
-        return result;
-      }
-      default:
+  txnouttype type = Solver(witness_script, solutions);
+
+  switch (type) {
+    case TX_PUBKEYHASH: {
+      if (witness_stack.size() < 2) {
         return std::vector<CPubKey>{};
+      }
+      const CPubKey pub_key(witness_stack[1]);
+      return std::vector<CPubKey>{pub_key};
     }
+    case TX_PUBKEY: {
+      const CPubKey pub_key(solutions[0]);
+      return std::vector<CPubKey>{pub_key};
+    }
+    case TX_MULTISIG: {
+      std::vector<CPubKey> result;
+      // the first solution contains an OP_SMALLINTEGER with the number of signatures required
+      const auto num_signatures = static_cast<std::uint8_t>(solutions.front()[0]);
+      if (num_signatures != 1) {
+        // stake is signed by a single proposer only and the block carries a single
+        // signature of that proposer. 2-of-3 and similar multisig scenarios are not
+        // allowed for staking.
+        return std::vector<CPubKey>{};
+      }
+      // the last solution contains an OP_SMALLINTEGER with the number of pubkeys provided
+      const auto num_pubkeys = static_cast<std::uint8_t>(solutions.back()[0]);
+      if (num_pubkeys != solutions.size() - 2) {
+        // number of pubkeys provided does not match amount required.
+        return std::vector<CPubKey>{};
+      }
+      for (std::size_t i = 1; i < solutions.size() - 1; ++i) {
+        const CPubKey key(solutions[i]);
+        if (!key.IsFullyValid()) {
+          return std::vector<CPubKey>{};
+        }
+        result.emplace_back(solutions[i]);
+      }
+      return result;
+    }
+    default:
+      return std::vector<CPubKey>{};
   }
-  return std::vector<CPubKey>{};
 }
 
 std::vector<CPubKey> ExtractBlockSigningKeys(const CTxIn &input) {

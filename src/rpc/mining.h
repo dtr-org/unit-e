@@ -9,7 +9,4 @@
 
 #include <univalue.h>
 
-/** Check bounds on a command line confirm target */
-unsigned int ParseConfirmTarget(const UniValue& value);
-
 #endif

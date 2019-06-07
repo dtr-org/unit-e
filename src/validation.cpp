@@ -3555,8 +3555,6 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
             return error("%s: CheckBlock in ProcessNewBlock FAILED (%s)", __func__, state.GetDebugMessage());
         }
 
-        LOCK(cs_main);
-
         if (!g_chainstate.AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, nullptr, fNewBlock)) {
             GetMainSignals().BlockChecked(*pblock, state);
             return error("%s: AcceptBlock FAILED (%s)", __func__, FormatStateMessage(state));

@@ -1971,9 +1971,9 @@ void CConnman::ThreadMessageHandler()
     while (!flagInterruptMsgProc)
     {
         std::vector<CNode*> vNodesCopy;
-        vNodesCopy.reserve(vNodes.size());
         {
             LOCK(cs_vNodes);
+            vNodesCopy.reserve(vNodes.size());
             for (CNode* pnode : vNodes) {
                 if (pnode->fDisconnect) {
                     continue;

@@ -82,6 +82,8 @@ BOOST_AUTO_TEST_CASE(process_snapshot) {
   CNetMsgMaker msg_maker(1);
   std::unique_ptr<CNode> node(MockNode());
 
+  LOCK2(cs_main, node->cs_vSend);
+
   snapshot::SnapshotHeader best_snapshot;
   best_snapshot.snapshot_hash = uint256S("294f4fba05bc2f19764960989b4a364466522b3009808ff99e89cfde56bf43e7");
   best_snapshot.block_hash = uint256S("aa");
@@ -163,6 +165,8 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
   snapshot::StoreCandidateBlockHash(uint256());
   MockP2PState p2p_state(Params().GetSnapshotParams());
 
+  LOCK(cs_main);
+
   auto *b1 = new CBlockIndex;
   auto *b2 = new CBlockIndex;
   b1->phashBlock = &mapBlockIndex.emplace(uint256S("aa"), b1).first->first;
@@ -184,6 +188,11 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
   std::unique_ptr<CNode> node3(MockNode());  // best
   std::unique_ptr<CNode> node4(MockNode());  // best
   std::vector<CNode *> nodes{node1.get(), node2.get(), node3.get(), node4.get()};
+
+  LOCK(node1->cs_vSend);
+  LOCK(node2->cs_vSend);
+  LOCK(node3->cs_vSend);
+  LOCK(node4->cs_vSend);
 
   // test that discovery message was sent
   CNetMsgMaker msg_maker(1);
@@ -355,6 +364,8 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
 BOOST_AUTO_TEST_CASE(snapshot_find_next_blocks_to_download) {
   snapshot::EnableISDMode();
   snapshot::P2PState p2p_state;
+
+  LOCK(cs_main);
 
   // return 0 blocks as we have not received the parent header of the snapshot
   const auto candidate = std::make_pair(uint256S("aa"), new CBlockIndex);

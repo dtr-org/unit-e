@@ -3687,12 +3687,6 @@ void CWallet::LoadKeyPool(int64_t nIndex, const CKeyPool &keypool)
     }
 }
 
-bool CWallet::GenerateNewKeys(unsigned int amount)
-{
-    auto currentKeys = setExternalKeyPool.size();
-    return TopUpKeyPool(currentKeys + amount);
-}
-
 bool CWallet::TopUpKeyPool(unsigned int kpSize)
 {
     if (!CanGenerateKeys()) {

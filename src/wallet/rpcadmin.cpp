@@ -105,6 +105,9 @@ std::vector<esperanza::AdminCommand> ParseCommands(const UniValue &value) {
 
 std::vector<UTXO> GetAdminUTXOs(CWallet *const wallet, const UniValue &node) {
   std::vector<UTXO> utxos;
+
+  LOCK(wallet->cs_wallet);
+
   for (size_t i = 0; i < node.size(); ++i) {
     const auto &tuple = node[i];
     const auto hash = ParseHashV(tuple[0], "prevoutHash");

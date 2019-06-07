@@ -467,21 +467,24 @@ bool P2PState::FindNextBlocksToDownload(const NodeId node_id,
 
   // this loop is slow but it's only performed once per node and until
   // the corresponded block for the candidate snapshot has been received
-  for (const auto &pair : mapBlockIndex) {
-    CBlockIndex *prev = pair.second->pprev;
-    if (!prev) {
-      continue;
-    }
+  {
+    LOCK(cs_main);
+    for (const auto &pair : mapBlockIndex) {
+      CBlockIndex *prev = pair.second->pprev;
+      if (!prev) {
+        continue;
+      }
 
-    if (prev->GetBlockHash() == block_hash) {
-      blocks.emplace_back(pair.second);
+      if (prev->GetBlockHash() == block_hash) {
+        blocks.emplace_back(pair.second);
 
-      g_connman->ForNode(node_id, [](CNode *node) {
-        node->sentGetParentBlockForSnapshot = true;
+        g_connman->ForNode(node_id, [](CNode *node) {
+          node->sentGetParentBlockForSnapshot = true;
+          return true;
+        });
+
         return true;
-      });
-
-      return true;
+      }
     }
   }
 

@@ -3403,38 +3403,41 @@ bool PeerLogicValidation::SendMessages(CNode* pto, size_t node_index, size_t tot
 
         // Address refresh broadcast
         int64_t nNow = GetTimeMicros();
-        if (!IsInitialBlockDownload() && pto->nNextLocalAddrSend < nNow) {
-            AdvertiseLocal(pto);
-            pto->nNextLocalAddrSend = PoissonNextSend(nNow, AVG_LOCAL_ADDRESS_BROADCAST_INTERVAL);
+        {
+            LOCK(pto->cs_sendProcessing);
+            if (!IsInitialBlockDownload() && pto->nNextLocalAddrSend < nNow) {
+                AdvertiseLocal(pto);
+                pto->nNextLocalAddrSend = PoissonNextSend(nNow, AVG_LOCAL_ADDRESS_BROADCAST_INTERVAL);
+            }
         }
 
         //
         // Message: addr
         //
-        if (pto->nNextAddrSend < nNow) {
-            pto->nNextAddrSend = PoissonNextSend(nNow, AVG_ADDRESS_BROADCAST_INTERVAL);
-            std::vector<CAddress> vAddr;
-            vAddr.reserve(pto->vAddrToSend.size());
-            for (const CAddress& addr : pto->vAddrToSend)
-            {
-                if (!pto->addrKnown.contains(addr.GetKey()))
-                {
-                    pto->addrKnown.insert(addr.GetKey());
-                    vAddr.push_back(addr);
-                    // receiver rejects addr messages larger than 1000
-                    if (vAddr.size() >= 1000)
-                    {
-                        connman->PushMessage(pto, msgMaker.Make(NetMsgType::ADDR, vAddr));
-                        vAddr.clear();
+        {
+            LOCK(pto->cs_sendProcessing);
+            if (pto->nNextAddrSend < nNow) {
+                pto->nNextAddrSend = PoissonNextSend(nNow, AVG_ADDRESS_BROADCAST_INTERVAL);
+                std::vector<CAddress> vAddr;
+                vAddr.reserve(pto->vAddrToSend.size());
+                for (const CAddress &addr : pto->vAddrToSend) {
+                    if (!pto->addrKnown.contains(addr.GetKey())) {
+                        pto->addrKnown.insert(addr.GetKey());
+                        vAddr.push_back(addr);
+                        // receiver rejects addr messages larger than 1000
+                        if (vAddr.size() >= 1000) {
+                            connman->PushMessage(pto, msgMaker.Make(NetMsgType::ADDR, vAddr));
+                            vAddr.clear();
+                        }
                     }
                 }
+                pto->vAddrToSend.clear();
+                if (!vAddr.empty())
+                    connman->PushMessage(pto, msgMaker.Make(NetMsgType::ADDR, vAddr));
+                // we only send the big addr message once
+                if (pto->vAddrToSend.capacity() > 40)
+                    pto->vAddrToSend.shrink_to_fit();
             }
-            pto->vAddrToSend.clear();
-            if (!vAddr.empty())
-                connman->PushMessage(pto, msgMaker.Make(NetMsgType::ADDR, vAddr));
-            // we only send the big addr message once
-            if (pto->vAddrToSend.capacity() > 40)
-                pto->vAddrToSend.shrink_to_fit();
         }
 
         //! UNIT-E: When snapshot becomes a component, we can hide this code there and

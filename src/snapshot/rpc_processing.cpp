@@ -24,7 +24,7 @@ UniValue SnapshotNode(const uint256 &snapshot_hash) {
   UniValue node(UniValue::VOBJ);
   node.pushKV("snapshot_hash", snapshot_hash.GetHex());
 
-  LOCK(cs_snapshot);
+  LOCK2(cs_main, cs_snapshot);
 
   std::unique_ptr<Indexer> idx = SnapshotIndex::OpenSnapshot(snapshot_hash);
   if (!idx) {
@@ -84,6 +84,8 @@ UniValue getblocksnapshot(const JSONRPCRequest &request) {
   }
 
   UniValue root_node(UniValue::VOBJ);
+
+  LOCK(cs_main);
 
   const CBlockIndex *block_index = chainActive.Tip();
   if (!request.params.empty()) {

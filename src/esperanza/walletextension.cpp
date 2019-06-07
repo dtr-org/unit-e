@@ -176,8 +176,9 @@ bool WalletExtension::CreateRemoteStakingTransaction(interfaces::Chain::Lock& lo
   assert(key_change_out != nullptr);
 
   std::vector<std::vector<uint8_t>> solutions;
-  txnouttype type;
-  if (!Solver(recipient.scriptPubKey, solutions)) {
+  txnouttype type = Solver(recipient.scriptPubKey, solutions);
+
+  if (type == TX_NONSTANDARD) {
     *error_out = "Invalid scriptPubKey for recipient";
     return false;
   }
