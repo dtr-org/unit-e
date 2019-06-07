@@ -300,9 +300,9 @@ class StateDBMock : public finalization::StateDB, public Mock {
   MethodMock<decltype(&finalization::StateDB::Save)> mock_Save{this, false};
   MethodMock<bool (finalization::StateDB::*)(std::map<const CBlockIndex *, FinalizationState> *)> mock_Load{this, false};
   MethodMock<bool (finalization::StateDB::*)(const CBlockIndex &, std::map<const CBlockIndex *, FinalizationState> *)> mock_LoadParticular{this, false};
+  MethodMock<decltype(&finalization::StateDB::Erase)> mock_Erase{this, false};
   MethodMock<decltype(&finalization::StateDB::FindLastFinalizedEpoch)> mock_FindLastFinalizedEpoch{this, boost::none};
   MethodMock<decltype(&finalization::StateDB::LoadStatesHigherThan)> mock_LoadStatesHigherThan{this};
-
   bool Save(const std::map<const CBlockIndex *, FinalizationState> &states) override {
     return mock_Save(states);
   }
@@ -312,6 +312,9 @@ class StateDBMock : public finalization::StateDB, public Mock {
   bool Load(const CBlockIndex &index,
             std::map<const CBlockIndex *, FinalizationState> *states) const override {
     return mock_LoadParticular(index, states);
+  }
+  bool Erase(const CBlockIndex &index) override {
+    return mock_Erase(index);
   }
   boost::optional<uint32_t> FindLastFinalizedEpoch() const override {
     return mock_FindLastFinalizedEpoch();

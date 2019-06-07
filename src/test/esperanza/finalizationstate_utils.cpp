@@ -26,6 +26,11 @@ T Rand() {
   return static_cast<T>(GetRand(std::numeric_limits<T>::max()));
 }
 
+template <>
+bool Rand<bool>() {
+  return static_cast<bool>(GetRand(2));
+}
+
 #define ConstRand(N) [] { static size_t r = GetRand(N); return r; }()
 
 void FinalizationStateSpy::shuffle() {
