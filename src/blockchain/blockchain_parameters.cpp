@@ -143,7 +143,7 @@ Parameters Parameters::TestNet() noexcept {
 
   p.bech32_human_readable_prefix = "tue";
 
-  p.genesis_block = GenesisBlock(GenesisBlockBuilder().SetTime(1554901200).SetBits(0x1a076154).Add(TestnetFunds()).Build(p));
+  p.genesis_block = GenesisBlock(GenesisBlockBuilder().SetTime(1559908800).SetBits(0x1a076154).Add(TestnetFunds()).Build(p));
 
   p.default_settings.p2p_port = 17182;
   p.data_dir_suffix = "testnet";
