@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_TYPETAGS_H
-#define UNIT_E_TYPETAGS_H
+#ifndef UNITE_UTILTYPETAGS_H
+#define UNITE_UTILTYPETAGS_H
 
 /*! \brief zero cost tagged types like Haskell's newtype
  *
@@ -28,4 +28,4 @@ private:
     impl m_value;
 };
 
-#endif //UNIT_E_TYPETAGS_H
+#endif // UNITE_UTILTYPETAGS_H

@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/licenses/MIT.
 
-#ifndef UNIT_E_STAKING_VALIDATION_RESULT_H
-#define UNIT_E_STAKING_VALIDATION_RESULT_H
+#ifndef UNITE_STAKING_VALIDATION_RESULT_H
+#define UNITE_STAKING_VALIDATION_RESULT_H
 
 #include <better-enums/enum_set.h>
 #include <blockchain/blockchain_types.h>
@@ -40,4 +40,4 @@ class BlockValidationResult {
 
 }  // namespace staking
 
-#endif  //UNIT_E_VALIDATION_RESULT_H
+#endif  // UNITE_VALIDATION_RESULT_H

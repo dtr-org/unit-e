@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_STAKING_NETWORK_H
-#define UNIT_E_STAKING_NETWORK_H
+#ifndef UNITE_STAKING_NETWORK_H
+#define UNITE_STAKING_NETWORK_H
 
 #include <stdint.h>
 
@@ -35,4 +35,4 @@ class Network {
 
 }  // namespace staking
 
-#endif  // UNIT_E_STAKING_NETWORK_H
+#endif  // UNITE_STAKING_NETWORK_H

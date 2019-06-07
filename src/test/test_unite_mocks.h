@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_TEST_UNITE_MOCKS_H
-#define UNIT_E_TEST_UNITE_MOCKS_H
+#ifndef UNITE_TEST_TEST_UNITE_MOCKS_H
+#define UNITE_TEST_TEST_UNITE_MOCKS_H
 
 #include <blockdb.h>
 #include <coins.h>
@@ -412,4 +412,4 @@ class BlockBuilderMock : public proposer::BlockBuilder, public Mock {
 
 }  // namespace mocks
 
-#endif  //UNIT_E_TEST_UNITE_MOCKS_H
+#endif  // UNITE_TEST_TEST_UNITE_MOCKS_H

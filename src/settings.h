@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_SETTINGS_H
-#define UNIT_E_SETTINGS_H
+#ifndef UNITE_SETTINGS_H
+#define UNITE_SETTINGS_H
 
 #include <amount.h>
 #include <dependency.h>
@@ -71,4 +71,4 @@ struct Settings {
       Dependency<blockchain::Behavior>);
 };
 
-#endif  // UNIT_E_SETTINGS_H
+#endif  // UNITE_SETTINGS_H

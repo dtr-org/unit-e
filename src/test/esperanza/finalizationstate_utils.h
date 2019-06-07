@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_TESTS_FINALIZATIONSTATE_UTILS_H
-#define UNIT_E_TESTS_FINALIZATIONSTATE_UTILS_H
+#ifndef UNITE_TEST_ESPERANZA_FINALIZATIONSTATE_UTILS_H
+#define UNITE_TEST_ESPERANZA_FINALIZATIONSTATE_UTILS_H
 
 #include <esperanza/finalizationstate.h>
 #include <finalization/params.h>
@@ -70,4 +70,4 @@ uint160 RandValidatorAddr();
 CPubKey MakePubKey();
 esperanza::AdminKeySet MakeKeySet();
 
-#endif  //UNIT_E_TESTS_FINALIZATIONSTATE_UTILS_H
+#endif  // UNITE_TEST_ESPERANZA_FINALIZATIONSTATE_UTILS_H

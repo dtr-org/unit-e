@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_STAKING_RPC_H
-#define UNIT_E_STAKING_RPC_H
+#ifndef UNITE_STAKING_STAKING_RPC_H
+#define UNITE_STAKING_STAKING_RPC_H
 
 #include <dependency.h>
 #include <rpc/server.h>
@@ -43,4 +43,4 @@ class StakingRPC {
 
 }  // namespace staking
 
-#endif  //UNIT_E_PROPOSER_RPC_H
+#endif  // UNITE_STAKING_STAKING_RPC_H

@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_PROPOSER_WAITER_H
-#define UNIT_E_PROPOSER_WAITER_H
+#ifndef UNITE_PROPOSER_WAITER_H
+#define UNITE_PROPOSER_WAITER_H
 
 #include <atomic>
 #include <chrono>
@@ -30,4 +30,4 @@ class Waiter {
 
 }  // namespace proposer
 
-#endif  // UNIT_E_PROPOSER_WAITER_H
+#endif  // UNITE_PROPOSER_WAITER_H

@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/licenses/MIT.
 
-#ifndef UNIT_E_STAKING_BLOCK_REWARD_VALIDATOR_H
-#define UNIT_E_STAKING_BLOCK_REWARD_VALIDATOR_H
+#ifndef UNITE_STAKING_BLOCK_REWARD_VALIDATOR_H
+#define UNITE_STAKING_BLOCK_REWARD_VALIDATOR_H
 
 #include <amount.h>
 #include <blockchain/blockchain_behavior.h>
@@ -34,4 +34,4 @@ class BlockRewardValidator {
 
 }  // namespace staking
 
-#endif  //UNIT_E_STAKING_BLOCK_REWARD_VALIDATOR_H
+#endif  // UNITE_STAKING_BLOCK_REWARD_VALIDATOR_H

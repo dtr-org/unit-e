@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_PROPOSER_SYNC_H
-#define UNIT_E_PROPOSER_SYNC_H
+#ifndef UNITE_PROPOSER_SYNC_H
+#define UNITE_PROPOSER_SYNC_H
 
 #include <stdint.h>
 #include <condition_variable>
@@ -68,4 +68,4 @@ class CountingSemaphore {
 
 }  // namespace proposer
 
-#endif  // UNIT_E_SYNC_H
+#endif  // UNITE_SYNC_H

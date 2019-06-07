@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_FINALIZATION_STATE_REPOSITORY
-#define UNITE_FINALIZATION_STATE_REPOSITORY
+#ifndef UNITE_FINALIZATION_STATE_REPOSITORY_H
+#define UNITE_FINALIZATION_STATE_REPOSITORY_H
 
 #include <chain.h>
 #include <dependency.h>
@@ -107,4 +107,4 @@ class StateRepository {
 
 }  // namespace finalization
 
-#endif
+#endif  // UNITE_FINALIZATION_STATE_REPOSITORY_H

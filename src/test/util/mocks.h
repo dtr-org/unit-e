@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_TEST_UTIL_MOCKS_H
-#define UNIT_E_TEST_UTIL_MOCKS_H
+#ifndef UNITE_TEST_UTIL_MOCKS_H
+#define UNITE_TEST_UTIL_MOCKS_H
 
 #include <sync.h>
 
@@ -206,4 +206,4 @@ class MethodMock<R (C::*)(Args...)> : public MethodMockImpl<R, Args...> {
 
 };  // namespace mocks
 
-#endif  //UNIT_E_TEST_UTIL_MOCKS_H
+#endif  // UNITE_TEST_UTIL_MOCKS_H

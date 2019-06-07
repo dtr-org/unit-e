@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_BLOCKCHAIN_GENESIS_H
-#define UNIT_E_BLOCKCHAIN_GENESIS_H
+#ifndef UNITE_BLOCKCHAIN_BLOCKCHAIN_GENESIS_H
+#define UNITE_BLOCKCHAIN_BLOCKCHAIN_GENESIS_H
 
 #include <amount.h>
 #include <blockchain/blockchain_parameters.h>
@@ -76,4 +76,4 @@ class GenesisBlockBuilder {
 
 }  // namespace blockchain
 
-#endif  //UNIT_E_BLOCKCHAIN_GENESIS_H
+#endif  // UNITE_BLOCKCHAIN_BLOCKCHAIN_GENESIS_H

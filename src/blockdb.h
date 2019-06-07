@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_BLOCKDB_H
-#define UNIT_E_BLOCKDB_H
+#ifndef UNITE_BLOCKDB_H
+#define UNITE_BLOCKDB_H
 
 #include <chain.h>
 #include <primitives/block.h>
@@ -28,4 +28,4 @@ class BlockDB {
   static std::unique_ptr<BlockDB> New();
 };
 
-#endif  //UNIT_E_BLOCKDB_H
+#endif  // UNITE_BLOCKDB_H

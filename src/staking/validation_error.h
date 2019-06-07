@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/licenses/MIT.
 
-#ifndef UNIT_E_STAKING_VALIDATION_ERROR_H
-#define UNIT_E_STAKING_VALIDATION_ERROR_H
+#ifndef UNITE_STAKING_VALIDATION_ERROR_H
+#define UNITE_STAKING_VALIDATION_ERROR_H
 
 #include <better-enums/enum.h>
 
@@ -72,4 +72,4 @@ bool CheckResult(const BlockValidationResult &result, CValidationState &state);
 
 }  // namespace staking
 
-#endif  //UNIT_E_VALIDATION_ERROR_H
+#endif  // UNITE_VALIDATION_ERROR_H

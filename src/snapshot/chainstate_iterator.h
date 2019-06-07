@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_CHAINSTATE_ITERATOR_H
-#define UNITE_CHAINSTATE_ITERATOR_H
+#ifndef UNITE_SNAPSHOT_CHAINSTATE_ITERATOR_H
+#define UNITE_SNAPSHOT_CHAINSTATE_ITERATOR_H
 
 #include <stdint.h>
 #include <map>
@@ -38,4 +38,4 @@ class ChainstateIterator {
 
 }  // namespace snapshot
 
-#endif  // UNITE_CHAINSTATE_ITERATOR_H
+#endif  // UNITE_SNAPSHOT_CHAINSTATE_ITERATOR_H

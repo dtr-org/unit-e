@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_TEST_UTIL_BLOCKTOOLS_H
-#define UNIT_E_TEST_UTIL_BLOCKTOOLS_H
+#ifndef UNITE_TEST_UTIL_BLOCKTOOLS_H
+#define UNITE_TEST_UTIL_BLOCKTOOLS_H
 
 #include <test/test_unite_mocks.h>
 
@@ -70,4 +70,4 @@ struct BlockIndexFake {
 
 }  // namespace blocktools
 
-#endif  //UNIT_E_TEST_UTIL_BLOCKTOOLS_H
+#endif  // UNITE_TEST_UTIL_BLOCKTOOLS_H

@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_ENUM_SET_H
-#define UNIT_E_ENUM_SET_H
+#ifndef UNITE_ENUM_SET_H
+#define UNITE_ENUM_SET_H
 
 #include <array>
 #include <sstream>
@@ -234,4 +234,4 @@ class EnumSet {
   }
 };
 
-#endif  //UNIT_E_ENUM_SET_H
+#endif  // UNITE_ENUM_SET_H

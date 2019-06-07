@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_STAKING_BLOCK_VALIDATOR_H
-#define UNIT_E_STAKING_BLOCK_VALIDATOR_H
+#ifndef UNITE_STAKING_BLOCK_VALIDATOR_H
+#define UNITE_STAKING_BLOCK_VALIDATOR_H
 
 #include <better-enums/enum.h>
 #include <better-enums/enum_set.h>
@@ -174,4 +174,4 @@ class AbstractBlockValidator : public BlockValidator {
 
 }  // namespace staking
 
-#endif  //UNIT_E_STAKE_VALIDATOR_H
+#endif  // UNITE_STAKE_VALIDATOR_H

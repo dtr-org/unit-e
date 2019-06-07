@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/licenses/MIT.
 
-#ifndef UNIT_E_STAKING_BLOCK_INFO_H
-#define UNIT_E_STAKING_BLOCK_INFO_H
+#ifndef UNITE_STAKING_BLOCK_VALIDATION_INFO_H
+#define UNITE_STAKING_BLOCK_VALIDATION_INFO_H
 
 #include <trit.h>
 
@@ -178,4 +178,4 @@ class BlockValidationInfo {
 
 }  // namespace staking
 
-#endif  //UNIT_E_STAKING_BLOCK_INFO_H
+#endif  // UNITE_STAKING_BLOCK_VALIDATION_INFO_H

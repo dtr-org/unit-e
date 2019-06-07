@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_FINALIZATION_STATE_PROCESSOR
-#define UNITE_FINALIZATION_STATE_PROCESSOR
+#ifndef UNITE_FINALIZATION_STATE_PROCESSOR_H
+#define UNITE_FINALIZATION_STATE_PROCESSOR_H
 
 #include <dependency.h>
 #include <primitives/transaction.h>
@@ -86,4 +86,4 @@ class StateProcessor {
 
 }  // namespace finalization
 
-#endif
+#endif  // UNITE_FINALIZATION_STATE_PROCESSOR_H

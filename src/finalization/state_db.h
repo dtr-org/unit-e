@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef FINALIZATION_STATE_DB_H
-#define FINALIZATION_STATE_DB_H
+#ifndef UNITE_FINALIZATION_STATE_DB_H
+#define UNITE_FINALIZATION_STATE_DB_H
 
 #include <blockchain/blockchain_types.h>
 #include <dependency.h>
@@ -79,4 +79,4 @@ class StateDB {
 
 }  // namespace finalization
 
-#endif
+#endif  // UNITE_FINALIZATION_STATE_DB_H

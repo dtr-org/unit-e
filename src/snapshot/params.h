@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_SNAPSHOT_PARAMS_H
-#define UNIT_E_SNAPSHOT_PARAMS_H
+#ifndef UNITE_SNAPSHOT_PARAMS_H
+#define UNITE_SNAPSHOT_PARAMS_H
 
 #include <cstdint>
 
@@ -24,4 +24,4 @@ struct Params {
 
 }  // namespace snapshot
 
-#endif  //UNIT_E_SNAPSHOT_PARAMS_H
+#endif  // UNITE_SNAPSHOT_PARAMS_H

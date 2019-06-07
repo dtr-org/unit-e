@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/licenses/MIT.
 
-#ifndef UNIT_E_BLOCKCHAIN_TESTNET_FUNDS_H
-#define UNIT_E_BLOCKCHAIN_TESTNET_FUNDS_H
+#ifndef UNITE_BLOCKCHAIN_TESTNET_FUNDS_H
+#define UNITE_BLOCKCHAIN_TESTNET_FUNDS_H
 
 #include <blockchain/blockchain_genesis.h>
 

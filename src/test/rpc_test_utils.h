@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_TEST_RPC_TEST_UTILS_H
-#define UNIT_E_TEST_RPC_TEST_UTILS_H
+#ifndef UNITE_TEST_RPC_TEST_UTILS_H
+#define UNITE_TEST_RPC_TEST_UTILS_H
 
 #include <rpc/protocol.h>
 #include <univalue.h>
@@ -21,4 +21,4 @@ UniValue CallRPC(std::string args);
 void AssertRPCError(std::string call, RPCErrorCode error,
                     const std::string &message = "");
 
-#endif // UNIT_E_TEST_RPC_TEST_UTILS_H
+#endif // UNITE_TEST_RPC_TEST_UTILS_H

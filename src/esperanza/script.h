@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef ESPERANZA_SCRIPT_H
-#define ESPERANZA_SCRIPT_H
+#ifndef UNITE_ESPERANZA_SCRIPT_H
+#define UNITE_ESPERANZA_SCRIPT_H
 
 class CTransaction;
 class uint160;
@@ -30,4 +30,4 @@ bool ExtractValidatorPubkey(const CTransaction &tx,
                             CPubKey &pubkeyOut);
 }  // namespace esperanza
 
-#endif
+#endif  // UNITE_ESPERANZA_SCRIPT_H

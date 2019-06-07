@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_BLOCKCHAIN_INTERFACES_H
-#define UNIT_E_BLOCKCHAIN_INTERFACES_H
+#ifndef UNITE_BLOCKCHAIN_BLOCKCHAIN_INTERFACES_H
+#define UNITE_BLOCKCHAIN_BLOCKCHAIN_INTERFACES_H
 
 #include <blockchain/blockchain_types.h>
 #include <chain.h>
@@ -49,4 +49,4 @@ class UTXOView {
 
 }  // namespace blockchain
 
-#endif  //UNIT_E_BLOCKCHAIN_INTERFACES_H
+#endif  // UNITE_BLOCKCHAIN_BLOCKCHAIN_INTERFACES_H

@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_STAKING_ACTIVE_CHAIN_H
-#define UNIT_E_STAKING_ACTIVE_CHAIN_H
+#ifndef UNITE_STAKING_ACTIVE_CHAIN_H
+#define UNITE_STAKING_ACTIVE_CHAIN_H
 
 #include <blockchain/blockchain_behavior.h>
 #include <blockchain/blockchain_interfaces.h>
@@ -141,4 +141,4 @@ class ActiveChain : public blockchain::ChainAccess, public blockchain::UTXOView 
 
 }  // namespace staking
 
-#endif  // UNIT_E_STAKING_ACTIVE_CHAIN_H
+#endif  // UNITE_STAKING_ACTIVE_CHAIN_H
