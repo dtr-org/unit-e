@@ -5,6 +5,7 @@
 #include <wallet/wallet.h>
 
 #include <consensus/validation.h>
+#include <injector.h>
 #include <rpc/server.h>
 #include <test/test_unite.h>
 #include <validation.h>
@@ -34,6 +35,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
     GetBlockFileInfo(oldTip->GetBlockPos().nFile)->nSize = MAX_BLOCKFILE_SIZE;
     CTransactionRef new_coinbase = CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey())).vtx[0];
     CBlockIndex* newTip = chainActive.Tip();
+    esperanza::WalletExtensionDeps deps(GetInjector());
 
     RemoveWallet(m_wallet);
 
@@ -42,12 +44,14 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
     // Verify ScanForWalletTransactions picks up transactions in both the old
     // and new block files.
     {
-        CWallet wallet("dummy", WalletDatabase::CreateDummy());
+        CWallet wallet("dummy", WalletDatabase::CreateDummy(), deps);
         AddKey(wallet, coinbaseKey);
         WalletRescanReserver reserver(&wallet);
         reserver.reserve();
         BOOST_CHECK_EQUAL(nullBlock, wallet.ScanForWalletTransactions(oldTip, nullptr, reserver));
-        BOOST_CHECK_EQUAL(wallet.GetImmatureBalance(), m_coinbase_txns.back().vout[0].nValue + new_coinbase->vout[0].nValue);
+        const CAmount expected = m_coinbase_txns.back().GetValueOut() - m_coinbase_txns.back().vout.back().nValue
+            + new_coinbase->GetValueOut() - new_coinbase->vout.back().nValue;
+        BOOST_CHECK_EQUAL(wallet.GetImmatureBalance(), expected);
     }
 
     // Prune the older block file.
@@ -57,19 +61,19 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
     // Verify ScanForWalletTransactions only picks transactions in the new block
     // file.
     {
-        CWallet wallet("dummy", WalletDatabase::CreateDummy());
+        CWallet wallet("dummy", WalletDatabase::CreateDummy(), deps);
         AddKey(wallet, coinbaseKey);
         WalletRescanReserver reserver(&wallet);
         reserver.reserve();
         BOOST_CHECK_EQUAL(oldTip, wallet.ScanForWalletTransactions(oldTip, nullptr, reserver));
-        BOOST_CHECK_EQUAL(wallet.GetImmatureBalance(), m_coinbase_txns.back().vout[0].nValue);
+        BOOST_CHECK_EQUAL(wallet.GetImmatureBalance(), new_coinbase->GetValueOut() - new_coinbase->vout.back().nValue);
     }
 
     // Verify importmulti RPC returns failure for a key whose creation time is
     // before the missing block, and success for a key whose creation time is
     // after.
     {
-        std::shared_ptr<CWallet> wallet = std::make_shared<CWallet>("dummy", WalletDatabase::CreateDummy());
+        std::shared_ptr<CWallet> wallet = std::make_shared<CWallet>("dummy", WalletDatabase::CreateDummy(), deps);
         AddWallet(wallet);
         UniValue keys;
         keys.setArray();
@@ -178,7 +182,8 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
 // debit functions.
 BOOST_FIXTURE_TEST_CASE(coin_mark_dirty_immature_credit, TestChain100Setup)
 {
-    CWallet wallet("dummy", WalletDatabase::CreateDummy());
+    esperanza::WalletExtensionDeps deps(GetInjector());
+    CWallet wallet("dummy", WalletDatabase::CreateDummy(), deps);
     CWalletTx wtx(&wallet, MakeTransactionRef(m_coinbase_txns.back()));
     LOCK2(cs_main, wallet.cs_wallet);
     wtx.hashBlock = chainActive.Tip()->GetBlockHash();
@@ -384,7 +389,8 @@ public:
     ListCoinsTestingSetup()
     {
         CreateAndProcessBlock({}, GetScriptForDestination(WitnessV0KeyHash(coinbaseKey.GetPubKey().GetID())));
-        wallet = MakeUnique<CWallet>("mock", WalletDatabase::CreateMock());
+        esperanza::WalletExtensionDeps deps(GetInjector());
+        wallet = MakeUnique<CWallet>("mock", WalletDatabase::CreateMock(), deps);
         bool firstRun;
         wallet->LoadWallet(firstRun);
         AddKey(*wallet, coinbaseKey);
@@ -631,15 +637,20 @@ BOOST_FIXTURE_TEST_CASE(GetLegacyBalance_coinbase_maturity, TestChain100Setup) {
   }
 
   // As per mature outputs we should have 103 blocks worth of rewards + the initial
-  // stake + the watch-only reward
+  // stake + the watch-only reward + 100 finalization rewards
   {
       auto coinbase_reward = m_coinbase_txns.back().vout[0].nValue;
+      auto finalization_reward = m_coinbase_txns[50].vout[1].nValue;
       LOCK2(cs_main, m_wallet->cs_wallet);
       const CAmount all_balance = m_wallet->GetLegacyBalance(ISMINE_ALL, 0, nullptr);
       const CAmount spendable_balance = m_wallet->GetLegacyBalance(ISMINE_SPENDABLE, 0, nullptr);
       const CAmount watchonly_balance = m_wallet->GetLegacyBalance(ISMINE_WATCH_ONLY, 0, nullptr);
-      BOOST_CHECK_EQUAL(all_balance, (10000 * UNIT) + coinbase_reward * 103 + watch_only_coinbase->vout[0].nValue);
-      BOOST_CHECK_EQUAL(spendable_balance, (10000 * UNIT) + coinbase_reward * 103);
+
+      BOOST_CHECK_EQUAL(
+          all_balance,
+          (10000 * UNIT) + coinbase_reward * 103 + finalization_reward * 100 + watch_only_coinbase->vout[0].nValue
+      );
+      BOOST_CHECK_EQUAL(spendable_balance, (10000 * UNIT) + coinbase_reward * 103 + finalization_reward * 100);
       BOOST_CHECK_EQUAL(watchonly_balance, watch_only_coinbase->vout[0].nValue);
   }
 }

@@ -29,7 +29,8 @@ WalletTestingSetup::WalletTestingSetup(
     stake_validator_mock.mock_IsStakeMature.SetResult(true);
 
     f(settings);
-    esperanza::WalletExtensionDeps deps(&settings, &stake_validator_mock);
+    esperanza::WalletExtensionDeps deps(&settings, &stake_validator_mock,
+                                        GetComponent<proposer::FinalizationRewardLogic>());
 
     m_wallet.reset(new CWallet("mock", WalletDatabase::CreateMock(), deps));
     m_wallet->LoadWallet(fFirstRun);
@@ -66,7 +67,7 @@ TestChain100Setup::TestChain100Setup(UnitEInjectorConfiguration config)
   m_wallet->ScanForWalletTransactions(chainActive.Genesis(), nullptr, reserver);
 
   // Generate a 100-block chain:
-  GetComponent<Settings>()->stake_split_threshold = 0; // reset to 0
+  GetComponent<Settings>()->stake_split_threshold = 0; // do not split stake
   CScript script_pubkey = GetScriptForDestination(WitnessV0KeyHash(coinbaseKey.GetPubKey().GetID()));
   for (int i = 0; i < COINBASE_MATURITY; i++)
   {
@@ -117,12 +118,13 @@ std::shared_ptr<const CBlock> TestChain100Setup::CreateBlock(
   };
 
   std::shared_ptr<const CBlock> block = m_block_builder->BuildBlock(
-      *m_active_chain->GetTip(),
+      *tip,
       snapshot_hash,
       coin,
       {},
       tx_refs,
       fees,
+      GetComponent<proposer::FinalizationRewardLogic>()->GetFinalizationRewards(*tip),
       coinbase_script,
       wallet_ext);
 

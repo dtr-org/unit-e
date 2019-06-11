@@ -5,7 +5,11 @@
 """Test the wallet accounts properly when there is a double-spend conflict."""
 from decimal import Decimal
 
-from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
+from test_framework.test_framework import (
+    UnitETestFramework,
+    PROPOSER_REWARD,
+    FULL_FINALIZATION_REWARD,
+)
 from test_framework.util import (
     assert_equal,
     connect_nodes,
@@ -144,7 +148,7 @@ class TxnMallTest(UnitETestFramework):
         assert_equal(self.nodes[0].getbalance(), expected)
 
         # Node1's balance should be its initial balance plus the doublespend:
-        assert_equal(self.nodes[1].getbalance(), 10000 + 25 * PROPOSER_REWARD + 1240)
+        assert_equal(self.nodes[1].getbalance(), 10000 + 25 * PROPOSER_REWARD + 25 * FULL_FINALIZATION_REWARD + 1240)
 
 if __name__ == '__main__':
     TxnMallTest().main()

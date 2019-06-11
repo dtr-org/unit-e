@@ -74,7 +74,7 @@ from test_framework.messages import (
     msg_inv,
 )
 from test_framework.mininode import mininode_lock, P2PInterface
-from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY
+from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY, DISABLE_FINALIZATION
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
@@ -144,7 +144,7 @@ class AcceptBlockTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 2
-        self.extra_args = [[], ["-minimumchainwork=0x10"]]
+        self.extra_args = [[DISABLE_FINALIZATION], ["-minimumchainwork=0x10", DISABLE_FINALIZATION]]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()

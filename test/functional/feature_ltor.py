@@ -21,6 +21,7 @@ from test_framework.blocktools import (
     create_coinbase,
     create_tx_with_script,
     get_tip_snapshot_meta,
+    get_finalization_rewards,
 )
 from test_framework.messages import (
     CTxOut,
@@ -231,10 +232,11 @@ class LTORTest(UnitETestFramework):
 
         block = create_block(
             hashprev=hashprev,
-            coinbase=sign_coinbase(self.nodes[0], create_coinbase(
+            coinbase=sign_coinbase(node0, create_coinbase(
                 height=sync_height + 1,
                 stake=node0.listunspent()[0],
-                snapshot_hash=snapshot_hash
+                snapshot_hash=snapshot_hash,
+                finalization_rewards=get_finalization_rewards(node0, sync_height)
             )),
             ntime=block_time
         )

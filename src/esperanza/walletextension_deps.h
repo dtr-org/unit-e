@@ -7,6 +7,7 @@
 
 #include <dependency.h>
 #include <finalization/state_repository.h>
+#include <proposer/finalization_reward_logic.h>
 #include <settings.h>
 #include <staking/active_chain.h>
 #include <staking/stake_validator.h>
@@ -31,6 +32,7 @@ class WalletExtensionDeps {
   const Dependency<finalization::StateRepository> m_finalization_state_repository;
   const Dependency<staking::ActiveChain> m_active_chain;
   const Dependency<staking::StakeValidator> m_stake_validator;
+  const Dependency<proposer::FinalizationRewardLogic> m_finalization_reward_logic;
 
  public:
   //! \brief Constructor for testing only.
@@ -44,9 +46,10 @@ class WalletExtensionDeps {
   //!
   //! This constructor is used in WalletTestingSetup and the
   //! Fixture in proposer_tests.
-  //!
-  //! \param settings A pointer to mmocked test settings.
-  WalletExtensionDeps(Dependency<::Settings> settings, Dependency<staking::StakeValidator> stake_validator) noexcept;
+  WalletExtensionDeps(
+      Dependency<Settings> settings,
+      Dependency<staking::StakeValidator> stake_validator,
+      Dependency<proposer::FinalizationRewardLogic> finalization_reward_logic) noexcept;
 
   //! \brief Proper constructor for production use.
   //!
@@ -74,6 +77,12 @@ class WalletExtensionDeps {
     assert(m_stake_validator != nullptr &&
            "staking::StakeValidator not available: test-only wallet extension used in production, see comments in walletextension_deps.h");
     return *m_stake_validator;
+  }
+
+  proposer::FinalizationRewardLogic &GetFinalizationRewardLogic() const {
+    assert(m_finalization_reward_logic != nullptr &&
+           "proposer::FinalizationRewardLogic not available: test-only wallet extension used in production, see comments in walletextension_deps.h");
+    return *m_finalization_reward_logic;
   }
 };
 

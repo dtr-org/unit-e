@@ -10,7 +10,11 @@ import os
 import shutil
 import time
 
-from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY, PROPOSER_REWARD
+from test_framework.test_framework import (
+    UnitETestFramework,
+    COINBASE_MATURITY,
+    PROPOSER_REWARD,
+)
 from test_framework.test_node import ErrorMatch
 from test_framework.util import (
     assert_equal,

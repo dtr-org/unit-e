@@ -11,9 +11,9 @@
 #include <wallet/wallet.h>
 
 #include <test/test_unite.h>
+#include <test/test_unite_mocks.h>
 #include <boost/test/unit_test.hpp>
 
-#include <test/test_unite_mocks.h>
 #include <algorithm>
 #include <cstdlib>
 
@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(build_block_and_validate) {
   CAmount fees(0);
 
   auto block = builder->BuildBlock(
-      current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, boost::none, f.wallet);
+      current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, {}, boost::none, f.wallet);
   BOOST_REQUIRE(static_cast<bool>(block));
   auto is_valid = validator->CheckBlock(*block, nullptr);
   BOOST_CHECK_MESSAGE(is_valid, is_valid.GetRejectionMessage());
@@ -175,7 +175,7 @@ BOOST_AUTO_TEST_CASE(split_amount) {
     CAmount fees(0);
 
     std::shared_ptr<const CBlock> block = builder->BuildBlock(
-        current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, boost::none, f.wallet);
+        current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, {}, boost::none, f.wallet);
     BOOST_REQUIRE(static_cast<bool>(block));
     const staking::BlockValidationResult is_valid = validator->CheckBlock(*block, nullptr);
     // must have a coinbase transaction
@@ -227,7 +227,7 @@ BOOST_AUTO_TEST_CASE(check_reward_destination) {
   CAmount fees(5);
 
   std::shared_ptr<const CBlock> block = builder->BuildBlock(
-      current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, boost::none, f.wallet);
+      current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, {}, boost::none, f.wallet);
   BOOST_REQUIRE(static_cast<bool>(block));
   const staking::BlockValidationResult is_valid = validator->CheckBlock(*block, nullptr);
   BOOST_CHECK_MESSAGE(is_valid, is_valid.GetRejectionMessage());
@@ -267,7 +267,7 @@ BOOST_AUTO_TEST_CASE(combine_stake) {
   CAmount fees(0);
 
   std::shared_ptr<const CBlock> block = builder->BuildBlock(
-      current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, boost::none, f.wallet);
+      current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, {}, boost::none, f.wallet);
   BOOST_REQUIRE(static_cast<bool>(block));
   const staking::BlockValidationResult is_valid = validator->CheckBlock(*block, nullptr);
   BOOST_CHECK_MESSAGE(is_valid, is_valid.GetRejectionMessage());
@@ -285,8 +285,6 @@ BOOST_AUTO_TEST_CASE(combine_stake) {
   BOOST_CHECK_EQUAL(outputs.size(), 2);
   BOOST_CHECK_EQUAL(outputs[1].nValue, f.eligible_coin.utxo.GetAmount() + coin2.GetAmount() + coin3.GetAmount());
 }
-
-// TODO UNIT-E: check that combining skipped when staking remote staking outputs
 
 BOOST_AUTO_TEST_CASE(remote_staking) {
   Fixture f{tfm::format("-stakesplitthreshold=%d", 0),
@@ -324,7 +322,7 @@ BOOST_AUTO_TEST_CASE(remote_staking) {
     staking::CoinSet coins{eligible_coin.utxo, coin1, coin2};
 
     std::shared_ptr<const CBlock> block = builder->BuildBlock(
-        current_tip, f.snapshot_hash, eligible_coin, coins, transactions, fees, boost::none, f.wallet);
+        current_tip, f.snapshot_hash, eligible_coin, coins, transactions, fees, {}, boost::none, f.wallet);
     BOOST_REQUIRE(static_cast<bool>(block));
     const staking::BlockValidationResult is_valid = validator->CheckBlock(*block, nullptr);
     BOOST_CHECK_MESSAGE(is_valid, is_valid.GetRejectionMessage());
@@ -348,7 +346,7 @@ BOOST_AUTO_TEST_CASE(remote_staking) {
     staking::CoinSet coins{f.eligible_coin.utxo, coin1, coin2, rs_coin1, rs_coin2};
 
     std::shared_ptr<const CBlock> block = builder->BuildBlock(
-        current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, boost::none, f.wallet);
+        current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, {}, boost::none, f.wallet);
     BOOST_REQUIRE(static_cast<bool>(block));
     const staking::BlockValidationResult is_valid = validator->CheckBlock(*block, nullptr);
     BOOST_CHECK_MESSAGE(is_valid, is_valid.GetRejectionMessage());
@@ -365,6 +363,46 @@ BOOST_AUTO_TEST_CASE(remote_staking) {
     const std::vector<CTxOut> &outputs = block->vtx[0]->vout;
     BOOST_CHECK_EQUAL(outputs.size(), 2);
     BOOST_CHECK_EQUAL(outputs[1].nValue, f.eligible_coin.utxo.GetAmount() + coin1.GetAmount() + coin2.GetAmount());
+  }
+}
+
+BOOST_AUTO_TEST_CASE(check_finalization_rewards) {
+  Fixture f{};
+  std::unique_ptr<staking::BlockValidator> validator = f.MakeBlockValidator();
+  std::unique_ptr<proposer::BlockBuilder> builder = f.MakeBlockBuilder();
+
+  const uint256 block_hash = uint256();
+  CBlockIndex current_tip = [&] {
+    CBlockIndex ix;
+    ix.phashBlock = &block_hash;
+    ix.pprev = nullptr;
+    ix.pskip = nullptr;
+    ix.nHeight = 20;
+    return ix;
+  }();
+
+  staking::CoinSet coins;
+  std::vector<CTransactionRef> transactions;
+  CAmount fees(5);
+
+  std::vector<CTxOut> finalization_rewards = {
+      {1000, CScript() << OP_3},
+      {2000, CScript() << OP_4},
+      {3000, CScript() << OP_5},
+  };
+
+  std::shared_ptr<const CBlock> block = builder->BuildBlock(
+      current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, finalization_rewards, boost::none, f.wallet);
+  BOOST_REQUIRE(static_cast<bool>(block));
+  const staking::BlockValidationResult is_valid = validator->CheckBlock(*block, nullptr);
+  BOOST_CHECK_MESSAGE(is_valid, is_valid.GetRejectionMessage());
+
+  const CTransactionRef coinbase_tx = block->vtx[0];
+  BOOST_CHECK_EQUAL(coinbase_tx->vout.size(), finalization_rewards.size() + 2);
+
+  for (std::size_t i = 0; i < finalization_rewards.size(); ++i) {
+    BOOST_CHECK_EQUAL(coinbase_tx->vout[i + 1].nValue, finalization_rewards[i].nValue);
+    BOOST_CHECK_EQUAL(HexStr(coinbase_tx->vout[i + 1].scriptPubKey), HexStr(finalization_rewards[i].scriptPubKey));
   }
 }
 

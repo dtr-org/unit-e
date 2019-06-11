@@ -9,7 +9,9 @@
 #include <coins.h>
 #include <esperanza/finalizationstate.h>
 #include <finalization/state_db.h>
+#include <finalization/state_repository.h>
 #include <proposer/block_builder.h>
+#include <proposer/finalization_reward_logic.h>
 #include <proposer/proposer_logic.h>
 #include <staking/active_chain.h>
 #include <staking/block_index_map.h>
@@ -17,6 +19,7 @@
 #include <staking/network.h>
 #include <staking/stake_validator.h>
 #include <staking/transactionpicker.h>
+#include <test/esperanza/finalizationstate_utils.h>
 #include <util.h>
 
 #include <test/util/mocks.h>
@@ -396,9 +399,11 @@ class BlockBuilderMock : public proposer::BlockBuilder, public Mock {
       const proposer::EligibleCoin &eligible_coin,
       const staking::CoinSet &coins,
       const CAmount fees,
+      const std::vector<CTxOut> &finalization_rewards,
       const boost::optional<CScript> &coinbase_script,
       staking::StakingWallet &wallet) const override {
-    return mock_BuildCoinbaseTransaction(snapshot_hash, eligible_coin, coins, fees, coinbase_script, wallet);
+    return mock_BuildCoinbaseTransaction(
+        snapshot_hash, eligible_coin, coins, fees, finalization_rewards, coinbase_script, wallet);
   }
   std::shared_ptr<const CBlock> BuildBlock(
       const CBlockIndex &index,
@@ -407,9 +412,75 @@ class BlockBuilderMock : public proposer::BlockBuilder, public Mock {
       const staking::CoinSet &coins,
       const std::vector<CTransactionRef> &txs,
       const CAmount fees,
+      const std::vector<CTxOut> &finalization_rewards,
       const boost::optional<CScript> &coinbase_script,
       staking::StakingWallet &wallet) const override {
-    return mock_BuildBlock(index, snapshot_hash, stake_coin, coins, txs, fees, coinbase_script, wallet);
+    return mock_BuildBlock(
+        index, snapshot_hash, stake_coin, coins, txs, fees, finalization_rewards, coinbase_script, wallet);
+  }
+};
+
+class StateRepositoryMock : public finalization::StateRepository {
+ public:
+  explicit StateRepositoryMock(const finalization::Params &params)
+      : m_finalization_params(params),
+        state(m_finalization_params) {}
+
+  CCriticalSection &GetLock() override { return cs; }
+  FinalizationState *GetTipState() override { return &state; }
+  FinalizationState *Find(const CBlockIndex &) override { return &state; }
+  FinalizationState *FindOrCreate(const CBlockIndex &, FinalizationState::InitStatus) override { return &state; }
+  bool Confirm(const CBlockIndex &, FinalizationState &&, FinalizationState **) override { return false; }
+  bool RestoreFromDisk(Dependency<finalization::StateProcessor>) override { return false; }
+  bool SaveToDisk() override { return false; }
+  bool Restoring() const override { return false; }
+  void TrimUntilHeight(const blockchain::Height) override {}
+
+ private:
+  finalization::Params m_finalization_params;
+  CCriticalSection cs;
+
+ public:
+  FinalizationStateSpy state;
+};
+
+class FinalizationRewardLogicMock : public proposer::FinalizationRewardLogic, public Mock {
+ public:
+  MethodMock<decltype(&proposer::FinalizationRewardLogic::GetFinalizationRewards)> mock_GetFinalizationRewards{this, {}};
+  MethodMock<decltype(&proposer::FinalizationRewardLogic::GetFinalizationRewardAmounts)> mock_GetFinalizationRewardAmounts{this, {}};
+  MethodMock<decltype(&proposer::FinalizationRewardLogic::GetNumberOfRewardOutputs)> mock_GetNumberOfRewardOutputs{this, 1};
+
+  std::vector<CTxOut> GetFinalizationRewards(const CBlockIndex &block_index) const override {
+    return mock_GetFinalizationRewards(block_index);
+  }
+  std::vector<CAmount> GetFinalizationRewardAmounts(const CBlockIndex &block_index) const override {
+    return mock_GetFinalizationRewardAmounts(block_index);
+  }
+  size_t GetNumberOfRewardOutputs(blockchain::Height height) const override {
+    return mock_GetNumberOfRewardOutputs(height);
+  }
+};
+
+class FinalizationRewardLogicFake : public mocks::FinalizationRewardLogicMock {
+ public:
+  std::vector<CTxOut> rewards;
+  mutable boost::optional<blockchain::Height> arg_GetNumberOfRewardOutputs_height = boost::none;
+
+  FinalizationRewardLogicFake() {
+    mock_GetFinalizationRewards.SetStub([this](const CBlockIndex &last_block) {
+      return rewards;
+    });
+    mock_GetFinalizationRewardAmounts.SetStub([this](const CBlockIndex &last_block) {
+      std::vector<CAmount> result;
+      for (const auto &r : rewards) {
+        result.push_back(r.nValue);
+      }
+      return result;
+    });
+    mock_GetNumberOfRewardOutputs.SetStub([this](blockchain::Height height) {
+      arg_GetNumberOfRewardOutputs_height = height;
+      return rewards.size() + 1;
+    });
   }
 };
 

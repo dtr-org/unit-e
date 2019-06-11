@@ -3,10 +3,10 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, assert_equal
 
 
-class SpendGenensisTest(UnitETestFramework):
+class SpendGenesisTest(UnitETestFramework):
 
     def set_test_params(self):
         self.setup_clean_chain = True
@@ -18,15 +18,11 @@ class SpendGenensisTest(UnitETestFramework):
         assert block['hash']
 
         self.setup_stake_coins(node)
-        node.rescanblockchain(0, 0)  # UNIT-E this can be removed as soon as importmasterkey correctly perform a rescan
+        assert_equal(node.getbalance(), 10000)
 
-        # Make the coinbase mature
-        node.generate(100)
-        assert node.getbalance() == 10000
-
-        # Send a tx to yourself spending the tx
+        # Send a tx to yourself spending the genesis output
         node.sendtoaddress(node.getnewaddress(), 5000)
 
 
 if __name__ == '__main__':
-    SpendGenensisTest().main()
+    SpendGenesisTest().main()

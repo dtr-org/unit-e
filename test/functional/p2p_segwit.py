@@ -74,6 +74,7 @@ from test_framework.script import (
 from test_framework.test_framework import (
     PROPOSER_REWARD,
     UnitETestFramework,
+    DISABLE_FINALIZATION,
 )
 from test_framework.util import (
     assert_equal,
@@ -228,7 +229,8 @@ class SegWitTest(UnitETestFramework):
         self.setup_clean_chain = True
         self.num_nodes = 2
         # This test tests SegWit
-        self.extra_args = [["-whitelist=127.0.0.1"], ["-whitelist=127.0.0.1", "-acceptnonstdtxn=0"]]
+        self.extra_args = [["-whitelist=127.0.0.1", DISABLE_FINALIZATION],
+                           ["-whitelist=127.0.0.1", "-acceptnonstdtxn=0", DISABLE_FINALIZATION]]
 
     def setup_network(self):
         self.setup_nodes()

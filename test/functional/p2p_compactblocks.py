@@ -47,7 +47,7 @@ from test_framework.messages import (
 )
 from test_framework.mininode import mininode_lock, P2PInterface
 from test_framework.script import CScript, OP_TRUE, OP_DROP
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, DISABLE_FINALIZATION
 from test_framework.util import assert_equal, assert_in, assert_not_equal, satoshi_round, sync_blocks, wait_until, get_unspent_coins
 
 # TestP2PConn: A peer we use to send messages to unit-e, and store responses.
@@ -140,7 +140,10 @@ class CompactBlocksTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 2
-        self.extra_args = [["-graphene=0"], ["-txindex", "-deprecatedrpc=addwitnessaddress", "-graphene=0"]]
+        self.extra_args = [
+            ["-graphene=0", DISABLE_FINALIZATION],
+            ["-txindex", "-deprecatedrpc=addwitnessaddress", "-graphene=0", DISABLE_FINALIZATION]
+        ]
         self.utxos = []
 
     def skip_test_if_missing_module(self):

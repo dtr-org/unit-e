@@ -8,6 +8,7 @@
 #include <amount.h>
 #include <blockchain/blockchain_behavior.h>
 #include <dependency.h>
+#include <proposer/finalization_reward_logic.h>
 
 #include <memory>
 
@@ -19,17 +20,29 @@ namespace staking {
 
 class BlockRewardValidator {
  public:
+  //! \brief Check whether coinbase transaction has valid outputs.
+  //!
+  //! It checks that:
+  //! 1. The coinbase transaction has correct finalization reward outputs.
+  //! 2. The total output is not bigger than the total input plus the total
+  //!    reward.
+  //! 3. The total output is not smaller than the total input plus the total
+  //!    reward without the fees.
+  //! 4. The non-reward output is not bigger than the total input.
+  //! \return true if the outputs are valid.
   virtual bool CheckBlockRewards(
-      const CTransaction &coinbase_tx,
-      CValidationState &state,
-      const CBlockIndex &index,
-      CAmount input_amount,
-      CAmount fees) const = 0;
+      const CTransaction &coinbase_tx,  //!< [in] The coinbase transaction.
+      CValidationState &state,          //!< [out] The validation state.
+      const CBlockIndex &index,         //!< [in] The block which contains the coinbase transaction.
+      CAmount input_amount,             //!< [in] The total input to the coinbase transaction.
+      CAmount fees                      //!< [in] The total fees of the transactions in the block.
+      ) const = 0;
 
   virtual ~BlockRewardValidator() = default;
 
   static std::unique_ptr<BlockRewardValidator> New(
-      Dependency<blockchain::Behavior>);
+      Dependency<blockchain::Behavior>,
+      Dependency<proposer::FinalizationRewardLogic>);
 };
 
 }  // namespace staking

@@ -17,6 +17,7 @@
 #include <finalization/state_repository.h>
 #include <injector_config.h>
 #include <p2p/finalizer_commits_handler.h>
+#include <proposer/finalization_reward_logic.h>
 #include <p2p/graphene_receiver.h>
 #include <p2p/graphene_sender.h>
 #include <settings.h>
@@ -74,7 +75,8 @@ class UnitEInjector : public Injector<UnitEInjector> {
             staking::Network)
 
   COMPONENT(BlockRewardValidator, staking::BlockRewardValidator, staking::BlockRewardValidator::New,
-            blockchain::Behavior)
+            blockchain::Behavior,
+            proposer::FinalizationRewardLogic)
 
   COMPONENT(BlockDB, BlockDB, BlockDB::New)
 
@@ -106,6 +108,12 @@ class UnitEInjector : public Injector<UnitEInjector> {
             staking::ActiveChain,
             finalization::StateRepository,
             finalization::StateProcessor)
+
+  COMPONENT(FinalizationRewardLogic, proposer::FinalizationRewardLogic, proposer::FinalizationRewardLogic::New,
+            blockchain::Behavior,
+            finalization::Params,
+            finalization::StateRepository,
+            BlockDB)
 
   COMPONENT(StakingRPC, staking::StakingRPC, staking::StakingRPC::New,
             staking::ActiveChain,
@@ -151,7 +159,8 @@ class UnitEInjector : public Injector<UnitEInjector> {
             staking::ActiveChain,
             staking::TransactionPicker,
             proposer::BlockBuilder,
-            proposer::Logic)
+            proposer::Logic,
+            proposer::FinalizationRewardLogic)
 
 #endif
 

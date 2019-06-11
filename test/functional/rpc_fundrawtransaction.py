@@ -5,7 +5,7 @@
 """Test the fundrawtransaction RPC."""
 
 from decimal import Decimal
-from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD, DISABLE_FINALIZATION
 from test_framework.util import (
     assert_equal,
     assert_fee_amount,
@@ -28,6 +28,7 @@ class RawTransactionsTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 4
         self.setup_clean_chain = True
+        self.extra_args = [[DISABLE_FINALIZATION]] * self.num_nodes
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()

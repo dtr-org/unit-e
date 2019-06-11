@@ -102,6 +102,7 @@ class BlockBuilderImpl : public BlockBuilder {
       const EligibleCoin &eligible_coin,
       const staking::CoinSet &coins,
       const CAmount fees,
+      const std::vector<CTxOut> &finalization_rewards,
       const boost::optional<CScript> &coinbase_script,
       staking::StakingWallet &wallet) const override {
     CMutableTransaction tx;
@@ -147,6 +148,12 @@ class BlockBuilderImpl : public BlockBuilder {
 
     tx.vout.emplace_back(reward, reward_script);
 
+    CAmount combined_reward = reward;
+    for (const auto &r : finalization_rewards) {
+      tx.vout.push_back(r);
+      combined_reward += r.nValue;
+    }
+
     const CAmount threshold = m_settings->stake_split_threshold;
     if (threshold > 0 && combined_total > threshold) {
       const std::vector<CAmount> pieces = SplitAmount(combined_total, threshold);
@@ -160,7 +167,7 @@ class BlockBuilderImpl : public BlockBuilder {
     assert(std::accumulate(tx.vout.begin(), tx.vout.end(), CAmount(0),
                            [](const CAmount sum, const CTxOut &tx_out) -> CAmount {
                              return sum + tx_out.nValue;
-                           }) == combined_total + reward);
+                           }) == combined_total + combined_reward);
 
     // sign inputs
     {
@@ -181,6 +188,7 @@ class BlockBuilderImpl : public BlockBuilder {
       const staking::CoinSet &coins,
       const std::vector<CTransactionRef> &txs,
       const CAmount fees,
+      const std::vector<CTxOut> &finalization_rewards,
       const boost::optional<CScript> &coinbase_script,
       staking::StakingWallet &wallet) const override {
 
@@ -193,8 +201,8 @@ class BlockBuilderImpl : public BlockBuilder {
     // nonce will be removed and is not relevant in PoS, not setting it here
 
     // add coinbase transaction first
-    const CTransactionRef coinbase_transaction =
-        BuildCoinbaseTransaction(snapshot_hash, coin, coins, fees, coinbase_script, wallet);
+    const CTransactionRef coinbase_transaction = BuildCoinbaseTransaction(
+        snapshot_hash, coin, coins, fees, finalization_rewards, coinbase_script, wallet);
     if (!coinbase_transaction) {
       Log("Failed to create coinbase transaction.");
       return nullptr;
@@ -215,7 +223,7 @@ class BlockBuilderImpl : public BlockBuilder {
 };
 
 std::unique_ptr<BlockBuilder> BlockBuilder::New(const Dependency<Settings> settings) {
-  return std::unique_ptr<BlockBuilder>(new BlockBuilderImpl(settings));
+  return MakeUnique<BlockBuilderImpl>(settings);
 }
 
 }  // namespace proposer
