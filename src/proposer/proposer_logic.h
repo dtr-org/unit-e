@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_PROPOSER_LOGIC_H
-#define UNIT_E_PROPOSER_LOGIC_H
+#ifndef UNITE_PROPOSER_PROPOSER_LOGIC_H
+#define UNITE_PROPOSER_PROPOSER_LOGIC_H
 
 #include <amount.h>
 #include <blockchain/blockchain_types.h>
@@ -43,4 +43,4 @@ class Logic {
 
 }  // namespace proposer
 
-#endif  //UNIT_E_PROPOSER_LOGIC_H
+#endif  // UNITE_PROPOSER_PROPOSER_LOGIC_H

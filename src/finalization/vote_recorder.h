@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_FINALIZATION_VOTE_RECORDER_H
-#define UNIT_E_FINALIZATION_VOTE_RECORDER_H
+#ifndef UNITE_FINALIZATION_VOTE_RECORDER_H
+#define UNITE_FINALIZATION_VOTE_RECORDER_H
 
 #include <dbwrapper.h>
 #include <esperanza/vote.h>
@@ -99,4 +99,4 @@ bool RecordVote(const CTransaction &tx,
 
 }  // namespace finalization
 
-#endif  // UNIT_E_FINALIZATION_VOTE_RECORDER_H
+#endif  // UNITE_FINALIZATION_VOTE_RECORDER_H

@@ -6,8 +6,8 @@
 #include <key.h>
 #include <primitives/transaction.h>
 
-#ifndef UNIT_E_TESTS_ESPERANZA_FINALIZATION_UTILS_H
-#define UNIT_E_TESTS_ESPERANZA_FINALIZATION_UTILS_H
+#ifndef UNITE_TEST_ESPERANZA_FINALIZATION_UTILS_H
+#define UNITE_TEST_ESPERANZA_FINALIZATION_UTILS_H
 
 CTransaction CreateVoteTx(const esperanza::Vote &vote, const CKey &spendable_key);
 
@@ -28,4 +28,4 @@ CTransaction CreateWithdrawTx(const CTransaction &spendable_tx,
 CTransaction CreateP2PKHTx(const CTransaction &spendable_tx,
                            const CKey &spendable_key, CAmount amount);
 
-#endif  // UNIT_E_TESTS_ESPERANZA_FINALIZATION_UTILS_H
+#endif  // UNITE_TEST_ESPERANZA_FINALIZATION_UTILS_H

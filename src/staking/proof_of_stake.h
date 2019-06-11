@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_STAKING_PROOF_OF_STAKE_H
-#define UNIT_E_STAKING_PROOF_OF_STAKE_H
+#ifndef UNITE_STAKING_PROOF_OF_STAKE_H
+#define UNITE_STAKING_PROOF_OF_STAKE_H
 
 #include <blockchain/blockchain_types.h>
 #include <primitives/block.h>
@@ -87,4 +87,4 @@ uint256 ComputeStakeModifier(const uint256 &stake_transaction_hash,
 
 }  // namespace staking
 
-#endif  //UNIT_E_STAKING_PROOF_OF_STAKE_H
+#endif  // UNITE_STAKING_PROOF_OF_STAKE_H

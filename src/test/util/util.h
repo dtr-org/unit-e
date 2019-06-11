@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_TEST_UTIL_H
-#define UNIT_E_TEST_UTIL_H
+#ifndef UNITE_TEST_UTIL_UTIL_H
+#define UNITE_TEST_UTIL_UTIL_H
 
 #include <blockchain/blockchain_behavior.h>
 #include <blockchain/blockchain_types.h>
@@ -35,4 +35,4 @@ CBlock MinimalBlock(const KeyFixture &key_fixture = MakeKeyFixture());
 CBlock MinimalBlock(const std::function<void(CBlock &)>,
                     const KeyFixture &key_fixture = MakeKeyFixture());
 
-#endif  //UNIT_E_TEST_UTIL_H
+#endif  // UNITE_TEST_UTIL_UTIL_H

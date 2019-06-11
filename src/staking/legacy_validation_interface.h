@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_LEGACY_VALIDATION_INTERFACE_H
-#define UNIT_E_LEGACY_VALIDATION_INTERFACE_H
+#ifndef UNITE_STAKING_LEGACY_VALIDATION_INTERFACE_H
+#define UNITE_STAKING_LEGACY_VALIDATION_INTERFACE_H
 
 #include <dependency.h>
 
@@ -106,4 +106,4 @@ class LegacyValidationInterface {
 
 }  // namespace staking
 
-#endif  //UNIT_E_LEGACY_VALIDATION_INTERFACE_H
+#endif  // UNITE_STAKING_LEGACY_VALIDATION_INTERFACE_H

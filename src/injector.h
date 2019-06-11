@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_INJECTOR_H
-#define UNIT_E_INJECTOR_H
+#ifndef UNITE_INJECTOR_H
+#define UNITE_INJECTOR_H
 
 #include <dependency_injector.h>
 
@@ -189,4 +189,4 @@ Dependency<T> GetComponent() {
   return GetInjector().Get<T>();
 }
 
-#endif  // UNIT_E_INJECTOR_H
+#endif  // UNITE_INJECTOR_H

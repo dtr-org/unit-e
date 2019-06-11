@@ -4,11 +4,11 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 
-#ifndef UNITE_RPC_ESPERANZA_H
-#define UNITE_RPC_ESPERANZA_H
+#ifndef UNITE_RPC_FINALIZATION_H
+#define UNITE_RPC_FINALIZATION_H
 
 class CRPCTable;
 
 void RegisterFinalizationRPCCommands(CRPCTable &t);
 
-#endif // UNITE_RPC_ESPERANZA_H
+#endif // UNITE_RPC_FINALIZATION_H

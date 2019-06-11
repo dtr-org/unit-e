@@ -21,6 +21,7 @@ SHELL_SCRIPTS=(
   lint-clang-format.py
   lint-filenames.sh
   lint-format-strings.sh
+  lint-include-guards.sh
   lint-includes.sh
   lint-locale-dependence.sh
   lint-logs.sh

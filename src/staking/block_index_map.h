@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_STAKING_BLOCK_INDEX_MAP
-#define UNITE_STAKING_BLOCK_INDEX_MAP
+#ifndef UNITE_STAKING_BLOCK_INDEX_MAP_H
+#define UNITE_STAKING_BLOCK_INDEX_MAP_H
 
 #include <sync.h>
 #include <functional>
@@ -34,4 +34,4 @@ class BlockIndexMap {
 
 }  // namespace staking
 
-#endif
+#endif  // UNITE_STAKING_BLOCK_INDEX_MAP_H

@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_TRIT_H
-#define UNIT_E_TRIT_H
+#ifndef UNITE_TRIT_H
+#define UNITE_TRIT_H
 
 #include <cstdint>
 
@@ -106,4 +106,4 @@ class Trit final {
 
 };
 
-#endif  //UNIT_E_TRIT_H
+#endif  // UNITE_TRIT_H

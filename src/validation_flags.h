@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_VALIDATION_FLAGS_H
-#define UNIT_E_VALIDATION_FLAGS_H
+#ifndef UNITE_VALIDATION_FLAGS_H
+#define UNITE_VALIDATION_FLAGS_H
 
 #include <utiltypetags.h>
 
@@ -97,4 +97,4 @@ static const Type SKIP_ELIGIBILITY_CHECK = Type(1 << 1);
 
 }  // namespace TestBlockValidityFlags
 
-#endif  //UNIT_E_VALIDATION_FLAGS_H
+#endif  // UNITE_VALIDATION_FLAGS_H

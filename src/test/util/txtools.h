@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_TEST_UTIL_TXTOOLS_H
-#define UNIT_E_TEST_UTIL_TXTOOLS_H
+#ifndef UNITE_TEST_UTIL_TXTOOLS_H
+#define UNITE_TEST_UTIL_TXTOOLS_H
 
 #include <key.h>
 #include <keystore.h>
@@ -28,4 +28,4 @@ class TxTool {
 
 };
 
-#endif //UNIT_E_TEST_UTIL_TXTOOLS_H
+#endif // UNITE_TEST_UTIL_TXTOOLS_H

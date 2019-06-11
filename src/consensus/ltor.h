@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_LTOR_H
-#define UNITE_LTOR_H
+#ifndef UNITE_CONSENSUS_LTOR_H
+#define UNITE_CONSENSUS_LTOR_H
 
 #include <vector>
 #include <primitives/transaction.h>
@@ -14,4 +14,4 @@ void SortTransactions(std::vector<CTransactionRef>& transactions);
 
 }
 
-#endif //UNITE_LTOR_H
+#endif  // UNITE_CONSENSUS_LTOR_H

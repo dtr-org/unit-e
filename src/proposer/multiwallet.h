@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_PROPOSER_MULTIWALLET_H
-#define UNIT_E_PROPOSER_MULTIWALLET_H
+#ifndef UNITE_PROPOSER_MULTIWALLET_H
+#define UNITE_PROPOSER_MULTIWALLET_H
 
 #include <memory>
 #include <vector>
@@ -24,4 +24,4 @@ class MultiWallet {
 
 }  // namespace proposer
 
-#endif  // UNIT_E_PROPOSER_MULTIWALLET_H
+#endif  // UNITE_PROPOSER_MULTIWALLET_H

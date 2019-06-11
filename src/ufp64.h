@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_UFP32_H
-#define UNIT_E_UFP32_H
+#ifndef UNITE_UFP64_H
+#define UNITE_UFP64_H
 
 #include <arith_uint256.h>
 #include <stdint.h>
@@ -48,4 +48,4 @@ ufp64_t to_ufp64(uint64_t x);
 std::string to_str(uint64_t x);
 } // namespace ufp64
 
-#endif //UNIT_E_UFP32_H
+#endif // UNITE_UFP64_H

@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_STAKING_STAKINGWALLET_H
-#define UNIT_E_STAKING_STAKINGWALLET_H
+#ifndef UNITE_STAKING_STAKINGWALLET_H
+#define UNITE_STAKING_STAKINGWALLET_H
 
 #include <amount.h>
 #include <key.h>
@@ -68,4 +68,4 @@ class StakingWallet {
 
 }  // namespace staking
 
-#endif  // UNIT_E_STAKINGWALLET_H
+#endif  // UNITE_STAKINGWALLET_H
