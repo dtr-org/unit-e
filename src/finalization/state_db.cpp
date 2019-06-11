@@ -16,14 +16,14 @@ namespace finalization {
 
 namespace {
 
-class StateDBImpl : public StateDB, public CDBWrapper {
+class StateDBImpl : public StateDB {
  public:
   StateDBImpl(const StateDBParams &p,
               Dependency<Settings> settings,
               Dependency<finalization::Params> finalization_params,
               Dependency<staking::BlockIndexMap> block_index_map,
               Dependency<staking::ActiveChain> active_chain)
-      : CDBWrapper(settings->data_dir / "finalization", p.cache_size, p.inmemory, p.wipe, p.obfuscate),
+      : m_db(settings->data_dir / "finalization", p.cache_size, p.inmemory, p.wipe, p.obfuscate),
         m_finalization_params(finalization_params),
         m_block_index_map(block_index_map),
         m_active_chain(active_chain) {}
@@ -36,6 +36,8 @@ class StateDBImpl : public StateDB, public CDBWrapper {
   //! \brief Loads specific state from leveldb.
   bool Load(const CBlockIndex &index,
             std::map<const CBlockIndex *, FinalizationState> *states) const override;
+
+  bool Erase(const CBlockIndex &index) override;
 
   //! \brief Returns last finalized epoch accoring to active chain's tip.
   boost::optional<uint32_t> FindLastFinalizedEpoch() const override;
@@ -50,19 +52,20 @@ class StateDBImpl : public StateDB, public CDBWrapper {
       std::map<const CBlockIndex *, FinalizationState> *states) const override;
 
  private:
+  CDBWrapper m_db;
   Dependency<finalization::Params> m_finalization_params;
   Dependency<staking::BlockIndexMap> m_block_index_map;
   Dependency<staking::ActiveChain> m_active_chain;
 };
 
 bool StateDBImpl::Save(const std::map<const CBlockIndex *, FinalizationState> &states) {
-  CDBBatch batch(*this);
+  CDBBatch batch(m_db);
   for (const auto &i : states) {
     const uint256 &block_hash = i.first->GetBlockHash();
     const FinalizationState &state = i.second;
     batch.Write(block_hash, state);
   }
-  return WriteBatch(batch, true);
+  return m_db.WriteBatch(batch, true);
 }
 
 bool StateDBImpl::Load(std::map<const CBlockIndex *, FinalizationState> *states) {
@@ -72,7 +75,7 @@ bool StateDBImpl::Load(std::map<const CBlockIndex *, FinalizationState> *states)
 
   states->clear();
 
-  std::unique_ptr<CDBIterator> cursor(NewIterator());
+  std::unique_ptr<CDBIterator> cursor(m_db.NewIterator());
   uint256 key;
   cursor->Seek(key);
 
@@ -101,12 +104,16 @@ bool StateDBImpl::Load(const CBlockIndex &index,
   assert(states != nullptr);
 
   FinalizationState state(*m_finalization_params);
-  if (Read(index.GetBlockHash(), state)) {
+  if (m_db.Read(index.GetBlockHash(), state)) {
     states->emplace(&index, std::move(state));
     return true;
   }
 
   return false;
+}
+
+bool StateDBImpl::Erase(const CBlockIndex &index) {
+  return m_db.Erase(index.GetBlockHash());
 }
 
 boost::optional<uint32_t> StateDBImpl::FindLastFinalizedEpoch() const {
@@ -117,7 +124,7 @@ boost::optional<uint32_t> StateDBImpl::FindLastFinalizedEpoch() const {
 
   while (walk != nullptr) {
     FinalizationState state(*m_finalization_params);
-    if (Read(walk->GetBlockHash(), state)) {
+    if (m_db.Read(walk->GetBlockHash(), state)) {
       return state.GetLastFinalizedEpoch();
     }
     walk = walk->pprev;
@@ -140,7 +147,7 @@ void StateDBImpl::LoadStatesHigherThan(
     const CBlockIndex *origin = m_active_chain->FindForkOrigin(block_index);
     if (origin != nullptr && static_cast<blockchain::Height>(origin->nHeight) > height) {
       FinalizationState state(*m_finalization_params);
-      if (Read(block_hash, state)) {
+      if (m_db.Read(block_hash, state)) {
         states->emplace(&block_index, std::move(state));
       }
     }

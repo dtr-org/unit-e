@@ -47,6 +47,8 @@ class StateDB {
   virtual bool Load(const CBlockIndex &index,
                     std::map<const CBlockIndex *, FinalizationState> *states) const = 0;
 
+  virtual bool Erase(const CBlockIndex &index) = 0;
+
   //! \brief Returns last finalized epoch accoring to active chain's tip.
   virtual boost::optional<uint32_t> FindLastFinalizedEpoch() const = 0;
 

@@ -62,6 +62,50 @@ BOOST_AUTO_TEST_CASE(leveldb_rand) {
   BOOST_CHECK_EQUAL(restored, original);
 }
 
+BOOST_AUTO_TEST_CASE(erase_states) {
+  mocks::ActiveChainFake active_chain;
+  mocks::BlockIndexMapFake block_index_map;
+  Settings settings;
+  finalization::StateDBParams params;
+  params.inmemory = true;
+
+  finalization::Params finalization_params;
+  std::unique_ptr<finalization::StateDB> db = finalization::StateDB::NewFromParams(
+      params, &settings, &finalization_params, &block_index_map, &active_chain);
+
+  LOCK(block_index_map.GetLock());
+
+  std::map<const CBlockIndex *, esperanza::FinalizationState> original;
+  for (size_t i = 0; i < 100; ++i) {
+    CBlockIndex *block_index = block_index_map.Insert(GetRandHash());
+    FinalizationStateSpy state(finalization_params);
+    state.shuffle();
+    original.emplace(block_index, std::move(state));
+  }
+  BOOST_REQUIRE_EQUAL(original.size(), 100);
+
+  db->Save(original);
+
+  // Erase ~1/3 of states, check availability
+  std::set<const CBlockIndex *> erased_states;
+  std::set<const CBlockIndex *> alive_states;
+  for (const auto &kv : original) {
+    if (GetRand(3) == 0) {
+      db->Erase(*kv.first);
+      erased_states.emplace(kv.first);
+    } else {
+      alive_states.emplace(kv.first);
+    }
+  }
+  std::map<const CBlockIndex *, esperanza::FinalizationState> restored;
+  for (const CBlockIndex *index : erased_states) {
+    BOOST_CHECK_EQUAL(db->Load(*index, &restored), false);
+  }
+  for (const CBlockIndex *index : alive_states) {
+    BOOST_CHECK_EQUAL(db->Load(*index, &restored), true);
+  }
+}
+
 BOOST_AUTO_TEST_CASE(load_best_states) {
   Settings settings;
   finalization::StateDBParams params;

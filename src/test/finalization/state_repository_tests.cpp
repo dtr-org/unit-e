@@ -69,6 +69,10 @@ class StateDBMock : public finalization::StateDB {
     return true;
   }
 
+  bool Erase(const CBlockIndex &index) override {
+    return m_states.erase(&index) > 0;
+  }
+
   boost::optional<uint32_t> FindLastFinalizedEpoch() const override {
     return m_last_finalized_epoch;
   }
@@ -147,6 +151,7 @@ BOOST_AUTO_TEST_CASE(basic_checks) {
   const auto &b4 = fixture.CreateBlockIndex();
 
   finalization::StateRepository &repo = *fixture.m_repo;
+  auto &stored_states = fixture.m_state_db.m_states;
 
   LOCK(repo.GetLock());
 
@@ -199,6 +204,14 @@ BOOST_AUTO_TEST_CASE(basic_checks) {
   BOOST_REQUIRE(state4 != nullptr);
   BOOST_CHECK(state4->GetInitStatus() == S::NEW);
 
+  // Check state_db integration
+  repo.SaveToDisk();
+  BOOST_CHECK_EQUAL(stored_states.count(&b0), 0);  // we don't store genesis state on disk
+  BOOST_CHECK_EQUAL(stored_states.count(&b1), 1);
+  BOOST_CHECK_EQUAL(stored_states.count(&b2), 1);
+  BOOST_CHECK_EQUAL(stored_states.count(&b3), 1);
+  BOOST_CHECK_EQUAL(stored_states.count(&b4), 1);
+
   // Trim the repository
   repo.TrimUntilHeight(3);
   BOOST_CHECK(repo.Find(b0) != nullptr);  // genesis
@@ -206,6 +219,11 @@ BOOST_AUTO_TEST_CASE(basic_checks) {
   BOOST_CHECK(repo.Find(b2) == nullptr);
   BOOST_CHECK(repo.Find(b3) != nullptr);
   BOOST_CHECK(repo.Find(b4) != nullptr);
+  BOOST_CHECK_EQUAL(stored_states.count(&b0), 0);  // we don't store genesis state on disk
+  BOOST_CHECK_EQUAL(stored_states.count(&b1), 0);
+  BOOST_CHECK_EQUAL(stored_states.count(&b2), 0);
+  BOOST_CHECK_EQUAL(stored_states.count(&b3), 1);
+  BOOST_CHECK_EQUAL(stored_states.count(&b4), 1);
 
   // Btw, now we processed states til the chain's tip. Check it.
   BOOST_CHECK(repo.GetTipState() == state4);

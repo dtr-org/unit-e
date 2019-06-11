@@ -129,6 +129,7 @@ void RepositoryImpl::TrimUntilHeight(blockchain::Height height) {
       assert(index != nullptr);
     }
     if (static_cast<blockchain::Height>(index->nHeight) < height) {
+      m_state_db->Erase(*it->first);
       it = m_states.erase(it);
     } else {
       ++it;
