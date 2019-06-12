@@ -156,7 +156,7 @@ class InteractiveTestRunner:
         self.line_length = max(len(line), self.line_length)
         print('\r%s' % format_line(yellow), end='', flush=True)
 
-    def run(self, test_patterns, only_modified):
+    def run(self, test_patterns, only_modified, verbose):
         relevant_files = self.find_functional_tests(only_modified=only_modified)
 
         def pattern_matches(name):
@@ -193,7 +193,8 @@ class InteractiveTestRunner:
             while remaining_tests and len(running_jobs) < self.num_jobs:
                 test = remaining_tests.pop(0)
                 running_jobs.append(self.spawn_test(test))
-            self.report_running(running_jobs)
+            if verbose:
+                self.report_running(running_jobs)
             time.sleep(0.5)
 
 
@@ -221,6 +222,8 @@ def main():
                         help='reverse the list of tests (can be combined with --sort)')
     parser.add_argument('--modified', '-m', action='store_true',
                         help='only run tests that have been modified')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help='only run tests that have been modified')
 
     args, unknown_args = parser.parse_known_args()
     passon_args, tests = partition(lambda arg: arg[:2] == '--', unknown_args)
@@ -240,7 +243,7 @@ def main():
         num_jobs=args.jobs,
         passon_args=passon_args,
         tests_order=tests_order,
-    ).run(test_patterns=tests, only_modified=args.modified)
+    ).run(test_patterns=tests, only_modified=args.modified, verbose=args.verbose)
 
 
 if __name__ == '__main__':
