@@ -15,8 +15,8 @@ from test_framework.util import (
     assert_raises_rpc_error,
     sync_blocks,
     sync_mempools,
+    generate_block
 )
-
 
 class FilterTransactionsTest(UnitETestFramework):
     def set_test_params(self):

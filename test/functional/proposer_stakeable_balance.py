@@ -4,7 +4,14 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 from decimal import Decimal
 
-from test_framework.util import assert_equal, connect_nodes_bi, wait_until
+from test_framework.util import (
+    assert_equal,
+    connect_nodes_bi,
+    wait_until,
+    disconnect_all_nodes,
+    connect_nodes,
+    sync_mempools
+)
 from test_framework.test_framework import UnitETestFramework
 
 
