@@ -223,7 +223,7 @@ def main():
     parser.add_argument('--modified', '-m', action='store_true',
                         help='only run tests that have been modified')
     parser.add_argument('--verbose', '-v', action='store_true',
-                        help='only run tests that have been modified')
+                        help='increase output verbosity')
 
     args, unknown_args = parser.parse_known_args()
     passon_args, tests = partition(lambda arg: arg[:2] == '--', unknown_args)
