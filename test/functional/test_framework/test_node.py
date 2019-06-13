@@ -84,7 +84,7 @@ class TestNode():
             "-mocktime=" + str(mocktime),
             "-uacomment=testnode%d" % i
         ]
-        print("Starting node " + str(i) + " with command: "
+        print("Initiating node " + str(i) + " with command: "
               + ' '.join(str(e) for e in self.args)
               + ' '.join(str(e) for e in extra_args))
 
