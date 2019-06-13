@@ -335,7 +335,6 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
         assert_equal(len(extra_args), num_nodes)
         assert_equal(len(binary), num_nodes)
         for i in range(num_nodes):
-            print("Starting node " + str(i) + " with args: " + ' '.join(str(e) for e in extra_args[i]))
             self.nodes.append(TestNode(i, get_datadir_path(self.options.tmpdir, i), rpchost=rpchost, timewait=self.rpc_timewait, unit_e=binary[i], unit_e_cli=self.options.unit_e_cli, mocktime=self.mocktime, coverage_dir=self.options.coveragedir, extra_conf=extra_confs[i], extra_args=extra_args[i], use_cli=self.options.usecli))
 
     def start_node(self, i, *args, **kwargs):

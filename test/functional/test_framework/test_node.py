@@ -84,6 +84,9 @@ class TestNode():
             "-mocktime=" + str(mocktime),
             "-uacomment=testnode%d" % i
         ]
+        print("Starting node " + str(i) + " with command: "
+              + ' '.join(str(e) for e in self.args)
+              + ' '.join(str(e) for e in extra_args))
 
         self.cli = TestNodeCLI(unit_e_cli, self.datadir)
         self.use_cli = use_cli
