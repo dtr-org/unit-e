@@ -11,6 +11,7 @@
 #include <serialize.h>
 #include <sync.h>
 
+#include <boost/core/noncopyable.hpp>
 #include <boost/optional.hpp>
 
 #include <map>
