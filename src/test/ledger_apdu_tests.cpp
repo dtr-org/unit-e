@@ -73,7 +73,7 @@ BOOST_AUTO_TEST_CASE(apdu_test_prepare_segwit) {
     tx.vin.push_back(CTxIn(outpoint1));
     tx.vout.push_back(CTxOut(50000, CScript() << OP_0));
 
-    result = usbdevice::GetPreparePhaseAPDUs(tx, view_cache, apdus, error);
+    result = usbdevice::GetPreparePhaseAPDUs(CTransaction(tx), view_cache, apdus, error);
     BOOST_CHECK(result);
     BOOST_CHECK_EQUAL(apdus.size(), 3);
 
@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE(apdu_test_prepare_segwit) {
     tx.vin.push_back(CTxIn(outpoint1));
     tx.vout.push_back(CTxOut(50000, CScript() << randvec<1500>()));
 
-    result = usbdevice::GetPreparePhaseAPDUs(tx, view_cache, apdus, error);
+    result = usbdevice::GetPreparePhaseAPDUs(CTransaction(tx), view_cache, apdus, error);
     BOOST_CHECK(result);
 
     size_t output_payload_size = 0;
@@ -106,7 +106,7 @@ BOOST_AUTO_TEST_CASE(apdu_test_prepare_segwit) {
     tx.vin.push_back(CTxIn(outpoint2));
     tx.vout.push_back(CTxOut(50000, CScript() << OP_0));
 
-    result = usbdevice::GetPreparePhaseAPDUs(tx, view_cache, apdus, error);
+    result = usbdevice::GetPreparePhaseAPDUs(CTransaction(tx), view_cache, apdus, error);
     BOOST_CHECK(!result);
   }
 
@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE(apdu_test_prepare_segwit) {
     tx.vout.push_back(
         CTxOut(50000, CScript() << std::vector<uint8_t>(300, 0xCD)));
 
-    result = usbdevice::GetPreparePhaseAPDUs(tx, view_cache, apdus, error);
+    result = usbdevice::GetPreparePhaseAPDUs(CTransaction(tx), view_cache, apdus, error);
     BOOST_CHECK(result);
 
     size_t output_payload_size = 0;
@@ -161,7 +161,7 @@ BOOST_AUTO_TEST_CASE(apdu_test_sign_segwit) {
     tx.vin.push_back(CTxIn(outpoint1));
 
     result =
-        usbdevice::GetSignPhaseAPDUs(path, tx, 0, script1, hash_type, 50000,
+        usbdevice::GetSignPhaseAPDUs(path, CTransaction(tx), 0, script1, hash_type, 50000,
                                      SigVersion::WITNESS_V0, apdus, error);
     BOOST_CHECK(result);
     BOOST_CHECK_EQUAL(apdus.size(), 3);
@@ -179,7 +179,7 @@ BOOST_AUTO_TEST_CASE(apdu_test_sign_segwit) {
     tx.vin.push_back(CTxIn(outpoint2));
 
     result =
-        usbdevice::GetSignPhaseAPDUs(path, tx, 0, script2, hash_type, 50000,
+        usbdevice::GetSignPhaseAPDUs(path, CTransaction(tx), 0, script2, hash_type, 50000,
                                      SigVersion::WITNESS_V0, apdus, error);
     BOOST_CHECK(result);
     BOOST_CHECK_EQUAL(apdus.rbegin()->size,

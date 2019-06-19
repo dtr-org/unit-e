@@ -3341,7 +3341,7 @@ bool CWallet::CreateTransaction(interfaces::Chain::Lock& locked_chain, const std
                 }
 
                 if (!pdevice->PrepareTransaction(
-                    txNew, coins_cache, *this, SIGHASH_ALL, error
+                    CTransaction(txNew), coins_cache, *this, SIGHASH_ALL, error
                 )) {
                     strFailReason = std::move(error);
                     return false;
@@ -3359,7 +3359,7 @@ bool CWallet::CreateTransaction(interfaces::Chain::Lock& locked_chain, const std
 #ifdef ENABLE_USBDEVICE
                 if (::IsMine(*this, scriptPubKey) == ISMINE_HW_DEVICE) {
                     txCreator.reset(new usbdevice::DeviceSignatureCreator(
-                        pdevice, *this, txNew, nIn, coin.txout.nValue, SIGHASH_ALL
+                        pdevice, *this, CTransaction(txNew), nIn, coin.txout.nValue, SIGHASH_ALL
                     ));
                 }
 #endif
