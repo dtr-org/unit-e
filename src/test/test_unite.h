@@ -101,11 +101,10 @@ private:
  */
 class CConnman;
 class CNode;
-struct CConnmanTest : public CConnman {
-    using CConnman::CConnman;
-    static void AddNode(CNode& node);
-    static void ClearNodes();
-    static void StartThreadMessageHandler();
+struct CConnmanTest {
+    static void AddNode(CNode& node, CConnman *connman);
+    static void ClearNodes(CConnman *connman);
+    static void StartThreadMessageHandler(CConnman *connman);
 };
 
 class PeerLogicValidation;

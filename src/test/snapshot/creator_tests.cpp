@@ -64,8 +64,6 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
   }
 
   {
-    LOCK(cs_main);
-
     // create snapshots
     std::vector<uint256> deletedSnapshots;
     size_t maxSnapshotsToKeep = 5;

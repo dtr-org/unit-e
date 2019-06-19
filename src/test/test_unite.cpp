@@ -5,6 +5,7 @@
 #include <test/test_unite.h>
 
 #include <blockchain/blockchain_behavior.h>
+#include <banman.h>
 #include <chainparams.h>
 #include <consensus/consensus.h>
 #include <consensus/validation.h>
@@ -14,6 +15,7 @@
 #include <injector.h>
 #include <validation.h>
 #include <miner.h>
+#include <net.h>
 #include <net_processing.h>
 #include <ui_interface.h>
 #include <streams.h>
@@ -24,23 +26,20 @@
 
 #include <memory>
 
-void CConnmanTest::AddNode(CNode& node)
+void CConnmanTest::AddNode(CNode& node, CConnman* connman)
 {
-    LOCK(g_connman->cs_vNodes);
-    g_connman->vNodes.push_back(&node);
+    LOCK(connman->cs_vNodes);
+    connman->vNodes.push_back(&node);
 }
 
-void CConnmanTest::ClearNodes()
+void CConnmanTest::ClearNodes(CConnman* connman)
 {
-    LOCK(g_connman->cs_vNodes);
-    for (CNode* node : g_connman->vNodes) {
-        delete node;
-    }
-    g_connman->vNodes.clear();
+    LOCK(connman->cs_vNodes);
+    connman->vNodes.clear();
 }
 
-void CConnmanTest::StartThreadMessageHandler() {
-    g_connman->ThreadMessageHandler();
+void CConnmanTest::StartThreadMessageHandler(CConnman* connman) {
+    connman->ThreadMessageHandler();
 }
 
 void SelectNetwork(const std::string& network_name) {
@@ -144,6 +143,7 @@ TestingSetup::TestingSetup(const std::string& chainName, UnitEInjectorConfigurat
         for (int i=0; i < nScriptCheckThreads-1; i++)
             threadGroup.create_thread(&ThreadScriptCheck);
         g_connman = std::unique_ptr<CConnman>(new CConnman(0x1337, 0x1337)); // Deterministic randomness for tests.
+        g_banman = MakeUnique<BanMan>(GetDataDir() / "banlist.dat", nullptr, DEFAULT_MISBEHAVING_BANTIME);
         connman = g_connman.get();
         banman = g_banman.get();
         peerLogic.reset(new PeerLogicValidation(connman, banman, scheduler, /*enable_bip61=*/true));

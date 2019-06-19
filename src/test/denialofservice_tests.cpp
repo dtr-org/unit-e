@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(outbound_slow_chain_eviction)
     peerLogic->FinalizeNode(dummyNode1.GetId(), dummy);
 }
 
-static void AddRandomOutboundPeer(std::vector<CNode *> &vNodes, PeerLogicValidation &peerLogic, CConnmanTest* connman)
+static void AddRandomOutboundPeer(std::vector<CNode *> &vNodes, PeerLogicValidation &peerLogic, CConnman* connman)
 {
     CAddress addr(ip(g_insecure_rand_ctx.randbits(32)), NODE_NONE);
     vNodes.emplace_back(new CNode(id++, ServiceFlags(NODE_NETWORK|NODE_WITNESS), 0, INVALID_SOCKET, addr, 0, 0, CAddress(), "", /*fInboundIn=*/ false));
@@ -113,12 +113,12 @@ static void AddRandomOutboundPeer(std::vector<CNode *> &vNodes, PeerLogicValidat
     node.nVersion = 1;
     node.fSuccessfullyConnected = true;
 
-    connman->AddNode(node);
+    CConnmanTest::AddNode(node, connman);
 }
 
 BOOST_AUTO_TEST_CASE(stale_tip_peer_management)
 {
-    auto connman = MakeUnique<CConnmanTest>(0x1337, 0x1337);
+    auto connman = MakeUnique<CConnman>(0x1337, 0x1337);
     auto peerLogic = MakeUnique<PeerLogicValidation>(connman.get(), nullptr, scheduler, false);
 
     const Consensus::Params& consensusParams = Params().GetConsensus();
@@ -185,7 +185,7 @@ BOOST_AUTO_TEST_CASE(stale_tip_peer_management)
         peerLogic->FinalizeNode(node->GetId(), dummy);
     }
 
-    connman->ClearNodes();
+    CConnmanTest::ClearNodes(connman.get());
 }
 
 BOOST_AUTO_TEST_CASE(DoS_banning)
