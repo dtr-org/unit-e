@@ -29,6 +29,7 @@ struct Fixture {
   std::unique_ptr<::ArgsManager> args_manager;
   std::unique_ptr<blockchain::Behavior> behavior = blockchain::Behavior::New(args_manager.get());
   std::unique_ptr<::Settings> settings;
+  std::unique_ptr<interfaces::Chain> chain = interfaces::MakeChain();
   blockchain::Parameters parameters = blockchain::Parameters::TestNet();
 
   struct MultiWalletMock : public proposer::MultiWallet {
@@ -38,6 +39,7 @@ struct Fixture {
     }
   };
 
+  esperanza::WalletExtensionDeps deps;
   std::shared_ptr<CWallet> wallet;
   MultiWalletMock multi_wallet_mock;
   mocks::StakeValidatorMock stake_validator;
@@ -57,11 +59,8 @@ struct Fixture {
           return argsman;
         }()),
         settings(Settings::New(args_manager.get(), behavior.get())),
-        // UNIT-E TODO [0.18.0]: Update a call to the CWallet constructor
-        // wallet(new CWallet("mock", WalletDatabase::CreateMock(), [&] {
-        //   esperanza::WalletExtensionDeps deps(settings.get(), &stake_validator);
-        //   return deps;
-        // }())),
+        deps(settings.get(), &stake_validator),
+        wallet(new CWallet(*chain, WalletLocation(), WalletDatabase::CreateMock(), deps)),
         multi_wallet_mock([&] {
           MultiWalletMock mock;
           mock.wallets.emplace_back(wallet);

@@ -798,7 +798,7 @@ UniValue filtertransactions(const JSONRPCRequest &request) {
       }
 
       // Get the transaction finalization state
-      const CBlockIndex *block_index = nullptr;
+      const CBlockIndex *block_index = pwtx->GetContainingBlock(*locked_chain);
       bool finalized = false;
       if (pwtx->GetDepthInMainChain(*locked_chain) > 0) {
         const finalization::FinalizationState *tip_fin_state = fin_repo->GetTipState();

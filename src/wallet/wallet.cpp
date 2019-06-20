@@ -4755,6 +4755,18 @@ void CMerkleTx::SetMerkleBranch(const uint256& block_hash, int posInBlock)
     nIndex = posInBlock;
 }
 
+// UNIT-E TODO [0.18.0]: Get rid of this method in the future (see ForEachStakeableCoin)
+CBlockIndex* CMerkleTx::GetContainingBlock(interfaces::Chain::Lock& locked_chain) const
+{
+    if (hashUnset()) {
+        return nullptr;
+    }
+
+    AssertLockHeld(cs_main);
+
+    return locked_chain.getBlock(hashBlock);
+}
+
 int CMerkleTx::GetDepthInMainChain(interfaces::Chain::Lock& locked_chain) const
 {
     if (hashUnset()) {

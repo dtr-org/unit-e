@@ -13,6 +13,7 @@
 #include <vector>
 
 class CBlock;
+class CBlockIndex;
 class CScheduler;
 class uint256;
 struct CBlockLocator;
@@ -41,6 +42,9 @@ public:
     {
     public:
         virtual ~Lock() {}
+
+        //! Get a block by the given hash. Returns `nullptr` if the block is not found.
+        virtual CBlockIndex* getBlock(const uint256& hash) = 0;
 
         //! Get current chain height, not including genesis block (returns 0 if
         //! chain only contains genesis block, nullopt if chain does not contain

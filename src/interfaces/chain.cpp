@@ -22,6 +22,14 @@ namespace {
 
 class LockImpl : public Chain::Lock
 {
+    CBlockIndex* getBlock(const uint256& hash) override
+    {
+        CBlockIndex* block = LookupBlockIndex(hash);
+        if (block && ::chainActive.Contains(block)) {
+            return block;
+        }
+        return nullptr;
+    }
     Optional<int> getHeight() override
     {
         int height = ::chainActive.Height();

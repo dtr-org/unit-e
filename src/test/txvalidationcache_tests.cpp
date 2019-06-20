@@ -425,6 +425,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
       CValidationState state;
       PrecomputedTransactionData txdata(tx);
 
+      LOCK(cs_main);
       BOOST_CHECK(CheckInputs(CTransaction(tx), state, pcoinsTip.get(), true, SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS, true, true, txdata, nullptr));
     }
 }

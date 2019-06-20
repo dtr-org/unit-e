@@ -314,6 +314,9 @@ public:
 
     void SetMerkleBranch(const uint256& block_hash, int posInBlock);
 
+    // UNIT-E TODO [0.18.0]: Get rid of this method in the future (see ForEachStakeableCoin)
+    CBlockIndex* GetContainingBlock(interfaces::Chain::Lock& locked_chain) const;
+
     /**
      * Return depth of transaction in blockchain:
      * <0  : conflicts with a transaction this deep in the blockchain
