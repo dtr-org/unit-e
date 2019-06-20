@@ -35,9 +35,7 @@ nodist_bench_bench_unite_SOURCES = $(GENERATED_BENCH_FILES)
 
 bench_bench_unite_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES) $(EVENT_CLFAGS) $(EVENT_PTHREADS_CFLAGS) -I$(builddir)/bench/
 bench_bench_unite_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-bench_bench_unite_LIBTOOLFLAGS = $(AM_LIBTOOLFLAGS) --preserve-dup-deps
 bench_bench_unite_LDADD = \
-  $(LIBUNITE_WALLET) \
   $(LIBUNITE_SERVER) \
   $(LIBUNITE_WALLET) \
   $(LIBUNITE_COMMON) \

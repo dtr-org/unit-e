@@ -772,17 +772,16 @@ unite_wallet_SOURCES = unite-wallet.cpp
 unite_wallet_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 unite_wallet_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 unite_wallet_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
-unite_wallet_LIBTOOLFLAGS = $(AM_LIBTOOLFLAGS) --preserve-dup-deps
 
 if TARGET_WINDOWS
 unite_wallet_SOURCES += unite-wallet-res.rc
 endif
 
 unite_wallet_LDADD = \
-  $(LIBUNITE_WALLET_TOOL) \
-  $(LIBUNITE_WALLET) \
   $(LIBUNITE_SERVER) \
+  $(LIBUNITE_USBDEVICE) \
   $(LIBUNITE_WALLET) \
+  $(LIBUNITE_WALLET_TOOL) \
   $(LIBUNITE_COMMON) \
   $(LIBUNIVALUE) \
   $(LIBUNITE_CONSENSUS) \
@@ -795,7 +794,7 @@ unite_wallet_LDADD = \
   $(LIBSECP256K1)
 
 unite_wallet_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_LIBS) $(EVENT_PTHREADS_LIBS) \
-  $(EVENT_LIBS) $(ZMQ_LIBS)
+  $(EVENT_LIBS) $(ZMQ_LIBS) $(HIDAPI_LIBS)
 #
 
 # uniteconsensus library #
