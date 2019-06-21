@@ -122,6 +122,8 @@ BOOST_FIXTURE_TEST_CASE(importmulti_rescan, TestChain100Setup)
     LockAnnotation lock(::cs_main);
     auto locked_chain = chain->lock();
 
+    RemoveWallet(m_wallet);
+
     // Prune the older block file.
     PruneOneBlockFile(oldTip->GetBlockPos().nFile);
     UnlinkPrunedFiles({oldTip->GetBlockPos().nFile});
@@ -479,6 +481,9 @@ public:
         int changePos = -1;
         std::string error;
         CCoinControl dummy;
+        // UNIT-E TODO [0.18.0]: Re-check this logic
+        wallet->AddKeypoolPubkey(coinbaseKey.GetPubKey(), true);
+        wallet->SetHDSeed(coinbaseKey.GetPubKey());
         BOOST_CHECK(wallet->CreateTransaction(*m_locked_chain, {recipient}, tx, reservekey, fee, changePos, error, dummy));
         CValidationState state;
         BOOST_CHECK(wallet->CommitTransaction(tx, {}, {}, reservekey, nullptr, state));
